@@ -1,0 +1,161 @@
+<div class="pos-container">
+
+  <div class="shortcuts-bar">
+    <span class="shortcut"><kbd>F2</kbd> Alterar Qtd</span>
+    <span class="shortcut"><kbd>F5</kbd> Dinheiro</span>
+    <span class="shortcut"><kbd>F7</kbd> Crédito</span>
+    <span class="shortcut"><kbd>F8</kbd> Débito</span>
+    <span class="shortcut"><kbd>F9</kbd> PIX</span>
+    <span class="shortcut"><kbd>Del</kbd> Remover Item</span>
+    <span class="shortcut"><kbd>Esc</kbd> Cancelar</span>
+  </div>
+
+  <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
+    <span class="material-icons status-icon">
+      {{ statusType === 'success' ? 'check_circle' : statusType === 'error' ? 'error' : 'info' }}
+    </span>
+    {{ statusMessage }}
+  </div>
+
+  <div class="pos-layout">
+    <div class="pos-main">
+      <div class="barcode-section">
+        <div class="barcode-input-wrapper">
+          <span class="material-icons barcode-icon">qr_code_scanner</span>
+          <input
+            #barcodeInput
+            type="text"
+            class="barcode-input"
+            placeholder="Leia ou digite o código de barras e pressione Enter..."
+            [(ngModel)]="barcodeValue"
+            (keydown.enter)="onBarcodeSubmit()"
+            autocomplete="off"
+            autofocus
+          />
+        </div>
+      </div>
+
+      <app-cart-table
+        [items]="cart"
+        [selectedIndex]="selectedCartIndex"
+        (selectItem)="selectItem($event)"
+        (removeItem)="removeItem($event)">
+      </app-cart-table>
+    </div>
+
+    <div class="pos-sidebar">
+      <div class="sidebar-card">
+        <h3>Resumo da Venda</h3>
+        <div class="summary-items">
+          <div class="summary-row">
+            <span>Itens no carrinho:</span>
+            <strong>{{ cart.length }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>Total de produtos:</span>
+            <strong>{{ getTotalQty() }}</strong>
+          </div>
+        </div>
+        <div class="total-display">
+          <span>TOTAL</span>
+          <span class="total-value">R$ {{ total | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="btn btn-success btn-lg" (click)="startPayment('CASH')">
+          <span class="material-icons">payments</span>
+          Dinheiro (F5)
+        </button>
+        <button class="btn btn-primary btn-lg" (click)="startPayment('CREDIT_CARD')">
+          <span class="material-icons">credit_card</span>
+          Crédito (F7)
+        </button>
+        <button class="btn btn-primary btn-lg" (click)="startPayment('DEBIT_CARD')">
+          <span class="material-icons">credit_card</span>
+          Débito (F8)
+        </button>
+        <button class="btn btn-accent btn-lg" (click)="startPayment('PIX')">
+          <span class="material-icons">pix</span>
+          PIX (F9)
+        </button>
+        <button class="btn btn-danger btn-sm" (click)="clearCart()" *ngIf="cart.length > 0">
+          <span class="material-icons">delete_sweep</span>
+          Limpar Carrinho
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showQuantityModal" (click)="closeQuantityModal()">
+  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+    <h3>
+      <span class="material-icons">edit</span>
+      Alterar Quantidade
+    </h3>
+    <p *ngIf="selectedCartIndex >= 0 && selectedCartIndex < cart.length">
+      Produto: <strong>{{ cart[selectedCartIndex].description }}</strong>
+    </p>
+    <div class="form-group">
+      <label for="newQty">Nova Quantidade:</label>
+      <input
+        id="newQty"
+        type="number"
+        min="1"
+        [(ngModel)]="newQuantity"
+        (keydown.enter)="confirmQuantity()"
+        class="form-input"
+        autofocus
+      />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeQuantityModal()">Cancelar</button>
+      <button class="btn btn-primary" (click)="confirmQuantity()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<app-payment-modal
+  *ngIf="showPaymentModal"
+  [total]="total"
+  [paymentMethod]="paymentMethod"
+  [amountPaid]="amountPaid"
+  [changeValue]="changeValue"
+  (amountPaidChange)="amountPaid = $event; calculateChange()"
+  (confirm)="confirmPayment()"
+  (cancel)="closePaymentModal()"
+  [getPaymentLabel]="getPaymentLabel">
+</app-payment-modal>
+
+<div class="modal-overlay" *ngIf="showReceiptModal" (click)="closeReceiptModal()">
+  <div class="modal-content modal-md" (click)="$event.stopPropagation()">
+    <div class="receipt-header">
+      <span class="material-icons receipt-check">check_circle</span>
+      <h3>Venda Finalizada!</h3>
+    </div>
+    <div class="receipt-body" *ngIf="lastSale">
+      <div class="receipt-row">
+        <span>ID da Venda:</span>
+        <strong>{{ lastSale.id }}</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Total:</span>
+        <strong>R$ {{ lastSale.totalAmount | number:'1.2-2' }}</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Pago:</span>
+        <strong>R$ {{ lastSale.totalPaid | number:'1.2-2' }}</strong>
+      </div>
+      <div class="receipt-row highlight" *ngIf="(lastSale.change || 0) > 0">
+        <span>Troco:</span>
+        <strong class="text-success">R$ {{ lastSale.change | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-lg" (click)="closeReceiptModal()">Nova Venda</button>
+    </div>
+  </div>
+</div>
+
+

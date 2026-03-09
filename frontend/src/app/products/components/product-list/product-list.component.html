@@ -1,0 +1,82 @@
+<div class="products-page">
+  <div class="page-header">
+    <h2><span class="material-icons">inventory_2</span> Cadastro de Produtos</h2>
+    <button class="btn btn-primary" (click)="openCreateForm()">
+      <span class="material-icons">add</span> Novo Produto
+    </button>
+  </div>
+
+  <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
+    {{ statusMessage }}
+  </div>
+
+  <div class="form-card" *ngIf="showForm">
+    <h3>{{ editingId ? 'Editar Produto' : 'Novo Produto' }}</h3>
+    <form (ngSubmit)="saveProduct()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código de Barras</label>
+          <input type="text" [(ngModel)]="form.barcode" name="barcode" class="form-input" required />
+        </div>
+        <div class="form-group flex-2">
+          <label>Descrição</label>
+          <input type="text" [(ngModel)]="form.description" name="description" class="form-input" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Preço (R$)</label>
+          <input type="number" step="0.01" min="0.01" [(ngModel)]="form.price" name="price" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label>Estoque</label>
+          <input type="number" min="0" [(ngModel)]="form.stockQuantity" name="stockQuantity" class="form-input" required />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Código de Barras</th>
+          <th>Descrição</th>
+          <th>Preço</th>
+          <th>Estoque</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of products">
+          <td class="mono">{{ product.barcode }}</td>
+          <td>{{ product.description }}</td>
+          <td class="text-right">R$ {{ product.price | number:'1.2-2' }}</td>
+          <td class="text-center">{{ product.stockQuantity }}</td>
+          <td>
+            <span class="badge" [ngClass]="product.active ? 'badge-success' : 'badge-danger'">
+              {{ product.active ? 'Ativo' : 'Inativo' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn-icon" title="Editar" (click)="openEditForm(product)">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="btn-icon btn-icon-danger" title="Remover" (click)="deleteProduct(product.id!)">
+              <span class="material-icons">delete</span>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="products.length === 0">
+          <td colspan="6" class="empty-state">Nenhum produto cadastrado.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+

@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: BiniTech PDV
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/binitech_pdv
+      database: binitech_pdv
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.9
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method

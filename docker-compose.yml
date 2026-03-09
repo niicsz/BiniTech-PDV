@@ -1,0 +1,15 @@
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: binitech-pdv-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=binitech_pdv
+
+volumes:
+  mongo_data:
+

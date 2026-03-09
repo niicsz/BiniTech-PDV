@@ -1,0 +1,382 @@
+openapi: 3.0.3
+info:
+  title: BiniTech PDV API
+  description: API do Sistema Frente de Caixa (PDV) da BiniTech
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor local de desenvolvimento
+
+tags:
+  - name: Products
+    description: Operações de cadastro e consulta de produtos
+  - name: Sales
+    description: Operações de venda e relatórios
+
+paths:
+  /api/products:
+    get:
+      tags: [Products]
+      summary: Listar todos os produtos
+      operationId: listProducts
+      responses:
+        '200':
+          description: Lista de produtos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductDTO'
+    post:
+      tags: [Products]
+      summary: Cadastrar um novo produto
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductDTO'
+      responses:
+        '201':
+          description: Produto criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      summary: Buscar produto por ID
+      operationId: getProductById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Produto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        '404':
+          description: Produto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+    put:
+      tags: [Products]
+      summary: Atualizar um produto existente
+      operationId: updateProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductDTO'
+      responses:
+        '200':
+          description: Produto atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        '404':
+          description: Produto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+    delete:
+      tags: [Products]
+      summary: Remover um produto
+      operationId: deleteProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Produto removido com sucesso
+        '404':
+          description: Produto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/products/barcode/{barcode}:
+    get:
+      tags: [Products]
+      summary: Buscar produto por código de barras (leitura rápida)
+      operationId: getProductByBarcode
+      parameters:
+        - name: barcode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Produto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        '404':
+          description: Produto não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/sales:
+    post:
+      tags: [Sales]
+      summary: Registrar uma nova venda
+      operationId: createSale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSaleDTO'
+      responses:
+        '201':
+          description: Venda registrada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleDTO'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+    get:
+      tags: [Sales]
+      summary: Listar vendas com filtro por data
+      operationId: listSales
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: Data específica (formato yyyy-MM-dd) para extrato do dia
+          schema:
+            type: string
+            format: date
+        - name: startDate
+          in: query
+          required: false
+          description: Data inicial do período (formato yyyy-MM-dd)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          description: Data final do período (formato yyyy-MM-dd)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de vendas retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SaleDTO'
+
+  /api/sales/{id}:
+    get:
+      tags: [Sales]
+      summary: Buscar venda por ID
+      operationId: getSaleById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Venda encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleDTO'
+        '404':
+          description: Venda não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+components:
+  schemas:
+    ProductDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        barcode:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        stockQuantity:
+          type: integer
+        active:
+          type: boolean
+
+    CreateProductDTO:
+      type: object
+      required:
+        - barcode
+        - description
+        - price
+        - stockQuantity
+      properties:
+        barcode:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          format: double
+          minimum: 0.01
+        stockQuantity:
+          type: integer
+          minimum: 0
+
+    SaleDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleItemDTO'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentDTO'
+        totalAmount:
+          type: number
+          format: double
+        totalPaid:
+          type: number
+          format: double
+        change:
+          type: number
+          format: double
+        timestamp:
+          type: string
+          format: date-time
+
+    SaleItemDTO:
+      type: object
+      properties:
+        productId:
+          type: string
+        productDescription:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        subtotal:
+          type: number
+          format: double
+
+    CreateSaleDTO:
+      type: object
+      required:
+        - items
+        - payments
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateSaleItemDTO'
+        payments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PaymentDTO'
+
+    CreateSaleItemDTO:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    PaymentDTO:
+      type: object
+      required:
+        - method
+        - amount
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+
+    PaymentMethodEnum:
+      type: string
+      enum:
+        - CASH
+        - CREDIT_CARD
+        - DEBIT_CARD
+        - PIX
+
+    ErrorDTO:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+

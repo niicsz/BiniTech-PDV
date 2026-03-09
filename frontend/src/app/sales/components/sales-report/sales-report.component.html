@@ -1,0 +1,76 @@
+<div class="report-page">
+  <div class="page-header">
+    <h2><span class="material-icons">assessment</span> Relatório de Vendas</h2>
+  </div>
+
+  <div class="filters-card">
+    <div class="filter-actions">
+      <button class="btn" [class.btn-primary]="filterMode === 'today'" [class.btn-secondary]="filterMode !== 'today'" (click)="loadToday()">
+        <span class="material-icons">today</span> Vendas de Hoje
+      </button>
+      <div class="period-filter">
+        <label>De:</label>
+        <input type="date" [(ngModel)]="startDate" class="form-input" />
+        <label>Até:</label>
+        <input type="date" [(ngModel)]="endDate" class="form-input" />
+        <button class="btn btn-primary" (click)="loadByPeriod()">
+          <span class="material-icons">search</span> Filtrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-cards">
+    <div class="summary-card">
+      <span class="material-icons">receipt_long</span>
+      <div>
+        <p class="summary-label">Total de Vendas</p>
+        <p class="summary-value">{{ sales.length }}</p>
+      </div>
+    </div>
+    <div class="summary-card highlight">
+      <span class="material-icons">attach_money</span>
+      <div>
+        <p class="summary-label">Faturamento</p>
+        <p class="summary-value">R$ {{ totalRevenue | number:'1.2-2' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data / Hora</th>
+          <th>Itens</th>
+          <th>Pagamento</th>
+          <th>Total</th>
+          <th>Pago</th>
+          <th>Troco</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let sale of sales">
+          <td class="mono">{{ sale.id?.substring(0, 8) }}...</td>
+          <td>{{ formatTimestamp(sale.timestamp) }}</td>
+          <td class="text-center">{{ sale.items?.length || 0 }}</td>
+          <td>
+            <span *ngFor="let p of sale.payments" class="badge badge-info">
+              {{ getPaymentLabel(p.method) }}
+            </span>
+          </td>
+          <td class="text-right font-bold">R$ {{ sale.totalAmount | number:'1.2-2' }}</td>
+          <td class="text-right">R$ {{ sale.totalPaid | number:'1.2-2' }}</td>
+          <td class="text-right" [class.text-success]="(sale.change || 0) > 0">
+            R$ {{ sale.change | number:'1.2-2' }}
+          </td>
+        </tr>
+        <tr *ngIf="sales.length === 0">
+          <td colspan="7" class="empty-state">Nenhuma venda encontrada para o período selecionado.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+

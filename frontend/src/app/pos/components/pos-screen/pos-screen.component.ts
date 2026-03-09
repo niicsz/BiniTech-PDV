@@ -1,0 +1,295 @@
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ProductService } from '../../services/product.service';
+import { SaleService } from '../../services/sale.service';
+import { CartItem } from '../../../shared/models/cart.model';
+import {
+  ProductDTO, CreateSaleDTO, CreateSaleItemDTO,
+  PaymentDTO, PaymentMethodEnum, SaleDTO
+} from '../../../shared/models/api.models';
+import { CartTableComponent } from '../cart-table/cart-table.component';
+import { PaymentModalComponent } from '../payment-modal/payment-modal.component';
+
+@Component({
+  selector: 'app-pos-screen',
+  standalone: true,
+  imports: [CommonModule, FormsModule, CartTableComponent, PaymentModalComponent],
+  templateUrl: './pos-screen.component.html',
+  styleUrls: ['./pos-screen.component.scss']
+})
+export class PosScreenComponent implements OnInit, OnDestroy {
+
+  @ViewChild('barcodeInput') barcodeInput!: ElementRef<HTMLInputElement>;
+
+  cart: CartItem[] = [];
+  barcodeValue = '';
+  total = 0;
+
+  showPaymentModal = false;
+  paymentMethod: PaymentMethodEnum = 'CASH';
+  amountPaid = 0;
+  changeValue = 0;
+
+  showQuantityModal = false;
+  selectedCartIndex = -1;
+  newQuantity = 1;
+
+  showReceiptModal = false;
+  lastSale: SaleDTO | null = null;
+
+  statusMessage = '';
+  statusType: 'success' | 'error' | 'info' = 'info';
+  private statusTimeout: any;
+
+  constructor(
+    private productService: ProductService,
+    private saleService: SaleService
+  ) {}
+
+  ngOnInit(): void {
+    this.focusBarcode();
+  }
+
+  ngOnDestroy(): void {
+    if (this.statusTimeout) {
+      clearTimeout(this.statusTimeout);
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboard(event: KeyboardEvent): void {
+    if (this.showPaymentModal || this.showReceiptModal) {
+      if (event.key === 'Escape') {
+        this.closePaymentModal();
+        this.closeReceiptModal();
+        event.preventDefault();
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case 'F2':
+        event.preventDefault();
+        this.openQuantityModal();
+        break;
+      case 'F5':
+        event.preventDefault();
+        this.startPayment('CASH');
+        break;
+      case 'F7':
+        event.preventDefault();
+        this.startPayment('CREDIT_CARD');
+        break;
+      case 'F8':
+        event.preventDefault();
+        this.startPayment('DEBIT_CARD');
+        break;
+      case 'F9':
+        event.preventDefault();
+        this.startPayment('PIX');
+        break;
+      case 'Delete':
+        event.preventDefault();
+        this.removeSelectedItem();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeQuantityModal();
+        this.focusBarcode();
+        break;
+    }
+  }
+
+  onBarcodeSubmit(): void {
+    const barcode = this.barcodeValue.trim();
+    if (!barcode) return;
+
+    this.productService.getByBarcode(barcode).subscribe({
+      next: (product: ProductDTO) => {
+        this.addToCart(product);
+        this.barcodeValue = '';
+        this.focusBarcode();
+      },
+      error: () => {
+        this.showStatus(`Produto não encontrado: ${barcode}`, 'error');
+        this.barcodeValue = '';
+        this.focusBarcode();
+      }
+    });
+  }
+
+  addToCart(product: ProductDTO): void {
+    const existing = this.cart.find(item => item.productId === product.id);
+    if (existing) {
+      existing.quantity += 1;
+      existing.subtotal = existing.quantity * existing.unitPrice;
+    } else {
+      this.cart.push({
+        productId: product.id!,
+        barcode: product.barcode || '',
+        description: product.description || '',
+        quantity: 1,
+        unitPrice: product.price || 0,
+        subtotal: product.price || 0
+      });
+    }
+    this.recalculateTotal();
+    this.showStatus(`${product.description} adicionado ao carrinho`, 'success');
+  }
+
+  removeItem(index: number): void {
+    const item = this.cart[index];
+    this.cart.splice(index, 1);
+    if (this.selectedCartIndex === index) {
+      this.selectedCartIndex = -1;
+    } else if (this.selectedCartIndex > index) {
+      this.selectedCartIndex--;
+    }
+    this.recalculateTotal();
+    this.showStatus(`${item.description} removido`, 'info');
+    this.focusBarcode();
+  }
+
+  removeSelectedItem(): void {
+    if (this.selectedCartIndex >= 0 && this.selectedCartIndex < this.cart.length) {
+      this.removeItem(this.selectedCartIndex);
+    }
+  }
+
+  selectItem(index: number): void {
+    this.selectedCartIndex = index;
+  }
+
+  recalculateTotal(): void {
+    this.total = this.cart.reduce((sum, item) => sum + item.subtotal, 0);
+  }
+
+  clearCart(): void {
+    this.cart = [];
+    this.selectedCartIndex = -1;
+    this.total = 0;
+    this.focusBarcode();
+  }
+
+  openQuantityModal(): void {
+    if (this.cart.length === 0) {
+      this.showStatus('Carrinho vazio. Adicione um produto primeiro.', 'error');
+      return;
+    }
+    if (this.selectedCartIndex < 0) {
+      this.selectedCartIndex = this.cart.length - 1;
+    }
+    this.newQuantity = this.cart[this.selectedCartIndex].quantity;
+    this.showQuantityModal = true;
+  }
+
+  confirmQuantity(): void {
+    if (this.newQuantity < 1) {
+      this.showStatus('Quantidade deve ser pelo menos 1.', 'error');
+      return;
+    }
+    const item = this.cart[this.selectedCartIndex];
+    item.quantity = this.newQuantity;
+    item.subtotal = item.quantity * item.unitPrice;
+    this.recalculateTotal();
+    this.showQuantityModal = false;
+    this.showStatus(`Quantidade de "${item.description}" alterada para ${item.quantity}`, 'success');
+    this.focusBarcode();
+  }
+
+  closeQuantityModal(): void {
+    this.showQuantityModal = false;
+    this.focusBarcode();
+  }
+
+  startPayment(method: PaymentMethodEnum): void {
+    if (this.cart.length === 0) {
+      this.showStatus('Carrinho vazio. Adicione produtos antes de finalizar.', 'error');
+      return;
+    }
+    this.paymentMethod = method;
+    this.amountPaid = method === 'CASH' ? 0 : this.total;
+    this.changeValue = 0;
+    this.showPaymentModal = true;
+  }
+
+  calculateChange(): void {
+    this.changeValue = Math.max(0, this.amountPaid - this.total);
+  }
+
+  confirmPayment(): void {
+    if (this.amountPaid < this.total) {
+      this.showStatus('Valor pago é menor que o total da venda.', 'error');
+      return;
+    }
+
+    const items: CreateSaleItemDTO[] = this.cart.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity
+    }));
+
+    const payments: PaymentDTO[] = [{
+      method: this.paymentMethod,
+      amount: this.amountPaid
+    }];
+
+    const sale: CreateSaleDTO = { items, payments };
+
+    this.saleService.create(sale).subscribe({
+      next: (result: SaleDTO) => {
+        this.lastSale = result;
+        this.showPaymentModal = false;
+        this.showReceiptModal = true;
+        this.clearCart();
+        this.showStatus('Venda finalizada com sucesso!', 'success');
+      },
+      error: (err) => {
+        const msg = err.error?.message || 'Erro ao finalizar a venda.';
+        this.showStatus(msg, 'error');
+      }
+    });
+  }
+
+  closePaymentModal(): void {
+    this.showPaymentModal = false;
+    this.focusBarcode();
+  }
+
+  closeReceiptModal(): void {
+    this.showReceiptModal = false;
+    this.lastSale = null;
+    this.focusBarcode();
+  }
+
+  focusBarcode(): void {
+    setTimeout(() => {
+      this.barcodeInput?.nativeElement?.focus();
+    }, 50);
+  }
+
+  showStatus(message: string, type: 'success' | 'error' | 'info'): void {
+    this.statusMessage = message;
+    this.statusType = type;
+    if (this.statusTimeout) {
+      clearTimeout(this.statusTimeout);
+    }
+    this.statusTimeout = setTimeout(() => {
+      this.statusMessage = '';
+    }, 4000);
+  }
+
+  getPaymentLabel(method: string): string {
+    const labels: Record<string, string> = {
+      'CASH': 'Dinheiro',
+      'CREDIT_CARD': 'Cartão de Crédito',
+      'DEBIT_CARD': 'Cartão de Débito',
+      'PIX': 'PIX'
+    };
+    return labels[method] || method;
+  }
+
+  getTotalQty(): number {
+    return this.cart.reduce((sum, item) => sum + item.quantity, 0);
+  }
+}

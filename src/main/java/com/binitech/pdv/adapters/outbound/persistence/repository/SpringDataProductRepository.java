@@ -1,0 +1,14 @@
+package com.binitech.pdv.adapters.outbound.persistence.repository;
+
+import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
+import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface SpringDataProductRepository extends MongoRepository<ProductDocument, String> {
+
+  Optional<ProductDocument> findByBarcode(String barcode);
+
+  boolean existsByBarcode(String barcode);
+}
