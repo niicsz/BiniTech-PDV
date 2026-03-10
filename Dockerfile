@@ -14,7 +14,7 @@ RUN npm run build -- --configuration=production
 # ============================================
 # Stage 2: Build do Backend Spring Boot
 # ============================================
-FROM eclipse-temurin:17-jdk-alpine AS backend-build
+FROM eclipse-temurin:17-jdk AS backend-build
 
 WORKDIR /app
 
@@ -36,12 +36,12 @@ RUN ./mvnw package -DskipTests -B
 # ============================================
 # Stage 3: Runtime
 # ============================================
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre AS runtime
 
 WORKDIR /app
 
 # Cria usuário não-root para segurança
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=backend-build /app/target/*.jar app.jar
 
