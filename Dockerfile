@@ -40,6 +40,10 @@ FROM eclipse-temurin:17-jre AS runtime
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 # Cria usuário não-root para segurança
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
@@ -52,6 +56,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
-
-
+ENTRYPOINT ["java", "-Djavax.net.ssl.trustStoreType=jks", "-jar", "app.jar"]
