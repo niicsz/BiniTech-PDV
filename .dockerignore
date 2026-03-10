@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+target/
+frontend/dist/
+frontend/node_modules/
+frontend/.angular/
+docker-compose.yml
+Dockerfile
+README.md
+HELP.md
+.DS_Store
+Thumbs.db
