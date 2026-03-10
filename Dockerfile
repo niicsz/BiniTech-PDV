@@ -48,11 +48,10 @@ COPY --from=backend-build /app/target/*.jar app.jar
 RUN chown appuser:appgroup app.jar
 USER appuser
 
-# Railway injeta a variável PORT automaticamente
 ENV PORT=8080
 
-EXPOSE ${PORT}
+EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java -jar -Dserver.port=${PORT} -Dspring.data.mongodb.uri=${MONGODB_URI:-mongodb://localhost:27017/binitech_pdv} app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
 

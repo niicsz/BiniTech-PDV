@@ -3,7 +3,7 @@ spring:
     name: BiniTech PDV
   data:
     mongodb:
-      uri: mongodb://localhost:27017/binitech_pdv
+      uri: ${MONGODB_URI:mongodb://localhost:27017/binitech_pdv}
       database: binitech_pdv
 
 de:
@@ -13,7 +13,7 @@ de:
         version: 7.0.9
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 springdoc:
   api-docs:
