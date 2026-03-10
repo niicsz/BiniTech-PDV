@@ -223,7 +223,7 @@ pdv/
 
 ---
 
-## 📝 Licença
+## 📝 Autor
 
 Este projeto é desenvolvido por **Nicolas Bezerra Bini**.
 
