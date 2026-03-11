@@ -9,12 +9,89 @@ servers:
     description: Servidor local de desenvolvimento
 
 tags:
+  - name: Auth
+    description: Autenticação e registro de usuários
   - name: Products
     description: Operações de cadastro e consulta de produtos
   - name: Sales
     description: Operações de venda e relatórios
 
 paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Fazer login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDTO'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseDTO'
+        '400':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar novo usuário (somente ADMIN)
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequestDTO'
+      responses:
+        '201':
+          description: Usuário registrado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseDTO'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Renovar access token usando refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequestDTO'
+      responses:
+        '200':
+          description: Token renovado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponseDTO'
+        '400':
+          description: Refresh token inválido ou expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
   /api/products:
     get:
       tags: [Products]
@@ -238,6 +315,58 @@ paths:
 
 components:
   schemas:
+    LoginRequestDTO:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+
+    RegisterRequestDTO:
+      type: object
+      required:
+        - username
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - OPERATOR
+
+    RefreshTokenRequestDTO:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    AuthResponseDTO:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+
     ProductDTO:
       type: object
       properties:
@@ -254,6 +383,9 @@ components:
           type: integer
         active:
           type: boolean
+        userId:
+          type: string
+          readOnly: true
 
     CreateProductDTO:
       type: object
@@ -302,6 +434,9 @@ components:
         timestamp:
           type: string
           format: date-time
+        userId:
+          type: string
+          readOnly: true
 
     SaleItemDTO:
       type: object

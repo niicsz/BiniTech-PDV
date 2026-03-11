@@ -1,19 +1,20 @@
 package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Product;
+import com.binitech.pdv.utils.Enum.Role;
 import java.util.List;
 
 public interface ProductUseCasePort {
 
-  Product createProduct(Product product);
+  Product createProduct(Product product, String userId);
 
-  Product updateProduct(String id, Product product);
+  Product updateProduct(String id, Product product, String userId, Role role);
 
-  void deleteProduct(String id);
+  void deleteProduct(String id, String userId, Role role);
 
-  Product findById(String id);
+  Product findById(String id, String userId, Role role);
 
-  Product findByBarcode(String barcode);
+  Product findByBarcode(String barcode, String userId);
 
-  List<Product> listAll();
+  List<Product> listAll(String userId, Role role);
 }

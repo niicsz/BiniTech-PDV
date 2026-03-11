@@ -14,4 +14,8 @@ public interface SaleRepositoryPort {
   List<Sale> findByTimestampBetween(LocalDateTime start, LocalDateTime end);
 
   List<Sale> findAll();
+
+  List<Sale> findAllByUserId(String userId);
+
+  List<Sale> findByTimestampBetweenAndUserId(LocalDateTime start, LocalDateTime end, String userId);
 }

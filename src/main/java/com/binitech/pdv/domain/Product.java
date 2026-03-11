@@ -10,6 +10,7 @@ public class Product {
   private double price;
   private int stockQuantity;
   private boolean active;
+  private String userId;
 
   public Product() {
     this.active = true;
@@ -21,13 +22,15 @@ public class Product {
       String description,
       double price,
       int stockQuantity,
-      boolean active) {
+      boolean active,
+      String userId) {
     this.id = id;
     this.barcode = barcode;
     this.description = description;
     this.price = price;
     this.stockQuantity = stockQuantity;
     this.active = active;
+    this.userId = userId;
   }
 
   public void decreaseStock(int quantity) {
@@ -88,6 +91,14 @@ public class Product {
 
   public void setActive(boolean active) {
     this.active = active;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
   }
 
   @Override

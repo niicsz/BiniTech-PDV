@@ -8,7 +8,7 @@ import com.binitech.pdv.domain.Payment;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
-import com.binitech.pdv.utils.PaymentMethod;
+import com.binitech.pdv.utils.Enum.PaymentMethod;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;

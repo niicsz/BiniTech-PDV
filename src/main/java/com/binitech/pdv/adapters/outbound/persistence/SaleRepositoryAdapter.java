@@ -44,4 +44,19 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   public List<Sale> findAll() {
     return repository.findAll().stream().map(mapper::toDomain).collect(Collectors.toList());
   }
+
+  @Override
+  public List<Sale> findAllByUserId(String userId) {
+    return repository.findAllByUserId(userId).stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Sale> findByTimestampBetweenAndUserId(
+      LocalDateTime start, LocalDateTime end, String userId) {
+    return repository.findByTimestampBetweenAndUserId(start, end, userId).stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
+  }
 }

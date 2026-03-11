@@ -2,7 +2,7 @@ package com.binitech.pdv.adapters.inbound.web.mapper;
 
 import com.binitech.pdv.adapters.inbound.web.generated.model.*;
 import com.binitech.pdv.domain.*;
-import com.binitech.pdv.utils.PaymentMethod;
+import com.binitech.pdv.utils.Enum.PaymentMethod;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -15,6 +15,7 @@ public interface WebMapper {
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "active", ignore = true)
+  @Mapping(target = "userId", ignore = true)
   Product toDomain(CreateProductDTO dto);
 
   ProductDTO toDto(Product product);
@@ -26,6 +27,7 @@ public interface WebMapper {
   @Mapping(target = "totalPaid", ignore = true)
   @Mapping(target = "change", ignore = true)
   @Mapping(target = "timestamp", ignore = true)
+  @Mapping(target = "userId", ignore = true)
   Sale toDomain(CreateSaleDTO dto);
 
   @Mapping(target = "productDescription", ignore = true)

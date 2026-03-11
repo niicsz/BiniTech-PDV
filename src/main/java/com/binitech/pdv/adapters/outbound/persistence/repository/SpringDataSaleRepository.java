@@ -10,4 +10,9 @@ import org.springframework.stereotype.Repository;
 public interface SpringDataSaleRepository extends MongoRepository<SaleDocument, String> {
 
   List<SaleDocument> findByTimestampBetween(LocalDateTime start, LocalDateTime end);
+
+  List<SaleDocument> findAllByUserId(String userId);
+
+  List<SaleDocument> findByTimestampBetweenAndUserId(
+      LocalDateTime start, LocalDateTime end, String userId);
 }

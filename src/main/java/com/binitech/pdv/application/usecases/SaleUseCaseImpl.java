@@ -8,6 +8,7 @@ import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.utils.Enum.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -25,13 +26,18 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   }
 
   @Override
-  public Sale createSale(Sale sale) {
+  public Sale createSale(Sale sale, String userId) {
     for (SaleItem item : sale.getItems()) {
       Product product =
           productRepository
               .findById(item.getProductId())
               .orElseThrow(
                   () -> new ResourceNotFoundException("Produto", "id", item.getProductId()));
+
+      if (!product.getUserId().equals(userId)) {
+        throw new BusinessException(
+            "Produto não pertence ao seu catálogo: " + product.getDescription());
+      }
 
       if (!product.isActive()) {
         throw new BusinessException("Produto inativo: " + product.getDescription());
@@ -61,34 +67,52 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       productRepository.save(product);
     }
 
+    sale.setUserId(userId);
     sale.setTimestamp(LocalDateTime.now());
 
     return saleRepository.save(sale);
   }
 
   @Override
-  public Sale findById(String id) {
-    return saleRepository
-        .findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Venda", "id", id));
+  public Sale findById(String id, String userId, Role role) {
+    Sale sale =
+        saleRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Venda", "id", id));
+
+    if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
+      throw new ResourceNotFoundException("Venda", "id", id);
+    }
+
+    return sale;
   }
 
   @Override
-  public List<Sale> listSalesByDay(LocalDate date) {
+  public List<Sale> listSalesByDay(LocalDate date, String userId, Role role) {
     LocalDateTime start = date.atStartOfDay();
     LocalDateTime end = date.atTime(LocalTime.MAX);
-    return saleRepository.findByTimestampBetween(start, end);
+    if (role == Role.ADMIN) {
+      return saleRepository.findByTimestampBetween(start, end);
+    }
+    return saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
   }
 
   @Override
-  public List<Sale> listSalesByPeriod(LocalDate startDate, LocalDate endDate) {
+  public List<Sale> listSalesByPeriod(
+      LocalDate startDate, LocalDate endDate, String userId, Role role) {
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.atTime(LocalTime.MAX);
-    return saleRepository.findByTimestampBetween(start, end);
+    if (role == Role.ADMIN) {
+      return saleRepository.findByTimestampBetween(start, end);
+    }
+    return saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
   }
 
   @Override
-  public List<Sale> listAll() {
-    return saleRepository.findAll();
+  public List<Sale> listAll(String userId, Role role) {
+    if (role == Role.ADMIN) {
+      return saleRepository.findAll();
+    }
+    return saleRepository.findAllByUserId(userId);
   }
 }
