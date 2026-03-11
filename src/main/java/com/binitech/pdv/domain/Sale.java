@@ -14,6 +14,7 @@ public class Sale {
   private double totalPaid;
   private double change;
   private LocalDateTime timestamp;
+  private String userId;
 
   public Sale() {
     this.items = new ArrayList<>();
@@ -110,6 +111,14 @@ public class Sale {
 
   public void setTimestamp(LocalDateTime timestamp) {
     this.timestamp = timestamp;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
   }
 
   @Override

@@ -21,6 +21,7 @@ public class CorsConfig {
     Arrays.stream(allowedOrigins).forEach(config::addAllowedOrigin);
     config.addAllowedMethod("*");
     config.addAllowedHeader("*");
+    config.addExposedHeader("Authorization");
     config.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -5,6 +5,7 @@ export interface ProductDTO {
   price?: number;
   stockQuantity?: number;
   active?: boolean;
+  userId?: string;
 }
 
 export interface CreateProductDTO {
@@ -22,6 +23,7 @@ export interface SaleDTO {
   totalPaid?: number;
   change?: number;
   timestamp?: string;
+  userId?: string;
 }
 
 export interface SaleItemDTO {
@@ -53,5 +55,27 @@ export interface ErrorDTO {
   code?: string;
   message?: string;
   timestamp?: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  role: 'ADMIN' | 'OPERATOR';
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  username: string;
+  role: string;
 }
 

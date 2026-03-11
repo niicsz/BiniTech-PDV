@@ -17,11 +17,12 @@ public class ProductDocument {
 
   @Id private String id;
 
-  @Indexed(unique = true)
+  @Indexed(unique = false)
   private String barcode;
 
   private String description;
   private double price;
   private int stockQuantity;
   private boolean active;
+  private String userId;
 }

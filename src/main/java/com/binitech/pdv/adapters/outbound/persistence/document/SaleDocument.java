@@ -24,4 +24,5 @@ public class SaleDocument {
   private double totalPaid;
   private double change;
   private LocalDateTime timestamp;
+  private String userId;
 }

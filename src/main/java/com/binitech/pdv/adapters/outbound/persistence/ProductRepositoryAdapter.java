@@ -52,4 +52,21 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   public boolean existsByBarcode(String barcode) {
     return repository.existsByBarcode(barcode);
   }
+
+  @Override
+  public List<Product> findAllByUserId(String userId) {
+    return repository.findAllByUserId(userId).stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
+    return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
+  }
+
+  @Override
+  public boolean existsByBarcodeAndUserId(String barcode, String userId) {
+    return repository.existsByBarcodeAndUserId(barcode, userId);
+  }
 }

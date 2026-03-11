@@ -6,6 +6,7 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import java.time.OffsetDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,6 +38,15 @@ public class GlobalExceptionHandler {
     error.setMessage(ex.getMessage());
     error.setTimestamp(OffsetDateTime.now());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorDTO> handleAccessDenied(AccessDeniedException ex) {
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("FORBIDDEN");
+    error.setMessage("Acesso negado. Você não tem permissão para esta operação.");
+    error.setTimestamp(OffsetDateTime.now());
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
   }
 
   @ExceptionHandler(Exception.class)

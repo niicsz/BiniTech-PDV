@@ -1,6 +1,6 @@
 # 🛒 BiniTech PDV
 
-Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura Hexagonal**, utilizando **Spring Boot 4** no backend e **Angular 19** no frontend.
+Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 19** no frontend.
 
 ---
 
@@ -11,7 +11,10 @@ Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura 
 - [Arquitetura](#-arquitetura)
 - [Pré-requisitos](#-pré-requisitos)
 - [Configuração e Execução](#-configuração-e-execução)
+- [Variáveis de Ambiente](#-variáveis-de-ambiente)
+- [Autenticação e Autorização](#-autenticação-e-autorização)
 - [API Endpoints](#-api-endpoints)
+- [Docker](#-docker)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 
 ---
@@ -20,10 +23,12 @@ Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura 
 
 O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 
+- **Autenticação JWT** — Login com access token e refresh token, controle de roles (ADMIN / OPERATOR).
 - **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço e estoque.
 - **Tela de PDV** — Leitura rápida por código de barras, carrinho de compras e finalização de venda.
 - **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito e PIX.
 - **Relatório de vendas** — Consulta de vendas por data ou período.
+- **Registro de usuários** — Somente administradores podem registrar novos usuários.
 
 ---
 
@@ -33,8 +38,10 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 | Tecnologia | Versão |
 |---|---|
 | Java | 17 |
-| Spring Boot | 4.0.3 |
+| Spring Boot | 3.4.3 |
+| Spring Security | — |
 | Spring Data MongoDB | — |
+| JWT (jjwt) | 0.12.6 |
 | OpenAPI Generator | 7.12.0 |
 | MapStruct | 1.6.3 |
 | Lombok | 1.18.36 |
@@ -53,6 +60,7 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 |---|---|
 | MongoDB | 7 |
 | Docker / Docker Compose | — |
+| Node.js (build) | 20 |
 
 ---
 
@@ -63,24 +71,30 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      Frontend (Angular 19)              │
-│         POS Screen │ Product List │ Sales Report        │
+│    Login │ POS Screen │ Product List │ Sales Report     │
 └────────────────────────────┬────────────────────────────┘
-                             │ HTTP (REST API)
+                             │ HTTP (REST API + JWT)
 ┌────────────────────────────▼────────────────────────────┐
 │                   Adapters (Inbound)                    │
-│         ProductController  │  SaleController            │
+│  AuthController │ ProductController │ SaleController    │
 │         GlobalExceptionHandler  │  Mappers              │
 ├─────────────────────────────────────────────────────────┤
 │                  Application (Use Cases)                │
-│     ProductUseCaseImpl  │  SaleUseCaseImpl              │
+│  AuthUseCaseImpl │ ProductUseCaseImpl │ SaleUseCaseImpl │
 ├─────────────────────────────────────────────────────────┤
 │                     Ports (Interfaces)                  │
-│  Inbound: ProductUseCasePort │ SaleUseCasePort          │
-│  Outbound: ProductRepositoryPort │ SaleRepositoryPort   │
+│  Inbound: AuthUseCasePort │ ProductUseCasePort │ SaleUseCasePort  │
+│  Outbound: UserRepositoryPort │ RefreshTokenRepositoryPort       │
+│            ProductRepositoryPort │ SaleRepositoryPort            │
 ├─────────────────────────────────────────────────────────┤
 │                   Adapters (Outbound)                   │
-│   ProductRepositoryAdapter  │  SaleRepositoryAdapter    │
+│  UserRepositoryAdapter │ RefreshTokenRepositoryAdapter  │
+│  ProductRepositoryAdapter  │  SaleRepositoryAdapter     │
 │            Documents  │  Mappers  │  Repositories       │
+├─────────────────────────────────────────────────────────┤
+│                   Config / Security                     │
+│  SecurityConfig │ JwtTokenProvider │ JwtAuthFilter       │
+│  CorsConfig │ DataInitializer │ BeanConfig              │
 └────────────────────────────┬────────────────────────────┘
                              │
                     ┌────────▼────────┐
@@ -92,22 +106,31 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 
 ```
 com.binitech.pdv
-├── domain/                          # Entidades de domínio (Product, Sale, SaleItem, Payment)
-│   └── exception/                   # Exceções de domínio
+├── domain/
+│   ├── Product, Sale, SaleItem, Payment, User, RefreshToken
+│   └── exception/
 ├── application/
 │   ├── ports/
-│   │   ├── inbound/                 # Portas de entrada (ProductUseCasePort, SaleUseCasePort)
-│   │   └── outbound/               # Portas de saída (ProductRepositoryPort, SaleRepositoryPort)
-│   └── usecases/                    # Implementação dos casos de uso
+│   │   ├── inbound/   (AuthUseCasePort, ProductUseCasePort, SaleUseCasePort)
+│   │   └── outbound/  (UserRepositoryPort, RefreshTokenRepositoryPort,
+│   │                    ProductRepositoryPort, SaleRepositoryPort)
+│   └── usecases/      (AuthUseCaseImpl, ProductUseCaseImpl, SaleUseCaseImpl)
 ├── adapters/
-│   ├── inbound/web/                 # Controllers REST (gerados via OpenAPI + implementações)
-│   │   └── mapper/                  # Mappers de DTO ↔ Domain
-│   └── outbound/persistence/       # Adaptadores de persistência MongoDB
-│       ├── document/                # Documentos MongoDB
-│       ├── mapper/                  # Mappers de Document ↔ Domain
-│       └── repository/             # Interfaces Spring Data MongoDB
-├── config/                          # Configurações (Beans, CORS)
-└── utils/                           # Utilitários
+│   ├── inbound/web/
+│   │   ├── AuthController, ProductController, SaleController
+│   │   ├── GlobalExceptionHandler
+│   │   └── mapper/
+│   └── outbound/persistence/
+│       ├── UserRepositoryAdapter, RefreshTokenRepositoryAdapter
+│       ├── ProductRepositoryAdapter, SaleRepositoryAdapter
+│       ├── document/
+│       ├── mapper/
+│       └── repository/
+├── config/
+│   ├── SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter
+│   ├── CorsConfig, BeanConfig, DataInitializer
+│   └── DotenvEnvironmentPostProcessor
+└── utils/
 ```
 
 ---
@@ -115,7 +138,7 @@ com.binitech.pdv
 ## ✅ Pré-requisitos
 
 - **Java 17+**
-- **Node.js 18+** e **npm**
+- **Node.js 20+** e **npm**
 - **Docker** e **Docker Compose** (para o MongoDB)
 - **Maven** (ou use o wrapper `mvnw` incluído)
 
@@ -134,10 +157,8 @@ O MongoDB ficará acessível em `localhost:27017` com o banco `binitech_pdv`.
 ### 2. Backend (Spring Boot)
 
 ```bash
-# Compilar e gerar os artefatos OpenAPI
 ./mvnw clean install
 
-# Executar a aplicação
 ./mvnw spring-boot:run
 ```
 
@@ -150,14 +171,53 @@ O backend estará disponível em **http://localhost:8080**.
 ```bash
 cd frontend
 
-# Instalar dependências
 npm install
 
-# Iniciar o servidor de desenvolvimento
 npm start
 ```
 
 O frontend estará disponível em **http://localhost:4200** e fará proxy das requisições `/api` para o backend na porta `8080`.
+
+---
+
+## 🔐 Variáveis de Ambiente
+
+O projeto utiliza variáveis de ambiente para configuração sensível. Você pode defini-las via `.env`, variáveis do sistema ou `docker-compose.yml`:
+
+| Variável | Descrição | Padrão |
+|---|---|---|
+| `MONGODB_URI` | URI de conexão com o MongoDB | `mongodb://localhost:27017/binitech_pdv` |
+| `PORT` | Porta do servidor backend | `8080` |
+| `JWT_SECRET` | Chave secreta para assinatura dos tokens JWT | — (obrigatório) |
+| `JWT_ACCESS_EXPIRATION` | Tempo de expiração do access token (ms) | `3600000` (1h) |
+| `JWT_REFRESH_EXPIRATION` | Tempo de expiração do refresh token (ms) | `604800000` (7d) |
+| `ADMIN_USERNAME` | Username do admin criado na inicialização | `admin` |
+| `ADMIN_PASSWORD` | Senha do admin criado na inicialização | — (obrigatório) |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS | `http://localhost:4200` |
+
+---
+
+## 🔑 Autenticação e Autorização
+
+O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para proteger as rotas da API.
+
+### Roles
+
+| Role | Permissões |
+|---|---|
+| `ADMIN` | Acesso completo: PDV, produtos, vendas, registro de usuários |
+| `OPERATOR` | Acesso ao PDV, produtos e vendas |
+
+### Fluxo de autenticação
+
+1. **Login** (`POST /api/auth/login`) — Retorna `accessToken` e `refreshToken`.
+2. O `accessToken` é enviado no header `Authorization: Bearer <token>` em cada requisição.
+3. Quando o `accessToken` expira, o frontend usa o `refreshToken` para obter um novo par de tokens via `POST /api/auth/refresh`.
+4. **Registro** (`POST /api/auth/register`) — Somente acessível por usuários `ADMIN`.
+
+### Inicialização
+
+Na primeira execução, o `DataInitializer` cria automaticamente um usuário admin com as credenciais definidas nas variáveis `ADMIN_USERNAME` e `ADMIN_PASSWORD`.
 
 ---
 
@@ -168,24 +228,32 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 - 📄 **Swagger UI:** http://localhost:8080/swagger-ui.html
 - 📋 **API Docs (JSON):** http://localhost:8080/api-docs
 
+### Auth
+
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | Fazer login | Público |
+| `POST` | `/api/auth/register` | Registrar novo usuário | ADMIN |
+| `POST` | `/api/auth/refresh` | Renovar access token | Público |
+
 ### Products
 
-| Método | Endpoint | Descrição |
-|---|---|---|
-| `GET` | `/api/products` | Listar todos os produtos |
-| `POST` | `/api/products` | Cadastrar um novo produto |
-| `GET` | `/api/products/{id}` | Buscar produto por ID |
-| `PUT` | `/api/products/{id}` | Atualizar um produto |
-| `DELETE` | `/api/products/{id}` | Remover um produto |
-| `GET` | `/api/products/barcode/{barcode}` | Buscar produto por código de barras |
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `GET` | `/api/products` | Listar todos os produtos | Autenticado |
+| `POST` | `/api/products` | Cadastrar um novo produto | Autenticado |
+| `GET` | `/api/products/{id}` | Buscar produto por ID | Autenticado |
+| `PUT` | `/api/products/{id}` | Atualizar um produto | Autenticado |
+| `DELETE` | `/api/products/{id}` | Remover um produto | Autenticado |
+| `GET` | `/api/products/barcode/{barcode}` | Buscar produto por código de barras | Autenticado |
 
 ### Sales
 
-| Método | Endpoint | Descrição |
-|---|---|---|
-| `POST` | `/api/sales` | Registrar uma nova venda |
-| `GET` | `/api/sales` | Listar vendas (filtro por data/período) |
-| `GET` | `/api/sales/{id}` | Buscar venda por ID |
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `POST` | `/api/sales` | Registrar uma nova venda | Autenticado |
+| `GET` | `/api/sales` | Listar vendas (filtro por data/período) | Autenticado |
+| `GET` | `/api/sales/{id}` | Buscar venda por ID | Autenticado |
 
 ### Formas de Pagamento
 
@@ -196,29 +264,74 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 
 ---
 
+## 🐳 Docker
+
+O projeto inclui um **Dockerfile multi-stage** que compila frontend e backend em uma única imagem otimizada.
+
+### Build da imagem
+
+```bash
+docker build -t binitech-pdv .
+```
+
+### Executar com Docker Compose
+
+O `docker-compose.yml` sobe o MongoDB:
+
+```bash
+docker compose up -d
+```
+
+### Executar a aplicação em container
+
+```bash
+docker run -d \
+  --name binitech-pdv-app \
+  -p 8080:8080 \
+  -e MONGODB_URI=mongodb://host.docker.internal:27017/binitech_pdv \
+  -e JWT_SECRET=sua-chave-secreta \
+  -e ADMIN_PASSWORD=sua-senha-admin \
+  binitech-pdv
+```
+
+### Etapas do Dockerfile
+
+1. **frontend-build** — Node.js 20 Alpine: instala dependências e builda o Angular em modo produção.
+2. **backend-build** — Eclipse Temurin JDK 17: baixa dependências Maven, copia o build do frontend para `resources/static/`, e gera o JAR.
+3. **runtime** — Eclipse Temurin JRE 17: imagem mínima com usuário não-root para segurança.
+
+---
+
 ## 📂 Estrutura do Projeto
 
 ```
 pdv/
-├── docker-compose.yml               # MongoDB via Docker
-├── pom.xml                          # Configuração Maven (backend)
-├── mvnw / mvnw.cmd                  # Maven Wrapper
+├── docker-compose.yml          # Sobe o MongoDB
+├── Dockerfile                  # Build multi-stage (frontend + backend)
+├── pom.xml                     # Configuração Maven
+├── mvnw / mvnw.cmd             # Maven Wrapper
 ├── src/
 │   ├── main/
-│   │   ├── java/com/binitech/pdv/   # Código-fonte Java (Hexagonal)
+│   │   ├── java/com/binitech/pdv/
+│   │   │   ├── domain/         # Entidades de domínio
+│   │   │   ├── application/    # Portas e casos de uso
+│   │   │   ├── adapters/       # Controllers e Repositories
+│   │   │   ├── config/         # Security, JWT, CORS, Beans
+│   │   │   └── utils/
 │   │   └── resources/
-│   │       ├── application.yaml     # Configurações da aplicação
-│   │       └── openapi/swagger.yaml # Especificação OpenAPI
-│   └── test/                        # Testes
-├── frontend/                        # Aplicação Angular
+│   │       ├── application.yaml
+│   │       └── openapi/swagger.yaml
+│   └── test/
+├── frontend/
 │   ├── src/app/
-│   │   ├── pos/                     # Módulo PDV (tela de caixa)
-│   │   ├── products/                # Módulo de Produtos
-│   │   ├── sales/                   # Módulo de Relatório de Vendas
-│   │   └── shared/                  # Models compartilhados
-│   ├── proxy.conf.json              # Proxy para API backend
+│   │   ├── auth/               # Login, Register, Guards, Interceptors
+│   │   ├── pos/                # Tela de PDV (carrinho, pagamento)
+│   │   ├── products/           # Listagem e cadastro de produtos
+│   │   ├── sales/              # Relatório de vendas
+│   │   └── shared/             # Models compartilhados
+│   ├── proxy.conf.json
 │   └── package.json
-└── target/                          # Artefatos compilados
+└── target/                     # Build artifacts
 ```
 
 ---

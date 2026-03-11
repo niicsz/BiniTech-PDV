@@ -1,4 +1,4 @@
-package com.binitech.pdv.utils;
+package com.binitech.pdv.utils.Enum;
 
 public enum PaymentMethod {
   CASH,

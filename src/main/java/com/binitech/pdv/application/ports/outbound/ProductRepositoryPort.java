@@ -17,4 +17,10 @@ public interface ProductRepositoryPort {
   void deleteById(String id);
 
   boolean existsByBarcode(String barcode);
+
+  List<Product> findAllByUserId(String userId);
+
+  Optional<Product> findByBarcodeAndUserId(String barcode, String userId);
+
+  boolean existsByBarcodeAndUserId(String barcode, String userId);
 }
