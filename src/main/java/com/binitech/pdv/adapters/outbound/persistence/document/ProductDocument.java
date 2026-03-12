@@ -22,6 +22,7 @@ public class ProductDocument {
 
   private String description;
   private double price;
+  private double costPrice;
   private int stockQuantity;
   private boolean active;
   private String userId;

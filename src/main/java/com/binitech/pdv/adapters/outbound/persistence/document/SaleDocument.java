@@ -21,6 +21,7 @@ public class SaleDocument {
   private List<SaleItemDocument> items;
   private List<PaymentDocument> payments;
   private double totalAmount;
+  private double totalCost;
   private double totalPaid;
   private double change;
   private LocalDateTime timestamp;

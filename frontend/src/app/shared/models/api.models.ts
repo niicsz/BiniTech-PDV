@@ -3,6 +3,7 @@ export interface ProductDTO {
   barcode?: string;
   description?: string;
   price?: number;
+  costPrice?: number;
   stockQuantity?: number;
   active?: boolean;
   userId?: string;
@@ -12,6 +13,7 @@ export interface CreateProductDTO {
   barcode: string;
   description: string;
   price: number;
+  costPrice: number;
   stockQuantity: number;
 }
 
@@ -20,6 +22,7 @@ export interface SaleDTO {
   items?: SaleItemDTO[];
   payments?: PaymentDTO[];
   totalAmount?: number;
+  totalCost?: number;
   totalPaid?: number;
   change?: number;
   timestamp?: string;
@@ -31,6 +34,7 @@ export interface SaleItemDTO {
   productDescription?: string;
   quantity?: number;
   unitPrice?: number;
+  costPrice?: number;
   subtotal?: number;
 }
 

@@ -379,6 +379,9 @@ components:
         price:
           type: number
           format: double
+        costPrice:
+          type: number
+          format: double
         stockQuantity:
           type: integer
         active:
@@ -405,6 +408,10 @@ components:
           type: number
           format: double
           minimum: 0.01
+        costPrice:
+          type: number
+          format: double
+          minimum: 0
         stockQuantity:
           type: integer
           minimum: 0
@@ -423,6 +430,9 @@ components:
           items:
             $ref: '#/components/schemas/PaymentDTO'
         totalAmount:
+          type: number
+          format: double
+        totalCost:
           type: number
           format: double
         totalPaid:
@@ -448,6 +458,9 @@ components:
         quantity:
           type: integer
         unitPrice:
+          type: number
+          format: double
+        costPrice:
           type: number
           format: double
         subtotal:

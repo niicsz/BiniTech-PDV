@@ -119,43 +119,102 @@
 <app-payment-modal
   *ngIf="showPaymentModal"
   [total]="total"
-  [paymentMethod]="paymentMethod"
-  [amountPaid]="amountPaid"
-  [changeValue]="changeValue"
-  (amountPaidChange)="amountPaid = $event; calculateChange()"
-  (confirm)="confirmPayment()"
-  (cancel)="closePaymentModal()"
-  [getPaymentLabel]="getPaymentLabel">
+  [initialMethod]="initialPaymentMethod"
+  [getPaymentLabel]="getPaymentLabel"
+  (paymentsConfirmed)="onPaymentsConfirmed($event)"
+  (cancel)="closePaymentModal()">
 </app-payment-modal>
 
 <div class="modal-overlay" *ngIf="showReceiptModal" (click)="closeReceiptModal()">
-  <div class="modal-content modal-md" (click)="$event.stopPropagation()">
+  <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
     <div class="receipt-header">
       <span class="material-icons receipt-check">check_circle</span>
       <h3>Venda Finalizada!</h3>
     </div>
-    <div class="receipt-body" *ngIf="lastSale">
-      <div class="receipt-row">
-        <span>ID da Venda:</span>
-        <strong>{{ lastSale.id }}</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Total:</span>
-        <strong>R$ {{ lastSale.totalAmount | number:'1.2-2' }}</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Pago:</span>
-        <strong>R$ {{ lastSale.totalPaid | number:'1.2-2' }}</strong>
-      </div>
-      <div class="receipt-row highlight" *ngIf="(lastSale.change || 0) > 0">
-        <span>Troco:</span>
-        <strong class="text-success">R$ {{ lastSale.change | number:'1.2-2' }}</strong>
+
+    <div class="receipt-print-area" id="receiptArea" *ngIf="lastSale">
+      <div class="receipt-paper">
+        <div class="receipt-company">
+          <h2>BiniTech PDV</h2>
+          <p>Comprovante de Venda</p>
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <div class="receipt-info-line">
+          <span>Venda:</span>
+          <span>{{ lastSale.id?.substring(0, 12) }}</span>
+        </div>
+        <div class="receipt-info-line">
+          <span>Data:</span>
+          <span>{{ formatTimestamp(lastSale.timestamp) }}</span>
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <table class="receipt-items-table">
+          <thead>
+            <tr>
+              <th class="text-left">Produto</th>
+              <th class="text-center">Qtd</th>
+              <th class="text-right">Unit</th>
+              <th class="text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of lastSale.items">
+              <td class="text-left">{{ item.productDescription }}</td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-right">{{ item.unitPrice | number:'1.2-2' }}</td>
+              <td class="text-right">{{ item.subtotal | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <div class="receipt-total-line">
+          <span>TOTAL:</span>
+          <strong>R$ {{ lastSale.totalAmount | number:'1.2-2' }}</strong>
+        </div>
+
+        <div class="receipt-divider-thin"></div>
+
+        <div class="receipt-payments-section">
+          <p class="receipt-payments-title">Pagamentos:</p>
+          <div class="receipt-info-line" *ngFor="let p of lastSale.payments">
+            <span>{{ getPaymentLabel(p.method) }}:</span>
+            <span>R$ {{ p.amount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="receipt-info-line">
+          <span>Total Pago:</span>
+          <strong>R$ {{ lastSale.totalPaid | number:'1.2-2' }}</strong>
+        </div>
+        <div class="receipt-info-line" *ngIf="(lastSale.change || 0) > 0">
+          <span>Troco:</span>
+          <strong>R$ {{ lastSale.change | number:'1.2-2' }}</strong>
+        </div>
+
+        <div class="receipt-divider">--------------------------------</div>
+
+        <div class="receipt-footer">
+          <p>Obrigado pela preferência!</p>
+        </div>
       </div>
     </div>
+
     <div class="modal-actions">
-      <button class="btn btn-primary btn-lg" (click)="closeReceiptModal()">Nova Venda</button>
+      <button class="btn btn-secondary btn-lg" (click)="printReceipt()">
+        <span class="material-icons">print</span>
+        Imprimir Nota
+      </button>
+      <button class="btn btn-primary btn-lg" (click)="closeReceiptModal()">
+        <span class="material-icons">add_shopping_cart</span>
+        Nova Venda
+      </button>
     </div>
   </div>
 </div>
-
 

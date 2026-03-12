@@ -11,6 +11,7 @@ public class Sale {
   private List<SaleItem> items;
   private List<Payment> payments;
   private double totalAmount;
+  private double totalCost;
   private double totalPaid;
   private double change;
   private LocalDateTime timestamp;
@@ -35,6 +36,7 @@ public class Sale {
 
   public void recalculateTotal() {
     this.totalAmount = items.stream().mapToDouble(SaleItem::getSubtotal).sum();
+    this.totalCost = items.stream().mapToDouble(i -> i.getCostPrice() * i.getQuantity()).sum();
   }
 
   public void calculatePayment() {
@@ -87,6 +89,14 @@ public class Sale {
 
   public void setTotalAmount(double totalAmount) {
     this.totalAmount = totalAmount;
+  }
+
+  public double getTotalCost() {
+    return totalCost;
+  }
+
+  public void setTotalCost(double totalCost) {
+    this.totalCost = totalCost;
   }
 
   public double getTotalPaid() {
@@ -142,6 +152,8 @@ public class Sale {
         + '\''
         + ", totalAmount="
         + totalAmount
+        + ", totalCost="
+        + totalCost
         + ", totalPaid="
         + totalPaid
         + ", change="
