@@ -62,3 +62,49 @@ input, select, textarea {
 .mb-1 { margin-bottom: 8px; }
 .mb-2 { margin-bottom: 16px; }
 
+@media print {
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .app-header,
+  .app-main > *:not(app-pos-screen),
+  .pos-container,
+  .status-bar,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  .modal-overlay {
+    position: static !important;
+    background: none !important;
+    display: block !important;
+    z-index: auto !important;
+  }
+
+  .modal-content {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    animation: none !important;
+    margin: 0 auto !important;
+    border-radius: 0 !important;
+  }
+
+  .receipt-header .receipt-check,
+  .receipt-header h3,
+  .modal-actions {
+    display: none !important;
+  }
+
+  .receipt-paper {
+    border: none !important;
+    padding: 0 !important;
+  }
+}
+

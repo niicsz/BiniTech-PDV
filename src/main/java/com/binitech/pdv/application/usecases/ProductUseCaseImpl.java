@@ -47,6 +47,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     existing.setBarcode(product.getBarcode());
     existing.setDescription(product.getDescription());
     existing.setPrice(product.getPrice());
+    existing.setCostPrice(product.getCostPrice());
     existing.setStockQuantity(product.getStockQuantity());
 
     return productRepository.save(existing);

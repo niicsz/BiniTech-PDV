@@ -25,8 +25,12 @@
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label>Preço (R$)</label>
+          <label>Preço de Venda (R$)</label>
           <input type="number" step="0.01" min="0.01" [(ngModel)]="form.price" name="price" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label>Preço de Custo (R$)</label>
+          <input type="number" step="0.01" min="0" [(ngModel)]="form.costPrice" name="costPrice" class="form-input" />
         </div>
         <div class="form-group">
           <label>Estoque</label>
@@ -46,7 +50,8 @@
         <tr>
           <th>Código de Barras</th>
           <th>Descrição</th>
-          <th>Preço</th>
+          <th>Preço Venda</th>
+          <th>Preço Custo</th>
           <th>Estoque</th>
           <th>Status</th>
           <th>Ações</th>
@@ -57,6 +62,7 @@
           <td class="mono">{{ product.barcode }}</td>
           <td>{{ product.description }}</td>
           <td class="text-right">R$ {{ product.price | number:'1.2-2' }}</td>
+          <td class="text-right">R$ {{ product.costPrice | number:'1.2-2' }}</td>
           <td class="text-center">{{ product.stockQuantity }}</td>
           <td>
             <span class="badge" [ngClass]="product.active ? 'badge-success' : 'badge-danger'">
@@ -73,7 +79,7 @@
           </td>
         </tr>
         <tr *ngIf="products.length === 0">
-          <td colspan="6" class="empty-state">Nenhum produto cadastrado.</td>
+          <td colspan="7" class="empty-state">Nenhum produto cadastrado.</td>
         </tr>
       </tbody>
     </table>

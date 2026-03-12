@@ -52,6 +52,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
       item.setProductDescription(product.getDescription());
       item.setUnitPrice(product.getPrice());
+      item.setCostPrice(product.getCostPrice());
       item.recalculateSubtotal();
     }
 

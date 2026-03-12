@@ -15,5 +15,6 @@ public class SaleItemDocument {
   private String productDescription;
   private int quantity;
   private double unitPrice;
+  private double costPrice;
   private double subtotal;
 }

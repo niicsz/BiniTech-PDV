@@ -27,9 +27,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   total = 0;
 
   showPaymentModal = false;
-  paymentMethod: PaymentMethodEnum = 'CASH';
-  amountPaid = 0;
-  changeValue = 0;
+  initialPaymentMethod: PaymentMethodEnum | null = null;
 
   showQuantityModal = false;
   selectedCartIndex = -1;
@@ -208,31 +206,15 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       this.showStatus('Carrinho vazio. Adicione produtos antes de finalizar.', 'error');
       return;
     }
-    this.paymentMethod = method;
-    this.amountPaid = method === 'CASH' ? 0 : this.total;
-    this.changeValue = 0;
+    this.initialPaymentMethod = method;
     this.showPaymentModal = true;
   }
 
-  calculateChange(): void {
-    this.changeValue = Math.max(0, this.amountPaid - this.total);
-  }
-
-  confirmPayment(): void {
-    if (this.amountPaid < this.total) {
-      this.showStatus('Valor pago é menor que o total da venda.', 'error');
-      return;
-    }
-
+  onPaymentsConfirmed(payments: PaymentDTO[]): void {
     const items: CreateSaleItemDTO[] = this.cart.map(item => ({
       productId: item.productId,
       quantity: item.quantity
     }));
-
-    const payments: PaymentDTO[] = [{
-      method: this.paymentMethod,
-      amount: this.amountPaid
-    }];
 
     const sale: CreateSaleDTO = { items, payments };
 
@@ -262,6 +244,10 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     this.focusBarcode();
   }
 
+  printReceipt(): void {
+    window.print();
+  }
+
   focusBarcode(): void {
     setTimeout(() => {
       this.barcodeInput?.nativeElement?.focus();
@@ -287,6 +273,12 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       'PIX': 'PIX'
     };
     return labels[method] || method;
+  }
+
+  formatTimestamp(ts?: string): string {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleString('pt-BR');
   }
 
   getTotalQty(): number {

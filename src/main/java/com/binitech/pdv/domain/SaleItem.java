@@ -8,15 +8,22 @@ public class SaleItem {
   private String productDescription;
   private int quantity;
   private double unitPrice;
+  private double costPrice;
   private double subtotal;
 
   public SaleItem() {}
 
-  public SaleItem(String productId, String productDescription, int quantity, double unitPrice) {
+  public SaleItem(
+      String productId,
+      String productDescription,
+      int quantity,
+      double unitPrice,
+      double costPrice) {
     this.productId = productId;
     this.productDescription = productDescription;
     this.quantity = quantity;
     this.unitPrice = unitPrice;
+    this.costPrice = costPrice;
     this.subtotal = quantity * unitPrice;
   }
 
@@ -56,6 +63,14 @@ public class SaleItem {
     this.unitPrice = unitPrice;
   }
 
+  public double getCostPrice() {
+    return costPrice;
+  }
+
+  public void setCostPrice(double costPrice) {
+    this.costPrice = costPrice;
+  }
+
   public double getSubtotal() {
     return subtotal;
   }
@@ -90,6 +105,8 @@ public class SaleItem {
         + quantity
         + ", unitPrice="
         + unitPrice
+        + ", costPrice="
+        + costPrice
         + ", subtotal="
         + subtotal
         + '}';

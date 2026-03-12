@@ -18,6 +18,8 @@ export class SalesReportComponent implements OnInit {
   startDate = '';
   endDate = '';
   totalRevenue = 0;
+  totalCost = 0;
+  totalProfit = 0;
 
   constructor(private saleService: SaleService) {}
 
@@ -51,6 +53,8 @@ export class SalesReportComponent implements OnInit {
 
   calculateTotal(): void {
     this.totalRevenue = this.sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+    this.totalCost = this.sales.reduce((sum, sale) => sum + (sale.totalCost || 0), 0);
+    this.totalProfit = this.totalRevenue - this.totalCost;
   }
 
   getPaymentLabel(method: string | undefined): string {
@@ -67,6 +71,10 @@ export class SalesReportComponent implements OnInit {
     if (!ts) return '';
     const d = new Date(ts);
     return d.toLocaleString('pt-BR');
+  }
+
+  getSaleProfit(sale: SaleDTO): number {
+    return (sale.totalAmount || 0) - (sale.totalCost || 0);
   }
 }
 

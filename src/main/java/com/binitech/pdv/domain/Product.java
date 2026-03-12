@@ -8,6 +8,7 @@ public class Product {
   private String barcode;
   private String description;
   private double price;
+  private double costPrice;
   private int stockQuantity;
   private boolean active;
   private String userId;
@@ -21,6 +22,7 @@ public class Product {
       String barcode,
       String description,
       double price,
+      double costPrice,
       int stockQuantity,
       boolean active,
       String userId) {
@@ -28,6 +30,7 @@ public class Product {
     this.barcode = barcode;
     this.description = description;
     this.price = price;
+    this.costPrice = costPrice;
     this.stockQuantity = stockQuantity;
     this.active = active;
     this.userId = userId;
@@ -75,6 +78,14 @@ public class Product {
 
   public void setPrice(double price) {
     this.price = price;
+  }
+
+  public double getCostPrice() {
+    return costPrice;
+  }
+
+  public void setCostPrice(double costPrice) {
+    this.costPrice = costPrice;
   }
 
   public int getStockQuantity() {
@@ -128,6 +139,8 @@ public class Product {
         + '\''
         + ", price="
         + price
+        + ", costPrice="
+        + costPrice
         + ", stockQuantity="
         + stockQuantity
         + ", active="

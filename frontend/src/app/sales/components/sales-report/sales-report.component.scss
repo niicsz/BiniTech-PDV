@@ -77,6 +77,29 @@
     .material-icons { color: #fff; opacity: 0.9; }
     .summary-label { color: rgba(255,255,255,0.8); }
   }
+
+  &.cost {
+    background: #fff3e0;
+    border-left: 4px solid var(--accent);
+
+    .material-icons { color: var(--accent); }
+  }
+
+  &.profit {
+    background: #e8f5e9;
+    border-left: 4px solid var(--success);
+
+    .material-icons { color: var(--success); }
+    .summary-value { color: var(--success); }
+  }
+
+  &.loss {
+    background: #ffebee;
+    border-left: 4px solid var(--danger);
+
+    .material-icons { color: var(--danger); }
+    .summary-value { color: var(--danger); }
+  }
 }
 
 .summary-label {
