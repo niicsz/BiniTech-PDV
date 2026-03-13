@@ -46,6 +46,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   showLowStockAlert = false;
   lowStockProducts: { description: string; stockQuantity: number }[] = [];
+  private pendingLowStockProducts: { description: string; stockQuantity: number }[] = [];
 
   constructor(
     private productService: ProductService,
@@ -258,21 +259,29 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
     forkJoin(requests).subscribe({
       next: (products: ProductDTO[]) => {
-        this.lowStockProducts = products
+        const lowStock = products
           .filter(p => (p.stockQuantity ?? 0) < 5)
           .map(p => ({
             description: p.description || 'Sem descrição',
             stockQuantity: p.stockQuantity ?? 0
           }));
 
-        if (this.lowStockProducts.length > 0) {
-          this.showLowStockAlert = true;
+        if (lowStock.length > 0) {
+          this.pendingLowStockProducts = lowStock;
         }
       },
       error: () => {
         console.warn('Não foi possível verificar estoque dos produtos.');
       }
     });
+  }
+
+  private showPendingLowStockAlert(): void {
+    if (this.pendingLowStockProducts.length > 0) {
+      this.lowStockProducts = this.pendingLowStockProducts;
+      this.pendingLowStockProducts = [];
+      this.showLowStockAlert = true;
+    }
   }
 
   closeLowStockAlert(): void {
@@ -289,7 +298,10 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   closeReceiptModal(): void {
     this.showReceiptModal = false;
     this.lastSale = null;
-    this.focusBarcode();
+    this.showPendingLowStockAlert();
+    if (!this.showLowStockAlert) {
+      this.focusBarcode();
+    }
   }
 
   printReceipt(): void {
