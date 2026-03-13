@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ProductService } from '../../services/product.service';
 import { SaleService } from '../../services/sale.service';
 import { AuthService } from '../../../auth/services/auth.service';
@@ -43,6 +44,9 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   loggedInUsername = '';
 
+  showLowStockAlert = false;
+  lowStockProducts: { description: string; stockQuantity: number }[] = [];
+
   constructor(
     private productService: ProductService,
     private saleService: SaleService,
@@ -62,6 +66,14 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent): void {
+    if (this.showLowStockAlert) {
+      if (event.key === 'Escape' || event.key === 'Enter') {
+        this.closeLowStockAlert();
+        event.preventDefault();
+      }
+      return;
+    }
+
     if (this.showPaymentModal || this.showReceiptModal) {
       if (event.key === 'Escape') {
         this.closePaymentModal();
@@ -221,6 +233,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       quantity: item.quantity
     }));
 
+    const soldProductIds = this.cart.map(item => item.productId);
     const sale: CreateSaleDTO = { items, payments };
 
     this.saleService.create(sale).subscribe({
@@ -230,12 +243,42 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.showReceiptModal = true;
         this.clearCart();
         this.showStatus('Venda finalizada com sucesso!', 'success');
+        this.checkLowStock(soldProductIds);
       },
       error: (err) => {
         const msg = err.error?.message || 'Erro ao finalizar a venda.';
         this.showStatus(msg, 'error');
       }
     });
+  }
+
+  private checkLowStock(productIds: string[]): void {
+    const uniqueIds = [...new Set(productIds)];
+    const requests = uniqueIds.map(id => this.productService.getById(id));
+
+    forkJoin(requests).subscribe({
+      next: (products: ProductDTO[]) => {
+        this.lowStockProducts = products
+          .filter(p => (p.stockQuantity ?? 0) < 5)
+          .map(p => ({
+            description: p.description || 'Sem descrição',
+            stockQuantity: p.stockQuantity ?? 0
+          }));
+
+        if (this.lowStockProducts.length > 0) {
+          this.showLowStockAlert = true;
+        }
+      },
+      error: () => {
+        console.warn('Não foi possível verificar estoque dos produtos.');
+      }
+    });
+  }
+
+  closeLowStockAlert(): void {
+    this.showLowStockAlert = false;
+    this.lowStockProducts = [];
+    this.focusBarcode();
   }
 
   closePaymentModal(): void {

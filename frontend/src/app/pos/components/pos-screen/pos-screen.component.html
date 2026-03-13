@@ -222,3 +222,31 @@
   </div>
 </div>
 
+<!-- Alerta de Estoque Baixo -->
+<div class="modal-overlay" *ngIf="showLowStockAlert" (click)="closeLowStockAlert()">
+  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+    <div class="low-stock-header">
+      <span class="material-icons low-stock-icon">warning</span>
+      <h3>Alerta de Estoque Baixo!</h3>
+    </div>
+    <p class="low-stock-description">
+      Os seguintes produtos estão com estoque abaixo de <strong>5 unidades</strong>:
+    </p>
+    <div class="low-stock-list">
+      <div class="low-stock-item" *ngFor="let product of lowStockProducts">
+        <span class="material-icons">inventory_2</span>
+        <span class="low-stock-name">{{ product.description }}</span>
+        <strong class="low-stock-qty" [class.critical]="product.stockQuantity === 0">
+          {{ product.stockQuantity }} un.
+        </strong>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" (click)="closeLowStockAlert()">
+        <span class="material-icons">check</span>
+        Entendido
+      </button>
+    </div>
+  </div>
+</div>
+

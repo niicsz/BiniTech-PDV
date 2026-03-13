@@ -457,6 +457,71 @@
   margin-top: 4px;
 }
 
+// Alerta de Estoque Baixo
+.low-stock-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+  }
+}
+
+.low-stock-icon {
+  font-size: 36px;
+  color: #ff9800;
+}
+
+.low-stock-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.low-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.low-stock-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff3e0;
+  border-radius: var(--radius);
+  border-left: 4px solid #ff9800;
+
+  .material-icons {
+    font-size: 20px;
+    color: #ff9800;
+  }
+}
+
+.low-stock-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.low-stock-qty {
+  font-size: 14px;
+  color: #e65100;
+
+  &.critical {
+    color: var(--danger);
+    font-weight: 700;
+  }
+}
+
 @media print {
   :host > *:not(.modal-overlay) {
     display: none !important;
