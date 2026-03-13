@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { SaleService } from '../../services/sale.service';
+import { AuthService } from '../../../auth/services/auth.service';
 import { CartItem } from '../../../shared/models/cart.model';
 import {
   ProductDTO, CreateSaleDTO, CreateSaleItemDTO,
@@ -40,12 +41,16 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   statusType: 'success' | 'error' | 'info' = 'info';
   private statusTimeout: any;
 
+  loggedInUsername = '';
+
   constructor(
     private productService: ProductService,
-    private saleService: SaleService
+    private saleService: SaleService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.loggedInUsername = this.authService.getUsername() || 'Operador';
     this.focusBarcode();
   }
 
