@@ -195,6 +195,7 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `JWT_REFRESH_EXPIRATION` | Tempo de expiração do refresh token (ms) | `604800000` (7d) |
 | `ADMIN_USERNAME` | Username do admin criado na inicialização | `admin` |
 | `ADMIN_PASSWORD` | Senha do admin criado na inicialização | — (obrigatório) |
+| `SECURITY_PEPPER` | Valor secreto (pepper) concatenado às passwords antes do hash Argon2. **Nunca guardar na BD.** | — (obrigatório) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS | `http://localhost:4200` |
 
 ---
@@ -220,6 +221,24 @@ O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para protege
 ### Inicialização
 
 Na primeira execução, o `DataInitializer` cria automaticamente um usuário admin com as credenciais definidas nas variáveis `ADMIN_USERNAME` e `ADMIN_PASSWORD`.
+
+### 🔒 Hashing de Passwords — Argon2id + Pepper
+
+As passwords são protegidas com a técnica mais robusta disponível:
+
+1. **Argon2id** — algoritmo vencedor da Password Hashing Competition, resistente a ataques por GPU e side-channel. Parâmetros OWASP:
+   - Salt: 16 bytes (gerado automaticamente)
+   - Hash: 32 bytes
+   - Parallelism: 1
+   - Memória: 19 456 KiB (~19 MB)
+   - Iterações: 2
+
+2. **Pepper** — um valor secreto (`SECURITY_PEPPER`) que é concatenado à password **antes** do hash. Este valor:
+   - Vive **apenas** nas variáveis de ambiente do servidor
+   - **Nunca** é guardado na base de dados
+   - Garante que mesmo com acesso total à BD, os hashes são **inúteis** sem o pepper
+
+> ⚠️ **IMPORTANTE:** Se o pepper for alterado, todas as passwords existentes ficam inválidas e os utilizadores terão de redefinir as suas credenciais.
 
 ---
 
