@@ -24,9 +24,11 @@ Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura 
 O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 
 - **Autenticação JWT** — Login com access token e refresh token, controle de roles (ADMIN / OPERATOR).
-- **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço e estoque.
+- **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço, estoque e **categoria**.
+- **Filtro por categoria** — Na listagem de produtos, filtre rapidamente por categoria cadastrada.
 - **Tela de PDV** — Leitura rápida por código de barras, carrinho de compras e finalização de venda.
 - **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito e PIX.
+- **Nota impressa com nome do operador** — O comprovante de venda exibe o nome do usuário logado.
 - **Relatório de vendas** — Consulta de vendas por data ou período.
 - **Registro de usuários** — Somente administradores podem registrar novos usuários.
 
@@ -247,6 +249,17 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 | `DELETE` | `/api/products/{id}` | Remover um produto | Autenticado |
 | `GET` | `/api/products/barcode/{barcode}` | Buscar produto por código de barras | Autenticado |
 
+#### Campos do Produto
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `barcode` | string | Sim | Código de barras do produto |
+| `description` | string | Sim | Descrição do produto |
+| `price` | number | Sim | Preço de venda |
+| `costPrice` | number | Não | Preço de custo |
+| `stockQuantity` | integer | Sim | Quantidade em estoque |
+| `category` | string | Não | Categoria do produto (ex: Bebidas, Alimentos, Limpeza) |
+
 ### Sales
 
 | Método | Endpoint | Descrição | Acesso |
@@ -261,6 +274,30 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 - `CREDIT_CARD` — Cartão de Crédito
 - `DEBIT_CARD` — Cartão de Débito
 - `PIX` — PIX
+
+---
+
+## 🖥 Funcionalidades do Frontend
+
+### Tela de PDV (Ponto de Venda)
+
+- Leitura rápida de produtos por **código de barras**
+- Carrinho de compras com atalhos de teclado (`F2` alterar quantidade, `F5` dinheiro, `F7` crédito, `F8` débito, `F9` PIX, `Del` remover item)
+- Modal de pagamento com suporte a **múltiplas formas de pagamento** na mesma venda
+- **Comprovante de venda** com dados da venda, itens, pagamentos e **nome do operador logado**
+- Impressão da nota via `window.print()`
+
+### Cadastro de Produtos
+
+- Formulário completo: código de barras, descrição, preço de venda, preço de custo, estoque e **categoria**
+- **Filtro por categoria** — dropdown que filtra a listagem de produtos por categoria cadastrada
+- Edição e exclusão de produtos
+- Coluna de categoria visível na tabela de produtos
+
+### Relatório de Vendas
+
+- Consulta por data específica ou período (data inicial / data final)
+- Exibição de itens vendidos, pagamentos e totais
 
 ---
 

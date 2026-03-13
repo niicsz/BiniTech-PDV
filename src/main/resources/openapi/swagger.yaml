@@ -386,6 +386,8 @@ components:
           type: integer
         active:
           type: boolean
+        category:
+          type: string
         userId:
           type: string
           readOnly: true
@@ -415,6 +417,8 @@ components:
         stockQuantity:
           type: integer
           minimum: 0
+        category:
+          type: string
 
     SaleDTO:
       type: object

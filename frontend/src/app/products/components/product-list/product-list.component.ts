@@ -17,12 +17,15 @@ export class ProductListComponent implements OnInit {
   showForm = false;
   editingId: string | null = null;
 
+  selectedCategory = '';
+
   form: CreateProductDTO = {
     barcode: '',
     description: '',
     price: 0,
     costPrice: 0,
-    stockQuantity: 0
+    stockQuantity: 0,
+    category: ''
   };
 
   statusMessage = '';
@@ -34,6 +37,22 @@ export class ProductListComponent implements OnInit {
     this.loadProducts();
   }
 
+  get categories(): string[] {
+    return this.products
+      .map(p => p.category || 'Sem Categoria')
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort();
+  }
+
+  get filteredProducts(): ProductDTO[] {
+    if (!this.selectedCategory) {
+      return this.products;
+    }
+    return this.products.filter(p =>
+      (p.category || 'Sem Categoria') === this.selectedCategory
+    );
+  }
+
   loadProducts(): void {
     this.productService.listAll().subscribe({
       next: (products) => this.products = products,
@@ -43,7 +62,7 @@ export class ProductListComponent implements OnInit {
 
   openCreateForm(): void {
     this.editingId = null;
-    this.form = { barcode: '', description: '', price: 0, costPrice: 0, stockQuantity: 0 };
+    this.form = { barcode: '', description: '', price: 0, costPrice: 0, stockQuantity: 0, category: '' };
     this.showForm = true;
   }
 
@@ -54,7 +73,8 @@ export class ProductListComponent implements OnInit {
       description: product.description || '',
       price: product.price || 0,
       costPrice: product.costPrice || 0,
-      stockQuantity: product.stockQuantity || 0
+      stockQuantity: product.stockQuantity || 0,
+      category: product.category || ''
     };
     this.showForm = true;
   }

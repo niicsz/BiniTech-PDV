@@ -6,6 +6,7 @@ export interface ProductDTO {
   costPrice?: number;
   stockQuantity?: number;
   active?: boolean;
+  category?: string;
   userId?: string;
 }
 
@@ -15,6 +16,7 @@ export interface CreateProductDTO {
   price: number;
   costPrice: number;
   stockQuantity: number;
+  category: string;
 }
 
 export interface SaleDTO {

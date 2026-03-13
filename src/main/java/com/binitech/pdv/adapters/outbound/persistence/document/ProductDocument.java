@@ -26,4 +26,5 @@ public class ProductDocument {
   private int stockQuantity;
   private boolean active;
   private String userId;
+  private String category;
 }

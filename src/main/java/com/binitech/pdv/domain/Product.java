@@ -12,6 +12,7 @@ public class Product {
   private int stockQuantity;
   private boolean active;
   private String userId;
+  private String category;
 
   public Product() {
     this.active = true;
@@ -25,7 +26,8 @@ public class Product {
       double costPrice,
       int stockQuantity,
       boolean active,
-      String userId) {
+      String userId,
+      String category) {
     this.id = id;
     this.barcode = barcode;
     this.description = description;
@@ -34,6 +36,7 @@ public class Product {
     this.stockQuantity = stockQuantity;
     this.active = active;
     this.userId = userId;
+    this.category = category;
   }
 
   public void decreaseStock(int quantity) {
@@ -112,6 +115,14 @@ public class Product {
     this.userId = userId;
   }
 
+  public String getCategory() {
+    return category;
+  }
+
+  public void setCategory(String category) {
+    this.category = category;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -145,6 +156,9 @@ public class Product {
         + stockQuantity
         + ", active="
         + active
+        + ", category='"
+        + category
+        + '\''
         + '}';
   }
 }
