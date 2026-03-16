@@ -19,11 +19,9 @@ import { AuthService } from './auth/services/auth.service';
             <a routerLink="/pdv" routerLinkActive="active">
               <span class="material-icons">shopping_cart</span> Frente de Caixa
             </a>
-            @if (authService.isAdmin()) {
-              <a routerLink="/products" routerLinkActive="active">
-                <span class="material-icons">inventory_2</span> Produtos
-              </a>
-            }
+            <a routerLink="/products" routerLinkActive="active">
+              <span class="material-icons">inventory_2</span> Produtos
+            </a>
             <a routerLink="/sales-report" routerLinkActive="active">
               <span class="material-icons">assessment</span> Relatórios
             </a>
@@ -159,4 +157,5 @@ export class AppComponent {
     this.authService.logout();
   }
 }
+
 
