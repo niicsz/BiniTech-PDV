@@ -10,7 +10,7 @@ de:
   flapdoodle:
     mongodb:
       embedded:
-        version: 7.0.9
+        version: 8.2.5
 
 server:
   port: ${PORT:8080}
