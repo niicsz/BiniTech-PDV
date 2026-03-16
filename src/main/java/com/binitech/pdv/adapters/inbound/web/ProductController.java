@@ -47,7 +47,9 @@ public class ProductController implements ProductsApi {
   @Override
   public ResponseEntity<ProductDTO> updateProduct(String id, CreateProductDTO createProductDTO) {
     Product product = webMapper.toDomain(createProductDTO);
-    Product updated = productUseCase.updateProduct(id, product, getUserId(), getUserRole());
+    Product updated =
+        productUseCase.updateProduct(
+            id, product, getUserId(), getUserRole(), createProductDTO.getActive());
     return ResponseEntity.ok(webMapper.toDto(updated));
   }
 

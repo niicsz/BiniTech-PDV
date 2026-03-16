@@ -32,4 +32,3 @@ public class PepperedPasswordEncoder implements PasswordEncoder {
     return delegate.upgradeEncoding(encodedPassword);
   }
 }
-

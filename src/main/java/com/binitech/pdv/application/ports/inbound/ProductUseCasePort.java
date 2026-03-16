@@ -8,7 +8,8 @@ public interface ProductUseCasePort {
 
   Product createProduct(Product product, String userId);
 
-  Product updateProduct(String id, Product product, String userId, Role role);
+  Product updateProduct(
+      String id, Product product, String userId, Role role, Boolean activeOverride);
 
   void deleteProduct(String id, String userId, Role role);
 

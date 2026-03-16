@@ -40,6 +40,13 @@
           <label>Categoria</label>
           <input type="text" [(ngModel)]="form.category" name="category" class="form-input" placeholder="Ex: Bebidas, Alimentos..." />
         </div>
+        <div class="form-group" *ngIf="editingId">
+          <label>Status</label>
+          <select [(ngModel)]="form.active" name="active" class="form-input">
+            <option [ngValue]="true">Ativo</option>
+            <option [ngValue]="false">Inativo</option>
+          </select>
+        </div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
@@ -102,4 +109,3 @@
     </table>
   </div>
 </div>
-

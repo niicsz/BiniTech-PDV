@@ -419,6 +419,8 @@ components:
           minimum: 0
         category:
           type: string
+        active:
+          type: boolean
 
     SaleDTO:
       type: object
