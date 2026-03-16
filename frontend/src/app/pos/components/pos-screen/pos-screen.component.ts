@@ -89,7 +89,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         event.preventDefault();
         this.openQuantityModal();
         break;
-      case 'F5':
+      case 'F4':
         event.preventDefault();
         this.startPayment('CASH');
         break;

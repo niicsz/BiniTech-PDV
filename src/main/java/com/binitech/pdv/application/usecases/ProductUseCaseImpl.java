@@ -28,7 +28,8 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   }
 
   @Override
-  public Product updateProduct(String id, Product product, String userId, Role role) {
+  public Product updateProduct(
+      String id, Product product, String userId, Role role, Boolean activeOverride) {
     Product existing =
         productRepository
             .findById(id)
@@ -50,6 +51,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     existing.setCostPrice(product.getCostPrice());
     existing.setStockQuantity(product.getStockQuantity());
     existing.setCategory(product.getCategory());
+    if (activeOverride != null) {
+      existing.setActive(activeOverride);
+    }
 
     return productRepository.save(existing);
   }

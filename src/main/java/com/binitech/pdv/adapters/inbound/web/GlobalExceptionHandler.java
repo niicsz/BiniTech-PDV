@@ -4,14 +4,41 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.ErrorDTO;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import java.time.OffsetDateTime;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorDTO> handleValidation(MethodArgumentNotValidException ex) {
+    String message =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(
+                fe -> {
+                  String field = fe.getField();
+                  Object rejected = fe.getRejectedValue();
+                  String fieldLabel = getFieldLabel(field);
+                  if (rejected == null || rejected.toString().isBlank()) {
+                    return fieldLabel + " é obrigatório(a).";
+                  }
+                  return fieldLabel + ": valor inválido (" + rejected + ").";
+                })
+            .collect(Collectors.joining(" "));
+    if (message.isBlank()) {
+      message = "Dados inválidos. Verifique os campos e tente novamente.";
+    }
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("VALIDATION_ERROR");
+    error.setMessage(message);
+    error.setTimestamp(OffsetDateTime.now());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
 
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ErrorDTO> handleNotFound(ResourceNotFoundException ex) {
@@ -53,8 +80,22 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorDTO> handleGeneric(Exception ex) {
     ErrorDTO error = new ErrorDTO();
     error.setCode("INTERNAL_ERROR");
-    error.setMessage("Erro interno do servidor: " + ex.getMessage());
+    error.setMessage("Erro interno do servidor. Tente novamente mais tarde.");
     error.setTimestamp(OffsetDateTime.now());
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+  }
+
+  private String getFieldLabel(String field) {
+    return switch (field) {
+      case "barcode" -> "Código de barras";
+      case "description" -> "Descrição";
+      case "price" -> "Preço de venda";
+      case "costPrice" -> "Preço de custo";
+      case "stockQuantity" -> "Estoque";
+      case "category" -> "Categoria";
+      case "username" -> "Nome de usuário";
+      case "password" -> "Senha";
+      default -> field;
+    };
   }
 }

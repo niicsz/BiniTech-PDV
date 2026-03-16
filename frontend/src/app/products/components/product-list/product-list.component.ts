@@ -25,7 +25,8 @@ export class ProductListComponent implements OnInit {
     price: 0,
     costPrice: 0,
     stockQuantity: 0,
-    category: ''
+    category: '',
+    active: true
   };
 
   statusMessage = '';
@@ -62,7 +63,7 @@ export class ProductListComponent implements OnInit {
 
   openCreateForm(): void {
     this.editingId = null;
-    this.form = { barcode: '', description: '', price: 0, costPrice: 0, stockQuantity: 0, category: '' };
+    this.form = { barcode: '', description: '', price: 0, costPrice: 0, stockQuantity: 0, category: '', active: true };
     this.showForm = true;
   }
 
@@ -74,7 +75,8 @@ export class ProductListComponent implements OnInit {
       price: product.price || 0,
       costPrice: product.costPrice || 0,
       stockQuantity: product.stockQuantity || 0,
-      category: product.category || ''
+      category: product.category || '',
+      active: product.active ?? true
     };
     this.showForm = true;
   }
@@ -123,4 +125,3 @@ export class ProductListComponent implements OnInit {
     setTimeout(() => this.statusMessage = '', 4000);
   }
 }
-

@@ -17,6 +17,7 @@ export interface CreateProductDTO {
   costPrice: number;
   stockQuantity: number;
   category: string;
+  active?: boolean;
 }
 
 export interface SaleDTO {
@@ -84,4 +85,3 @@ export interface AuthResponse {
   username: string;
   role: string;
 }
-
