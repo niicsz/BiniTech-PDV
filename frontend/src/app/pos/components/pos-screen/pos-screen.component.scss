@@ -24,8 +24,8 @@
   color: var(--text-secondary);
 
   kbd {
-    background: var(--primary-dark);
-    color: #fff;
+    background: var(--kbd-bg);
+    color: var(--kbd-color);
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 11px;
@@ -44,17 +44,17 @@
   animation: slideIn 0.3s ease;
 
   &.status-success {
-    background: #e8f5e9;
+    background: var(--success-bg);
     color: var(--success);
     border-left: 4px solid var(--success);
   }
   &.status-error {
-    background: #ffebee;
+    background: var(--danger-bg);
     color: var(--danger);
     border-left: 4px solid var(--danger);
   }
   &.status-info {
-    background: #e3f2fd;
+    background: var(--info-bg);
     color: var(--primary);
     border-left: 4px solid var(--primary);
   }
@@ -108,7 +108,7 @@
 .barcode-icon {
   padding: 12px;
   background: var(--primary);
-  color: #fff;
+  color: var(--header-text);
   font-size: 24px;
 }
 
@@ -116,6 +116,8 @@
   flex: 1;
   border: none;
   outline: none;
+  background: var(--input-bg);
+  color: var(--text);
   padding: 14px 16px;
   font-size: 18px;
   font-weight: 500;
@@ -168,7 +170,7 @@
   align-items: center;
   padding: 16px;
   background: var(--primary-dark);
-  color: #fff;
+  color: var(--header-text);
   border-radius: var(--radius);
   font-size: 16px;
   font-weight: 700;
@@ -223,22 +225,22 @@
 
 .btn-primary {
   background: var(--primary);
-  color: #fff;
+  color: #ffffff;
 }
 
 .btn-success {
   background: var(--success);
-  color: #fff;
+  color: #ffffff;
 }
 
 .btn-danger {
   background: var(--danger);
-  color: #fff;
+  color: #ffffff;
 }
 
 .btn-accent {
   background: var(--accent);
-  color: #fff;
+  color: #ffffff;
 }
 
 .btn-secondary {
@@ -311,6 +313,8 @@
   width: 100%;
   padding: 12px;
   border: 2px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
   border-radius: var(--radius);
   font-size: 16px;
   transition: border-color 0.2s;
@@ -352,7 +356,7 @@
 
   &.highlight {
     padding: 12px;
-    background: #e8f5e9;
+    background: var(--success-bg);
     border-radius: var(--radius);
     border-bottom: none;
     font-size: 18px;
@@ -364,13 +368,13 @@
 }
 
 .receipt-paper {
-  background: #fff;
+  background: var(--surface);
+  color: var(--text);
   padding: 20px;
-  border: 1px dashed #ccc;
+  border: 1px dashed var(--border);
   border-radius: 8px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
-  color: #333;
 }
 
 .receipt-company {
@@ -386,21 +390,21 @@
   p {
     font-size: 12px;
     margin: 4px 0 0;
-    color: #666;
+    color: var(--text-secondary);
   }
 }
 
 .receipt-divider {
   text-align: center;
   font-size: 11px;
-  color: #999;
+  color: var(--text-secondary);
   margin: 8px 0;
   letter-spacing: 2px;
   overflow: hidden;
 }
 
 .receipt-divider-thin {
-  border-top: 1px dashed #ccc;
+  border-top: 1px dashed var(--border);
   margin: 8px 0;
 }
 
@@ -419,7 +423,7 @@
   th {
     font-weight: 700;
     padding: 4px 2px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--border);
     font-size: 11px;
   }
 
@@ -453,7 +457,7 @@
 .receipt-footer {
   text-align: center;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -496,13 +500,13 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #fff3e0;
+  background: var(--warning-bg);
   border-radius: var(--radius);
-  border-left: 4px solid #ff9800;
+  border-left: 4px solid var(--warning);
 
   .material-icons {
     font-size: 20px;
-    color: #ff9800;
+    color: var(--warning);
   }
 }
 

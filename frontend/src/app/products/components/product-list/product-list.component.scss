@@ -22,8 +22,8 @@
   border-radius: var(--radius);
   font-weight: 500;
 
-  &.status-success { background: #e8f5e9; color: var(--success); border-left: 4px solid var(--success); }
-  &.status-error { background: #ffebee; color: var(--danger); border-left: 4px solid var(--danger); }
+  &.status-success { background: var(--success-bg); color: var(--success); border-left: 4px solid var(--success); }
+  &.status-error { background: var(--danger-bg); color: var(--danger); border-left: 4px solid var(--danger); }
 }
 
 .form-card {
@@ -59,6 +59,8 @@
   width: 100%;
   padding: 10px 12px;
   border: 2px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
   border-radius: var(--radius);
   font-size: 14px;
 
@@ -110,7 +112,7 @@
 
   thead th {
     background: var(--primary-dark);
-    color: #fff;
+    color: var(--header-text);
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
@@ -119,7 +121,7 @@
 
   tbody tr {
     border-bottom: 1px solid var(--border);
-    &:hover { background: #f5f5f5; }
+    &:hover { background: var(--table-hover); }
   }
 
   .mono { font-family: monospace; font-size: 13px; }
@@ -134,8 +136,8 @@
   font-size: 12px;
   font-weight: 600;
 
-  &.badge-success { background: #e8f5e9; color: var(--success); }
-  &.badge-danger { background: #ffebee; color: var(--danger); }
+  &.badge-success { background: var(--success-bg); color: var(--success); }
+  &.badge-danger { background: var(--danger-bg); color: var(--danger); }
 }
 
 .actions {
@@ -152,8 +154,8 @@
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover { background: #e3f2fd; color: var(--primary); }
-  &.btn-icon-danger:hover { background: #ffebee; color: var(--danger); }
+  &:hover { background: var(--info-bg); color: var(--primary); }
+  &.btn-icon-danger:hover { background: var(--danger-bg); color: var(--danger); }
 
   .material-icons { font-size: 20px; }
 }
@@ -175,6 +177,6 @@
   .material-icons { font-size: 18px; }
 }
 
-.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary { background: var(--primary); color: #ffffff; }
 .btn-secondary { background: var(--border); color: var(--text); }
 

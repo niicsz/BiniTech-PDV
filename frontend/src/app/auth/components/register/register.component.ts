@@ -102,7 +102,7 @@ import { AuthResponse } from '../../../shared/models/api.models';
       padding-top: 24px;
     }
     .register-card {
-      background: #fff;
+      background: var(--surface);
       border-radius: 12px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
       padding: 40px;
@@ -115,15 +115,15 @@ import { AuthResponse } from '../../../shared/models/api.models';
     }
     .logo-icon {
       font-size: 48px;
-      color: var(--primary-dark, #1a237e);
+      color: var(--primary-dark);
     }
     .register-header h1 {
       margin: 8px 0 4px;
       font-size: 22px;
-      color: var(--primary-dark, #1a237e);
+      color: var(--primary-dark);
     }
     .register-header p {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
     .form-group {
@@ -136,7 +136,7 @@ import { AuthResponse } from '../../../shared/models/api.models';
       font-size: 14px;
       font-weight: 500;
       margin-bottom: 6px;
-      color: #333;
+      color: var(--text);
     }
     .form-group label .material-icons {
       font-size: 18px;
@@ -145,24 +145,25 @@ import { AuthResponse } from '../../../shared/models/api.models';
     .form-group select {
       width: 100%;
       padding: 10px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
       transition: border-color 0.2s;
       box-sizing: border-box;
-      background: #fff;
+      background: var(--input-bg);
+      color: var(--text);
     }
     .form-group input:focus,
     .form-group select:focus {
       outline: none;
-      border-color: var(--primary-dark, #1a237e);
+      border-color: var(--primary-dark);
     }
     .error-message {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #fdecea;
-      color: #c62828;
+      background: var(--danger-bg);
+      color: var(--danger);
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 13px;
@@ -175,8 +176,8 @@ import { AuthResponse } from '../../../shared/models/api.models';
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: var(--success-bg);
+      color: var(--success);
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 13px;
@@ -188,7 +189,7 @@ import { AuthResponse } from '../../../shared/models/api.models';
     .register-btn {
       width: 100%;
       padding: 12px;
-      background: var(--primary-dark, #1a237e);
+      background: var(--primary-dark);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -202,7 +203,7 @@ import { AuthResponse } from '../../../shared/models/api.models';
       transition: background 0.2s;
     }
     .register-btn:hover:not(:disabled) {
-      background: #283593;
+      background: var(--primary);
     }
     .register-btn:disabled {
       opacity: 0.7;

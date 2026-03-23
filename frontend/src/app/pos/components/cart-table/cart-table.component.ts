@@ -69,7 +69,7 @@ import { CartItem } from '../../../shared/models/cart.model';
         position: sticky;
         top: 0;
         background: var(--primary-dark);
-        color: #fff;
+        color: var(--header-text);
         font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
@@ -82,11 +82,11 @@ import { CartItem } from '../../../shared/models/cart.model';
         transition: background 0.15s;
 
         &:hover {
-          background: #f5f5f5;
+          background: var(--table-hover);
         }
 
         &.selected {
-          background: #e3f2fd;
+          background: var(--info-bg);
           border-left: 3px solid var(--primary);
         }
       }
@@ -113,7 +113,7 @@ import { CartItem } from '../../../shared/models/cart.model';
       transition: background 0.2s;
 
       &:hover {
-        background: #ffebee;
+        background: var(--danger-bg);
       }
 
       .material-icons {

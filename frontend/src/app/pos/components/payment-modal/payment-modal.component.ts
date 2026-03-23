@@ -166,7 +166,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       align-items: center;
       padding: 16px;
       background: var(--primary-dark);
-      color: #fff;
+      color: var(--header-text);
       border-radius: var(--radius);
       margin-bottom: 20px;
       font-size: 16px;
@@ -177,7 +177,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
     .payments-list {
       margin-bottom: 20px;
       padding: 16px;
-      background: #f5f5f5;
+      background: var(--bg);
       border-radius: var(--radius);
     }
 
@@ -208,7 +208,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       &.remaining { color: var(--danger); }
       &.change {
         padding: 8px 12px;
-        background: #e8f5e9;
+        background: var(--success-bg);
         border-radius: var(--radius);
         margin-top: 4px;
       }
@@ -242,13 +242,13 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
 
       &:hover {
         border-color: var(--primary);
-        background: #e3f2fd;
+        background: var(--info-bg);
       }
 
       &.active {
         border-color: var(--primary);
         background: var(--primary);
-        color: #fff;
+        color: #ffffff;
       }
     }
 
@@ -274,6 +274,8 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       width: 100%;
       padding: 12px;
       border: 2px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
       border-radius: var(--radius);
       font-size: 16px;
       transition: border-color 0.2s;
@@ -323,8 +325,8 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
     }
 
     .btn-lg { padding: 14px 20px; font-size: 15px; }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-success { background: var(--success); color: #fff; }
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-success { background: var(--success); color: #ffffff; }
     .btn-secondary { background: var(--border); color: var(--text); }
 
     .btn-icon-sm {
@@ -342,7 +344,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
 
       &.btn-icon-danger {
         color: var(--danger);
-        &:hover { background: #ffebee; }
+        &:hover { background: var(--danger-bg); }
       }
     }
 
