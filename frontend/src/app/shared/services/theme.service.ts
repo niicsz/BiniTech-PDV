@@ -26,7 +26,6 @@ export class ThemeService {
     this.applyTheme(isDark);
     localStorage.setItem(this.THEME_KEY, isDark ? 'dark' : 'light');
     
-    // Reapply custom colors after theme change because dark-theme class changes defaults
     setTimeout(() => this.applyCustomColors(this.customColors()), 0);
   }
 
@@ -42,12 +41,10 @@ export class ThemeService {
     this.customColors.set({});
     localStorage.removeItem(this.COLORS_KEY);
     
-    // Remove inline styles to restore css variables
-    document.documentElement.style.removeProperty('--primary');
-    document.documentElement.style.removeProperty('--primary-dark');
-    document.documentElement.style.removeProperty('--header-bg');
+    document.body.style.removeProperty('--primary');
+    document.body.style.removeProperty('--primary-dark');
+    document.body.style.removeProperty('--header-bg');
     
-    // Reapply theme to ensure everything is reset correctly
     this.applyTheme(this.isDarkMode());
   }
 
@@ -83,15 +80,14 @@ export class ThemeService {
 
   private applyCustomColors(colors: ThemeColors) {
     if (colors.primary) {
-      document.documentElement.style.setProperty('--primary', colors.primary);
-      document.documentElement.style.setProperty('--primary-dark', this.adjustColorBrightness(colors.primary, -20));
+      document.body.style.setProperty('--primary', colors.primary);
+      document.body.style.setProperty('--primary-dark', this.adjustColorBrightness(colors.primary, -20));
     }
     if (colors.headerBg) {
-      document.documentElement.style.setProperty('--header-bg', colors.headerBg);
+      document.body.style.setProperty('--header-bg', colors.headerBg);
     }
   }
   
-  // Helper to adjust color brightness (simple implementation for hex)
   private adjustColorBrightness(hex: string, percent: number): string {
     hex = hex.replace(/^#/, '');
     if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
