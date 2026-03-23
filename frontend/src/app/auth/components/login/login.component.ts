@@ -67,10 +67,10 @@ import { AuthService } from '../../services/auth.service';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background: var(--bg, #f0f2f5);
+      background: var(--bg);
     }
     .login-card {
-      background: #fff;
+      background: var(--surface);
       border-radius: 12px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
       padding: 40px;
@@ -83,15 +83,15 @@ import { AuthService } from '../../services/auth.service';
     }
     .logo-icon {
       font-size: 48px;
-      color: var(--primary-dark, #1a237e);
+      color: var(--primary-dark);
     }
     .login-header h1 {
       margin: 8px 0 4px;
       font-size: 24px;
-      color: var(--primary-dark, #1a237e);
+      color: var(--primary-dark);
     }
     .login-header p {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
     .form-group {
@@ -104,7 +104,7 @@ import { AuthService } from '../../services/auth.service';
       font-size: 14px;
       font-weight: 500;
       margin-bottom: 6px;
-      color: #333;
+      color: var(--text);
     }
     .form-group label .material-icons {
       font-size: 18px;
@@ -112,7 +112,9 @@ import { AuthService } from '../../services/auth.service';
     .form-group input {
       width: 100%;
       padding: 10px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
       border-radius: 8px;
       font-size: 14px;
       transition: border-color 0.2s;
@@ -120,14 +122,14 @@ import { AuthService } from '../../services/auth.service';
     }
     .form-group input:focus {
       outline: none;
-      border-color: var(--primary-dark, #1a237e);
+      border-color: var(--primary-dark);
     }
     .error-message {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #fdecea;
-      color: #c62828;
+      background: var(--danger-bg);
+      color: var(--danger);
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 13px;
@@ -139,7 +141,7 @@ import { AuthService } from '../../services/auth.service';
     .login-btn {
       width: 100%;
       padding: 12px;
-      background: var(--primary-dark, #1a237e);
+      background: var(--primary-dark);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -153,7 +155,7 @@ import { AuthService } from '../../services/auth.service';
       transition: background 0.2s;
     }
     .login-btn:hover:not(:disabled) {
-      background: #283593;
+      background: var(--primary);
     }
     .login-btn:disabled {
       opacity: 0.7;
