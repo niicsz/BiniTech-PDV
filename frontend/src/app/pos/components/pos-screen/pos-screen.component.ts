@@ -48,6 +48,11 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   lowStockProducts: { description: string; stockQuantity: number }[] = [];
   private pendingLowStockProducts: { description: string; stockQuantity: number }[] = [];
 
+  allProducts: ProductDTO[] = [];
+  filteredProducts: ProductDTO[] = [];
+  showDropdown = false;
+  dropdownSelectedIndex = -1;
+
   constructor(
     private productService: ProductService,
     private saleService: SaleService,
@@ -57,6 +62,18 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loggedInUsername = this.authService.getUsername() || 'Operador';
     this.focusBarcode();
+    this.loadProducts();
+  }
+
+  loadProducts(): void {
+    this.productService.listAll().subscribe({
+      next: (products) => {
+        this.allProducts = products;
+      },
+      error: () => {
+        console.warn('Não foi possível carregar os produtos para busca offline.');
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -82,6 +99,25 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         event.preventDefault();
       }
       return;
+    }
+
+    // Dropdown navigation
+    if (this.showDropdown) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.dropdownSelectedIndex = Math.min(this.dropdownSelectedIndex + 1, this.filteredProducts.length - 1);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.dropdownSelectedIndex = Math.max(this.dropdownSelectedIndex - 1, 0);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.hideDropdown();
+        return;
+      }
     }
 
     switch (event.key) {
@@ -117,22 +153,81 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     }
   }
 
+  hideDropdown(): void {
+    setTimeout(() => {
+      this.showDropdown = false;
+      this.filteredProducts = [];
+      this.dropdownSelectedIndex = -1;
+    }, 150);
+  }
+
+  onSearchChange(): void {
+    const val = this.barcodeValue.trim().toLowerCase();
+    
+    // Only search if not purely numbers (like an active barcode scan in progress)
+    // or if the user typed at least 3 chars
+    if (val.length < 2) {
+      this.hideDropdown();
+      return;
+    }
+
+    this.filteredProducts = this.allProducts
+      .filter(p => 
+        (p.description && p.description.toLowerCase().includes(val)) ||
+        (p.barcode && p.barcode.includes(val))
+      )
+      .slice(0, 8); // show up to 8 items
+
+    this.showDropdown = this.filteredProducts.length > 0;
+    this.dropdownSelectedIndex = this.showDropdown ? 0 : -1;
+  }
+
   onBarcodeSubmit(): void {
     const barcode = this.barcodeValue.trim();
     if (!barcode) return;
 
+    // Se tiver dropdown aberto e um item selecionado, usa o item
+    if (this.showDropdown && this.dropdownSelectedIndex >= 0) {
+      const selected = this.filteredProducts[this.dropdownSelectedIndex];
+      this.addToCart(selected);
+      this.barcodeValue = '';
+      this.hideDropdown();
+      this.focusBarcode();
+      return;
+    }
+
+    // Try exact barcode match locally first for faster response
+    const exactMatch = this.allProducts.find(p => p.barcode === barcode);
+    if (exactMatch) {
+      this.addToCart(exactMatch);
+      this.barcodeValue = '';
+      this.hideDropdown();
+      this.focusBarcode();
+      return;
+    }
+
+    // Fallback to API
     this.productService.getByBarcode(barcode).subscribe({
       next: (product: ProductDTO) => {
         this.addToCart(product);
         this.barcodeValue = '';
+        this.hideDropdown();
         this.focusBarcode();
       },
       error: () => {
         this.showStatus(`Produto não encontrado: ${barcode}`, 'error');
         this.barcodeValue = '';
+        this.hideDropdown();
         this.focusBarcode();
       }
     });
+  }
+
+  selectFromDropdown(product: ProductDTO): void {
+    this.addToCart(product);
+    this.barcodeValue = '';
+    this.hideDropdown();
+    this.focusBarcode();
   }
 
   addToCart(product: ProductDTO): void {
