@@ -26,12 +26,24 @@
             #barcodeInput
             type="text"
             class="barcode-input"
-            placeholder="Leia ou digite o código de barras e pressione Enter..."
+            placeholder="Leia ou digite o código de barras ou nome do produto..."
             [(ngModel)]="barcodeValue"
+            (input)="onSearchChange()"
             (keydown.enter)="onBarcodeSubmit()"
+            (blur)="hideDropdown()"
             autocomplete="off"
             autofocus
           />
+        </div>
+        
+        <div class="autocomplete-dropdown" *ngIf="showDropdown">
+          <div class="dropdown-item" 
+               *ngFor="let product of filteredProducts; let i = index"
+               [class.selected]="i === dropdownSelectedIndex"
+               (mousedown)="selectFromDropdown(product)">
+            <span class="item-desc">{{ product.description }}</span>
+            <span class="item-price">R$ {{ product.price | number:'1.2-2' }}</span>
+          </div>
         </div>
       </div>
 
