@@ -31,6 +31,7 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 - **Nota impressa com nome do operador** — O comprovante de venda exibe o nome do usuário logado.
 - **Relatório de vendas** — Consulta de vendas por data ou período.
 - **Registro de usuários** — Somente administradores podem registrar novos usuários.
+- **Personalização Visual** — Suporte nativo a Modo Escuro (Dark Mode) e customização de cores da interface (cor primária e cabeçalho).
 
 ---
 
@@ -318,6 +319,12 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 - Consulta por data específica ou período (data inicial / data final)
 - Exibição de itens vendidos, pagamentos e totais
 
+### Aparência e Tema
+
+- Alternância entre **Modo Claro** e **Modo Escuro** (Dark Mode).
+- Modal de **Configurações de Aparência** que permite customizar a Cor Primária e a Cor do Cabeçalho.
+- Persistência das preferências de tema do usuário utilizando `localStorage`.
+
 ---
 
 ## 🐳 Docker
@@ -349,13 +356,6 @@ docker run -d \
   -e ADMIN_PASSWORD=sua-senha-admin \
   binitech-pdv
 ```
-
-### Etapas do Dockerfile
-
-1. **frontend-build** — Node.js 20 Alpine: instala dependências e builda o Angular em modo produção.
-2. **backend-build** — Eclipse Temurin JDK 17: baixa dependências Maven, copia o build do frontend para `resources/static/`, e gera o JAR.
-3. **runtime** — Eclipse Temurin JRE 17: imagem mínima com usuário não-root para segurança.
-
 ---
 
 ## 📂 Estrutura do Projeto
