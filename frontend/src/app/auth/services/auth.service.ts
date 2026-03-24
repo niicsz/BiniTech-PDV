@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, BehaviorSubject, throwError } from 'rxjs';
+import { Observable, tap, BehaviorSubject } from 'rxjs';
 import { AuthResponse, LoginRequest, RefreshTokenRequest, RegisterRequest } from '../../shared/models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -28,7 +28,7 @@ export class AuthService {
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
       this.logout();
-      return throwError(() => new Error('No refresh token'));
+      throw new Error('No refresh token');
     }
     const body: RefreshTokenRequest = { refreshToken };
     return this.http.post<AuthResponse>(`${this.authUrl}/refresh`, body).pipe(
