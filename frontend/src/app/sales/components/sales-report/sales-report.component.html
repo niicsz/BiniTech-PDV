@@ -1,14 +1,24 @@
 <div class="report-page">
   <div class="page-header">
-    <h2><mat-icon>assessment</mat-icon> Relatório de Vendas</h2>
+    <div class="page-title-group">
+      <mat-icon class="page-icon">assessment</mat-icon>
+      <div>
+        <h2>Relatório de Vendas</h2>
+        <p class="page-subtitle">Acompanhe o desempenho das vendas</p>
+      </div>
+    </div>
   </div>
 
-  <mat-card class="filters-card" appearance="outlined">
+  <!-- Filters -->
+  <div class="filters-card">
     <div class="filter-actions">
-      <button mat-flat-button [color]="filterMode === 'today' ? 'primary' : undefined"
-              [class.btn-secondary]="filterMode !== 'today'" (click)="loadToday()">
+      <button mat-flat-button [class.filter-active]="filterMode === 'today'"
+              [class.filter-inactive]="filterMode !== 'today'" (click)="loadToday()">
         <mat-icon>today</mat-icon> Vendas de Hoje
       </button>
+
+      <div class="filter-separator"></div>
+
       <div class="period-filter">
         <mat-form-field appearance="outline" class="date-field">
           <mat-label>De</mat-label>
@@ -18,84 +28,110 @@
           <mat-label>Até</mat-label>
           <input matInput type="date" [(ngModel)]="endDate" />
         </mat-form-field>
-        <button mat-flat-button color="primary" (click)="loadByPeriod()">
+        <button mat-flat-button color="primary" (click)="loadByPeriod()" class="filter-btn">
           <mat-icon>search</mat-icon> Filtrar
         </button>
       </div>
     </div>
-  </mat-card>
-
-  <div class="summary-cards">
-    <mat-card class="summary-card" appearance="outlined">
-      <mat-icon>receipt_long</mat-icon>
-      <div>
-        <p class="summary-label">Total de Vendas</p>
-        <p class="summary-value">{{ sales.length }}</p>
-      </div>
-    </mat-card>
-    <mat-card class="summary-card highlight" appearance="outlined">
-      <mat-icon>attach_money</mat-icon>
-      <div>
-        <p class="summary-label">Faturamento</p>
-        <p class="summary-value">R$ {{ totalRevenue | number:'1.2-2' }}</p>
-      </div>
-    </mat-card>
-    <mat-card class="summary-card cost" appearance="outlined">
-      <mat-icon>shopping_cart</mat-icon>
-      <div>
-        <p class="summary-label">Custo Total</p>
-        <p class="summary-value">R$ {{ totalCost | number:'1.2-2' }}</p>
-      </div>
-    </mat-card>
-    <mat-card class="summary-card" [ngClass]="totalProfit >= 0 ? 'profit' : 'loss'" appearance="outlined">
-      <mat-icon>{{ totalProfit >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
-      <div>
-        <p class="summary-label">Lucro</p>
-        <p class="summary-value">R$ {{ totalProfit | number:'1.2-2' }}</p>
-      </div>
-    </mat-card>
   </div>
 
-  <mat-card class="table-card" appearance="outlined">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Data / Hora</th>
-          <th>Itens</th>
-          <th>Pagamento</th>
-          <th>Total Venda</th>
-          <th>Custo</th>
-          <th>Lucro</th>
-          <th>Pago</th>
-          <th>Troco</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let sale of sales">
-          <td class="mono">{{ sale.id?.substring(0, 8) }}...</td>
-          <td>{{ formatTimestamp(sale.timestamp) }}</td>
-          <td class="text-center">{{ sale.items?.length || 0 }}</td>
-          <td>
-            <mat-chip *ngFor="let p of sale.payments" class="badge-info">
-              {{ getPaymentLabel(p.method) }}
-            </mat-chip>
-          </td>
-          <td class="text-right font-bold">R$ {{ sale.totalAmount | number:'1.2-2' }}</td>
-          <td class="text-right">R$ {{ sale.totalCost | number:'1.2-2' }}</td>
-          <td class="text-right" [ngClass]="getSaleProfit(sale) >= 0 ? 'text-success' : 'text-danger'">
-            R$ {{ getSaleProfit(sale) | number:'1.2-2' }}
-          </td>
-          <td class="text-right">R$ {{ sale.totalPaid | number:'1.2-2' }}</td>
-          <td class="text-right" [class.text-success]="(sale.change || 0) > 0">
-            R$ {{ sale.change | number:'1.2-2' }}
-          </td>
-        </tr>
-        <tr *ngIf="sales.length === 0">
-          <td colspan="9" class="empty-state">Nenhuma venda encontrada para o período selecionado.</td>
-        </tr>
-      </tbody>
-    </table>
-  </mat-card>
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="card-icon-wrapper card-icon-default">
+        <mat-icon>receipt_long</mat-icon>
+      </div>
+      <div class="card-content">
+        <p class="card-label">Total de Vendas</p>
+        <p class="card-value">{{ sales.length }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card card-highlight">
+      <div class="card-icon-wrapper card-icon-primary">
+        <mat-icon>attach_money</mat-icon>
+      </div>
+      <div class="card-content">
+        <p class="card-label">Faturamento</p>
+        <p class="card-value">R$ {{ totalRevenue | number:'1.2-2' }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon-wrapper card-icon-warning">
+        <mat-icon>shopping_cart</mat-icon>
+      </div>
+      <div class="card-content">
+        <p class="card-label">Custo Total</p>
+        <p class="card-value">R$ {{ totalCost | number:'1.2-2' }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card" [ngClass]="totalProfit >= 0 ? 'card-profit' : 'card-loss'">
+      <div class="card-icon-wrapper" [ngClass]="totalProfit >= 0 ? 'card-icon-success' : 'card-icon-danger'">
+        <mat-icon>{{ totalProfit >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+      </div>
+      <div class="card-content">
+        <p class="card-label">Lucro</p>
+        <p class="card-value" [ngClass]="totalProfit >= 0 ? 'value-success' : 'value-danger'">
+          R$ {{ totalProfit | number:'1.2-2' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <mat-icon>list_alt</mat-icon>
+      <span>Detalhamento das Vendas</span>
+      <span class="table-count">{{ sales.length }} registro(s)</span>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data / Hora</th>
+            <th class="text-center">Itens</th>
+            <th>Pagamento</th>
+            <th class="text-right">Total Venda</th>
+            <th class="text-right">Custo</th>
+            <th class="text-right">Lucro</th>
+            <th class="text-right">Pago</th>
+            <th class="text-right">Troco</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sale of sales; let odd = odd" [class.row-stripe]="odd">
+            <td class="col-id">{{ sale.id?.substring(0, 8) }}</td>
+            <td class="col-date">{{ formatTimestamp(sale.timestamp) }}</td>
+            <td class="text-center">{{ sale.items?.length || 0 }}</td>
+            <td class="col-payment">
+              <span class="payment-badge" *ngFor="let p of sale.payments"
+                    [ngClass]="'badge-' + p.method.toLowerCase()">
+                {{ getPaymentLabel(p.method) }}
+              </span>
+            </td>
+            <td class="text-right col-amount">R$ {{ sale.totalAmount | number:'1.2-2' }}</td>
+            <td class="text-right col-cost">R$ {{ sale.totalCost | number:'1.2-2' }}</td>
+            <td class="text-right col-profit" [ngClass]="getSaleProfit(sale) >= 0 ? 'text-success' : 'text-danger'">
+              R$ {{ getSaleProfit(sale) | number:'1.2-2' }}
+            </td>
+            <td class="text-right">R$ {{ sale.totalPaid | number:'1.2-2' }}</td>
+            <td class="text-right" [class.text-success]="(sale.change || 0) > 0">
+              R$ {{ sale.change | number:'1.2-2' }}
+            </td>
+          </tr>
+          <tr *ngIf="sales.length === 0">
+            <td colspan="9" class="empty-state">
+              <mat-icon class="empty-icon">search_off</mat-icon>
+              <p>Nenhuma venda encontrada para o período selecionado</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
