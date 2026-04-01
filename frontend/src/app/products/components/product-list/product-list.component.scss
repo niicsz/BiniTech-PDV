@@ -83,10 +83,16 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  flex-wrap: wrap;
 
   mat-icon {
     color: var(--text-secondary);
   }
+}
+
+.search-field {
+  flex: 1;
+  min-width: 250px;
 }
 
 .filter-select {
