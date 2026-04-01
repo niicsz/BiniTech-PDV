@@ -1,8 +1,8 @@
 <div class="products-page">
   <div class="page-header">
-    <h2><span class="material-icons">inventory_2</span> Cadastro de Produtos</h2>
-    <button class="btn btn-primary" (click)="openCreateForm()">
-      <span class="material-icons">add</span> Novo Produto
+    <h2><mat-icon>inventory_2</mat-icon> Cadastro de Produtos</h2>
+    <button mat-flat-button color="primary" (click)="openCreateForm()">
+      <mat-icon>add</mat-icon> Novo Produto
     </button>
   </div>
 
@@ -10,63 +10,67 @@
     {{ statusMessage }}
   </div>
 
-  <div class="form-card" *ngIf="showForm">
-    <h3>{{ editingId ? 'Editar Produto' : 'Novo Produto' }}</h3>
-    <form (ngSubmit)="saveProduct()">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Código de Barras</label>
-          <input type="text" [(ngModel)]="form.barcode" name="barcode" class="form-input" required />
+  <mat-card *ngIf="showForm" class="form-card" appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>{{ editingId ? 'Editar Produto' : 'Novo Produto' }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form (ngSubmit)="saveProduct()">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Código de Barras</mat-label>
+            <input matInput [(ngModel)]="form.barcode" name="barcode" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="flex-2">
+            <mat-label>Descrição</mat-label>
+            <input matInput [(ngModel)]="form.description" name="description" required />
+          </mat-form-field>
         </div>
-        <div class="form-group flex-2">
-          <label>Descrição</label>
-          <input type="text" [(ngModel)]="form.description" name="description" class="form-input" required />
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Preço de Venda (R$)</mat-label>
+            <input matInput type="number" step="0.01" min="0.01" [(ngModel)]="form.price" name="price" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Preço de Custo (R$)</mat-label>
+            <input matInput type="number" step="0.01" min="0" [(ngModel)]="form.costPrice" name="costPrice" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Estoque</mat-label>
+            <input matInput type="number" min="0" [(ngModel)]="form.stockQuantity" name="stockQuantity" required />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Categoria</mat-label>
+            <input matInput [(ngModel)]="form.category" name="category" placeholder="Ex: Bebidas, Alimentos..." />
+          </mat-form-field>
+          <mat-form-field appearance="outline" *ngIf="editingId">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="form.active" name="active">
+              <mat-option [value]="true">Ativo</mat-option>
+              <mat-option [value]="false">Inativo</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Preço de Venda (R$)</label>
-          <input type="number" step="0.01" min="0.01" [(ngModel)]="form.price" name="price" class="form-input" required />
+        <div class="form-actions">
+          <button mat-stroked-button type="button" (click)="cancelForm()">Cancelar</button>
+          <button mat-flat-button color="primary" type="submit">Salvar</button>
         </div>
-        <div class="form-group">
-          <label>Preço de Custo (R$)</label>
-          <input type="number" step="0.01" min="0" [(ngModel)]="form.costPrice" name="costPrice" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Estoque</label>
-          <input type="number" min="0" [(ngModel)]="form.stockQuantity" name="stockQuantity" class="form-input" required />
-        </div>
-        <div class="form-group">
-          <label>Categoria</label>
-          <input type="text" [(ngModel)]="form.category" name="category" class="form-input" placeholder="Ex: Bebidas, Alimentos..." />
-        </div>
-        <div class="form-group" *ngIf="editingId">
-          <label>Status</label>
-          <select [(ngModel)]="form.active" name="active" class="form-input">
-            <option [ngValue]="true">Ativo</option>
-            <option [ngValue]="false">Inativo</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar</button>
-      </div>
-    </form>
-  </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
 
-  <div class="filter-bar" *ngIf="products.length > 0">
-    <label class="filter-label">
-      <span class="material-icons" style="vertical-align: middle; font-size: 18px;">filter_list</span>
-      Filtrar por Categoria:
-    </label>
-    <select [(ngModel)]="selectedCategory" class="form-input filter-select">
-      <option value="">Todas as Categorias</option>
-      <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-    </select>
-  </div>
+  <mat-card class="filter-bar" *ngIf="products.length > 0" appearance="outlined">
+    <mat-icon>filter_list</mat-icon>
+    <mat-form-field appearance="outline" class="filter-select">
+      <mat-label>Filtrar por Categoria</mat-label>
+      <mat-select [(ngModel)]="selectedCategory">
+        <mat-option value="">Todas as Categorias</mat-option>
+        <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </mat-card>
 
-  <div class="table-card">
+  <mat-card class="table-card" appearance="outlined">
     <table class="data-table">
       <thead>
         <tr>
@@ -89,16 +93,16 @@
           <td class="text-right">R$ {{ product.costPrice | number:'1.2-2' }}</td>
           <td class="text-center">{{ product.stockQuantity }}</td>
           <td>
-            <span class="badge" [ngClass]="product.active ? 'badge-success' : 'badge-danger'">
+            <mat-chip [highlighted]="product.active" [class.chip-success]="product.active" [class.chip-danger]="!product.active">
               {{ product.active ? 'Ativo' : 'Inativo' }}
-            </span>
+            </mat-chip>
           </td>
           <td class="actions">
-            <button class="btn-icon" title="Editar" (click)="openEditForm(product)">
-              <span class="material-icons">edit</span>
+            <button mat-icon-button matTooltip="Editar" (click)="openEditForm(product)">
+              <mat-icon>edit</mat-icon>
             </button>
-            <button class="btn-icon btn-icon-danger" title="Remover" (click)="deleteProduct(product.id!)">
-              <span class="material-icons">delete</span>
+            <button mat-icon-button matTooltip="Remover" color="warn" (click)="deleteProduct(product.id!)">
+              <mat-icon>delete</mat-icon>
             </button>
           </td>
         </tr>
@@ -107,5 +111,5 @@
         </tr>
       </tbody>
     </table>
-  </div>
+  </mat-card>
 </div>

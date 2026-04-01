@@ -1,27 +1,29 @@
 <div class="pos-container">
 
   <div class="shortcuts-bar">
-    <span class="shortcut"><kbd>F2</kbd> Alterar Qtd</span>
-    <span class="shortcut"><kbd>F4</kbd> Dinheiro</span>
-    <span class="shortcut"><kbd>F7</kbd> Crédito</span>
-    <span class="shortcut"><kbd>F8</kbd> Débito</span>
-    <span class="shortcut"><kbd>F9</kbd> PIX</span>
-    <span class="shortcut"><kbd>Del</kbd> Remover Item</span>
-    <span class="shortcut"><kbd>Esc</kbd> Cancelar</span>
+    <mat-chip-set>
+      <mat-chip><kbd>F2</kbd> Alterar Qtd</mat-chip>
+      <mat-chip><kbd>F4</kbd> Dinheiro</mat-chip>
+      <mat-chip><kbd>F7</kbd> Crédito</mat-chip>
+      <mat-chip><kbd>F8</kbd> Débito</mat-chip>
+      <mat-chip><kbd>F9</kbd> PIX</mat-chip>
+      <mat-chip><kbd>Del</kbd> Remover</mat-chip>
+      <mat-chip><kbd>Esc</kbd> Cancelar</mat-chip>
+    </mat-chip-set>
   </div>
 
   <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
-    <span class="material-icons status-icon">
+    <mat-icon class="status-icon">
       {{ statusType === 'success' ? 'check_circle' : statusType === 'error' ? 'error' : 'info' }}
-    </span>
+    </mat-icon>
     {{ statusMessage }}
   </div>
 
   <div class="pos-layout">
     <div class="pos-main">
-      <div class="barcode-section">
+      <mat-card class="barcode-section" appearance="outlined">
         <div class="barcode-input-wrapper">
-          <span class="material-icons barcode-icon">qr_code_scanner</span>
+          <mat-icon class="barcode-icon">qr_code_scanner</mat-icon>
           <input
             #barcodeInput
             type="text"
@@ -35,9 +37,9 @@
             autofocus
           />
         </div>
-        
+
         <div class="autocomplete-dropdown" *ngIf="showDropdown">
-          <div class="dropdown-item" 
+          <div class="dropdown-item"
                *ngFor="let product of filteredProducts; let i = index"
                [class.selected]="i === dropdownSelectedIndex"
                (mousedown)="selectFromDropdown(product)">
@@ -45,7 +47,7 @@
             <span class="item-price">R$ {{ product.price | number:'1.2-2' }}</span>
           </div>
         </div>
-      </div>
+      </mat-card>
 
       <app-cart-table
         [items]="cart"
@@ -56,43 +58,47 @@
     </div>
 
     <div class="pos-sidebar">
-      <div class="sidebar-card">
-        <h3>Resumo da Venda</h3>
-        <div class="summary-items">
-          <div class="summary-row">
-            <span>Itens no carrinho:</span>
-            <strong>{{ cart.length }}</strong>
+      <mat-card class="sidebar-card" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Resumo da Venda</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="summary-items">
+            <div class="summary-row">
+              <span>Itens no carrinho:</span>
+              <strong>{{ cart.length }}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Total de produtos:</span>
+              <strong>{{ getTotalQty() }}</strong>
+            </div>
           </div>
-          <div class="summary-row">
-            <span>Total de produtos:</span>
-            <strong>{{ getTotalQty() }}</strong>
+          <div class="total-display">
+            <span>TOTAL</span>
+            <span class="total-value">R$ {{ total | number:'1.2-2' }}</span>
           </div>
-        </div>
-        <div class="total-display">
-          <span>TOTAL</span>
-          <span class="total-value">R$ {{ total | number:'1.2-2' }}</span>
-        </div>
-      </div>
+        </mat-card-content>
+      </mat-card>
 
       <div class="sidebar-actions">
-        <button class="btn btn-success btn-lg" (click)="startPayment('CASH')">
-          <span class="material-icons">payments</span>
+        <button mat-flat-button class="action-btn success-btn" (click)="startPayment('CASH')">
+          <mat-icon>payments</mat-icon>
           Dinheiro (F4)
         </button>
-        <button class="btn btn-primary btn-lg" (click)="startPayment('CREDIT_CARD')">
-          <span class="material-icons">credit_card</span>
+        <button mat-flat-button color="primary" class="action-btn" (click)="startPayment('CREDIT_CARD')">
+          <mat-icon>credit_card</mat-icon>
           Crédito (F7)
         </button>
-        <button class="btn btn-primary btn-lg" (click)="startPayment('DEBIT_CARD')">
-          <span class="material-icons">credit_card</span>
+        <button mat-flat-button color="primary" class="action-btn" (click)="startPayment('DEBIT_CARD')">
+          <mat-icon>credit_card</mat-icon>
           Débito (F8)
         </button>
-        <button class="btn btn-accent btn-lg" (click)="startPayment('PIX')">
-          <span class="material-icons">pix</span>
+        <button mat-flat-button class="action-btn accent-btn" (click)="startPayment('PIX')">
+          <mat-icon>pix</mat-icon>
           PIX (F9)
         </button>
-        <button class="btn btn-danger btn-sm" (click)="clearCart()" *ngIf="cart.length > 0">
-          <span class="material-icons">delete_sweep</span>
+        <button mat-stroked-button color="warn" class="action-btn" (click)="clearCart()" *ngIf="cart.length > 0">
+          <mat-icon>delete_sweep</mat-icon>
           Limpar Carrinho
         </button>
       </div>
@@ -100,34 +106,31 @@
   </div>
 </div>
 
+<!-- Quantity Modal -->
 <div class="modal-overlay" *ngIf="showQuantityModal" (click)="closeQuantityModal()">
-  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
-    <h3>
-      <span class="material-icons">edit</span>
-      Alterar Quantidade
-    </h3>
-    <p *ngIf="selectedCartIndex >= 0 && selectedCartIndex < cart.length">
-      Produto: <strong>{{ cart[selectedCartIndex].description }}</strong>
-    </p>
-    <div class="form-group">
-      <label for="newQty">Nova Quantidade:</label>
-      <input
-        id="newQty"
-        type="number"
-        min="1"
-        [(ngModel)]="newQuantity"
-        (keydown.enter)="confirmQuantity()"
-        class="form-input"
-        autofocus
-      />
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" (click)="closeQuantityModal()">Cancelar</button>
-      <button class="btn btn-primary" (click)="confirmQuantity()">Confirmar</button>
-    </div>
-  </div>
+  <mat-card class="modal-content modal-sm" (click)="$event.stopPropagation()" appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>edit</mat-icon>
+      <mat-card-title>Alterar Quantidade</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p *ngIf="selectedCartIndex >= 0 && selectedCartIndex < cart.length" class="mb-2">
+        Produto: <strong>{{ cart[selectedCartIndex].description }}</strong>
+      </p>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nova Quantidade</mat-label>
+        <input matInput type="number" min="1" [(ngModel)]="newQuantity"
+               (keydown.enter)="confirmQuantity()" autofocus />
+      </mat-form-field>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <button mat-stroked-button (click)="closeQuantityModal()">Cancelar</button>
+      <button mat-flat-button color="primary" (click)="confirmQuantity()">Confirmar</button>
+    </mat-card-actions>
+  </mat-card>
 </div>
 
+<!-- Payment Modal -->
 <app-payment-modal
   *ngIf="showPaymentModal"
   [total]="total"
@@ -137,10 +140,11 @@
   (cancel)="closePaymentModal()">
 </app-payment-modal>
 
+<!-- Receipt Modal -->
 <div class="modal-overlay" *ngIf="showReceiptModal" (click)="closeReceiptModal()">
-  <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
+  <mat-card class="modal-content modal-lg" (click)="$event.stopPropagation()" appearance="outlined">
     <div class="receipt-header">
-      <span class="material-icons receipt-check">check_circle</span>
+      <mat-icon class="receipt-check">check_circle</mat-icon>
       <h3>Venda Finalizada!</h3>
     </div>
 
@@ -150,9 +154,7 @@
           <h2>BiniTech PDV</h2>
           <p>Comprovante de Venda</p>
         </div>
-
         <div class="receipt-divider">--------------------------------</div>
-
         <div class="receipt-info-line">
           <span>Venda:</span>
           <span>{{ lastSale.id?.substring(0, 12) }}</span>
@@ -165,9 +167,7 @@
           <span>Operador:</span>
           <span>{{ loggedInUsername }}</span>
         </div>
-
         <div class="receipt-divider">--------------------------------</div>
-
         <table class="receipt-items-table">
           <thead>
             <tr>
@@ -186,16 +186,12 @@
             </tr>
           </tbody>
         </table>
-
         <div class="receipt-divider">--------------------------------</div>
-
         <div class="receipt-total-line">
           <span>TOTAL:</span>
           <strong>R$ {{ lastSale.totalAmount | number:'1.2-2' }}</strong>
         </div>
-
         <div class="receipt-divider-thin"></div>
-
         <div class="receipt-payments-section">
           <p class="receipt-payments-title">Pagamentos:</p>
           <div class="receipt-info-line" *ngFor="let p of lastSale.payments">
@@ -203,7 +199,6 @@
             <span>R$ {{ p.amount | number:'1.2-2' }}</span>
           </div>
         </div>
-
         <div class="receipt-info-line">
           <span>Total Pago:</span>
           <strong>R$ {{ lastSale.totalPaid | number:'1.2-2' }}</strong>
@@ -212,32 +207,31 @@
           <span>Troco:</span>
           <strong>R$ {{ lastSale.change | number:'1.2-2' }}</strong>
         </div>
-
         <div class="receipt-divider">--------------------------------</div>
-
         <div class="receipt-footer">
           <p>Obrigado pela preferência!</p>
         </div>
       </div>
     </div>
 
-    <div class="modal-actions">
-      <button class="btn btn-secondary btn-lg" (click)="printReceipt()">
-        <span class="material-icons">print</span>
+    <mat-card-actions align="end">
+      <button mat-stroked-button (click)="printReceipt()">
+        <mat-icon>print</mat-icon>
         Imprimir Nota
       </button>
-      <button class="btn btn-primary btn-lg" (click)="closeReceiptModal()">
-        <span class="material-icons">add_shopping_cart</span>
+      <button mat-flat-button color="primary" (click)="closeReceiptModal()">
+        <mat-icon>add_shopping_cart</mat-icon>
         Nova Venda
       </button>
-    </div>
-  </div>
+    </mat-card-actions>
+  </mat-card>
 </div>
 
+<!-- Low Stock Alert -->
 <div class="modal-overlay low-stock-overlay" *ngIf="showLowStockAlert" (click)="closeLowStockAlert()">
-  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+  <mat-card class="modal-content modal-sm" (click)="$event.stopPropagation()" appearance="outlined">
     <div class="low-stock-header">
-      <span class="material-icons low-stock-icon">warning</span>
+      <mat-icon class="low-stock-icon">warning</mat-icon>
       <h3>Alerta de Estoque Baixo!</h3>
     </div>
     <p class="low-stock-description">
@@ -245,19 +239,19 @@
     </p>
     <div class="low-stock-list">
       <div class="low-stock-item" *ngFor="let product of lowStockProducts">
-        <span class="material-icons">inventory_2</span>
+        <mat-icon>inventory_2</mat-icon>
         <span class="low-stock-name">{{ product.description }}</span>
         <strong class="low-stock-qty" [class.critical]="product.stockQuantity === 0">
           {{ product.stockQuantity }} un.
         </strong>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" (click)="closeLowStockAlert()">
-        <span class="material-icons">check</span>
+    <mat-card-actions align="end">
+      <button mat-flat-button color="primary" (click)="closeLowStockAlert()">
+        <mat-icon>check</mat-icon>
         Entendido
       </button>
-    </div>
-  </div>
+    </mat-card-actions>
+  </mat-card>
 </div>
 

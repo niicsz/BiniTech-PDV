@@ -1,51 +1,57 @@
 import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ThemeService, ThemeColors } from '../services/theme.service';
 import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { ThemeService, ThemeColors } from '../services/theme.service';
 
 @Component({
   selector: 'app-settings-modal',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule],
   template: `
     <div class="modal-overlay" (click)="close.emit()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h2>Configurações de Aparência</h2>
-          <button class="close-btn" (click)="close.emit()">
-            <span class="material-icons">close</span>
+      <mat-card class="modal-card" (click)="$event.stopPropagation()" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Configurações de Aparência</mat-card-title>
+          <button mat-icon-button class="close-btn" (click)="close.emit()">
+            <mat-icon>close</mat-icon>
           </button>
-        </div>
-        
-        <div class="modal-body">
+        </mat-card-header>
+
+        <mat-card-content>
           <p class="description">Personalize as cores do sistema ao seu gosto.</p>
-          
+
           <div class="form-group">
             <label for="primaryColor">Cor Primária (Links, Botões)</label>
             <div class="color-picker-wrapper">
-              <input type="color" id="primaryColor" [(ngModel)]="colors.primary" (change)="updateColor('primary', colors.primary!)">
+              <input type="color" id="primaryColor" [(ngModel)]="colors.primary"
+                     (change)="updateColor('primary', colors.primary!)">
               <span class="color-value">{{ colors.primary || '#1565c0' }}</span>
             </div>
           </div>
-          
+
           <div class="form-group">
             <label for="headerBg">Cor do Cabeçalho</label>
             <div class="color-picker-wrapper">
-              <input type="color" id="headerBg" [(ngModel)]="colors.headerBg" (change)="updateColor('headerBg', colors.headerBg!)">
+              <input type="color" id="headerBg" [(ngModel)]="colors.headerBg"
+                     (change)="updateColor('headerBg', colors.headerBg!)">
               <span class="color-value">{{ colors.headerBg || '#0d47a1' }}</span>
             </div>
           </div>
-        </div>
+        </mat-card-content>
 
-        <div class="modal-actions">
-          <button class="btn btn-secondary" (click)="resetColors()">
-            <span class="material-icons">restart_alt</span> Restaurar Padrões
+        <mat-card-actions align="end">
+          <button mat-stroked-button (click)="resetColors()">
+            <mat-icon>restart_alt</mat-icon>
+            Restaurar Padrões
           </button>
-          <button class="btn btn-primary" (click)="close.emit()">
-            <span class="material-icons">check</span> Concluir
+          <button mat-flat-button color="primary" (click)="close.emit()">
+            <mat-icon>check</mat-icon>
+            Concluir
           </button>
-        </div>
-      </div>
+        </mat-card-actions>
+      </mat-card>
     </div>
   `,
   styles: [`
@@ -58,72 +64,34 @@ import { FormsModule } from '@angular/forms';
       justify-content: center;
       z-index: 1000;
     }
-    
-    .modal-content {
-      background: var(--surface);
-      border-radius: var(--radius);
+    .modal-card {
       width: 100%;
-      max-width: 400px;
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      max-width: 420px;
+      padding: 8px 24px 16px;
     }
-    
-    .modal-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border);
+    mat-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-    
-    .modal-header h2 {
-      font-size: 1.25rem;
-      margin: 0;
-      color: var(--text);
-    }
-    
-    .close-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-      border-radius: 50%;
-    }
-    
-    .close-btn:hover {
-      background: var(--bg);
-      color: var(--text);
-    }
-    
-    .modal-body {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .description {
-      color: var(--text-secondary);
       margin-bottom: 8px;
     }
-    
+    .close-btn {
+      margin-left: auto;
+    }
+    .description {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
     .form-group {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      margin-bottom: 16px;
     }
-    
     .form-group label {
       font-weight: 500;
       color: var(--text);
     }
-    
     .color-picker-wrapper {
       display: flex;
       align-items: center;
@@ -133,77 +101,36 @@ import { FormsModule } from '@angular/forms';
       border-radius: var(--radius);
       border: 1px solid var(--border);
     }
-    
     input[type="color"] {
       -webkit-appearance: none;
       border: none;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       padding: 0;
       cursor: pointer;
     }
-    
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-    
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch {
       border: none;
       border-radius: 50%;
       box-shadow: 0 0 0 1px var(--border);
     }
-    
     .color-value {
       font-family: monospace;
       color: var(--text-secondary);
       text-transform: uppercase;
     }
-    
-    .modal-actions {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
+    mat-card-actions {
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      background: var(--bg);
-    }
-    
-    .btn {
-      padding: 8px 16px;
-      border-radius: var(--radius);
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
       gap: 8px;
-      border: none;
-      font-size: 14px;
-    }
-    
-    .btn-secondary {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    
-    .btn-secondary:hover {
-      background: var(--border);
-    }
-    
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: var(--primary-dark);
+      padding: 16px 0 0;
     }
   `]
 })
 export class SettingsModalComponent {
   @Output() close = new EventEmitter<void>();
-  
+
   themeService = inject(ThemeService);
   colors: ThemeColors = {};
 

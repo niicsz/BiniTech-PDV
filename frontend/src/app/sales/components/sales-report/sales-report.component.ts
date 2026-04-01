@@ -1,13 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatChipsModule } from '@angular/material/chips';
 import { SaleService } from '../../../pos/services/sale.service';
 import { SaleDTO } from '../../../shared/models/api.models';
 
 @Component({
   selector: 'app-sales-report',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, FormsModule,
+    MatCardModule, MatButtonModule, MatIconModule,
+    MatFormFieldModule, MatInputModule, MatChipsModule
+  ],
   templateUrl: './sales-report.component.html',
   styleUrls: ['./sales-report.component.scss']
 })
@@ -77,4 +86,3 @@ export class SalesReportComponent implements OnInit {
     return (sale.totalAmount || 0) - (sale.totalCost || 0);
   }
 }
-
