@@ -60,6 +60,14 @@
   </mat-card>
 
   <mat-card class="filter-bar" *ngIf="products.length > 0" appearance="outlined">
+    <mat-icon>search</mat-icon>
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar por nome ou código de barras</mat-label>
+      <input matInput [(ngModel)]="searchTerm" placeholder="Digite o nome ou código de barras..." autocomplete="off" />
+      <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm = ''">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
     <mat-icon>filter_list</mat-icon>
     <mat-form-field appearance="outline" class="filter-select">
       <mat-label>Filtrar por Categoria</mat-label>

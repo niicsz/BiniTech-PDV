@@ -30,6 +30,7 @@ export class ProductListComponent implements OnInit {
   editingId: string | null = null;
 
   selectedCategory = '';
+  searchTerm = '';
 
   form: CreateProductDTO = {
     barcode: '',
@@ -58,12 +59,23 @@ export class ProductListComponent implements OnInit {
   }
 
   get filteredProducts(): ProductDTO[] {
-    if (!this.selectedCategory) {
-      return this.products;
+    let result = this.products;
+
+    if (this.selectedCategory) {
+      result = result.filter(p =>
+        (p.category || 'Sem Categoria') === this.selectedCategory
+      );
     }
-    return this.products.filter(p =>
-      (p.category || 'Sem Categoria') === this.selectedCategory
-    );
+
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.trim().toLowerCase();
+      result = result.filter(p =>
+        (p.description && p.description.toLowerCase().includes(term)) ||
+        (p.barcode && p.barcode.toLowerCase().includes(term))
+      );
+    }
+
+    return result;
   }
 
   loadProducts(): void {
