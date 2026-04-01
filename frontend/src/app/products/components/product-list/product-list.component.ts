@@ -1,14 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { ProductService } from '../../../pos/services/product.service';
 import { ProductDTO, CreateProductDTO } from '../../../shared/models/api.models';
 
@@ -16,9 +14,9 @@ import { ProductDTO, CreateProductDTO } from '../../../shared/models/api.models'
   selector: 'app-product-list',
   imports: [
     CommonModule, FormsModule,
-    MatCardModule, MatButtonModule, MatIconModule,
+    MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatTooltipModule, MatChipsModule
+    MatTooltipModule
   ],
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.scss']
@@ -56,6 +54,14 @@ export class ProductListComponent implements OnInit {
       .map(p => p.category || 'Sem Categoria')
       .filter((v, i, a) => a.indexOf(v) === i)
       .sort();
+  }
+
+  get activeCount(): number {
+    return this.products.filter(p => p.active).length;
+  }
+
+  get lowStockCount(): number {
+    return this.products.filter(p => (p.stockQuantity ?? 0) <= 5 && p.active).length;
   }
 
   get filteredProducts(): ProductDTO[] {

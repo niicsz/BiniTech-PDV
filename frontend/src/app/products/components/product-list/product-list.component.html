@@ -1,47 +1,118 @@
 <div class="products-page">
+
+  <!-- Page Header -->
   <div class="page-header">
-    <h2><mat-icon>inventory_2</mat-icon> Cadastro de Produtos</h2>
-    <button mat-flat-button color="primary" (click)="openCreateForm()">
+    <div class="header-left">
+      <div class="header-icon-wrapper">
+        <mat-icon>inventory_2</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2>Cadastro de Produtos</h2>
+        <p class="header-subtitle">Gerencie o catálogo de produtos do seu estabelecimento</p>
+      </div>
+    </div>
+    <button mat-flat-button color="primary" class="btn-new-product" (click)="openCreateForm()">
       <mat-icon>add</mat-icon> Novo Produto
     </button>
   </div>
 
-  <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
-    {{ statusMessage }}
+  <!-- Stats Cards -->
+  <div class="stats-row" *ngIf="products.length > 0">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-total">
+        <mat-icon>category</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ products.length }}</span>
+        <span class="stat-label">Total de Produtos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-active">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ activeCount }}</span>
+        <span class="stat-label">Ativos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-low">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ lowStockCount }}</span>
+        <span class="stat-label">Estoque Baixo</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-categories">
+        <mat-icon>sell</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ categories.length }}</span>
+        <span class="stat-label">Categorias</span>
+      </div>
+    </div>
   </div>
 
-  <mat-card *ngIf="showForm" class="form-card" appearance="outlined">
-    <mat-card-header>
-      <mat-card-title>{{ editingId ? 'Editar Produto' : 'Novo Produto' }}</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <form (ngSubmit)="saveProduct()">
+  <!-- Status Message -->
+  <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
+    <mat-icon class="status-icon">
+      {{ statusType === 'success' ? 'check_circle' : 'error' }}
+    </mat-icon>
+    <span>{{ statusMessage }}</span>
+  </div>
+
+  <!-- Form Card -->
+  <div class="form-card" *ngIf="showForm">
+    <div class="form-card-header">
+      <div class="form-header-left">
+        <mat-icon class="form-header-icon">{{ editingId ? 'edit_note' : 'add_box' }}</mat-icon>
+        <h3>{{ editingId ? 'Editar Produto' : 'Novo Produto' }}</h3>
+      </div>
+      <button mat-icon-button (click)="cancelForm()" matTooltip="Fechar">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <form (ngSubmit)="saveProduct()" class="form-body">
+      <div class="form-section">
+        <p class="form-section-label">Identificação</p>
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>Código de Barras</mat-label>
             <input matInput [(ngModel)]="form.barcode" name="barcode" required />
+            <mat-icon matPrefix>qr_code</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline" class="flex-2">
             <mat-label>Descrição</mat-label>
             <input matInput [(ngModel)]="form.description" name="description" required />
+            <mat-icon matPrefix>label</mat-icon>
           </mat-form-field>
         </div>
+      </div>
+      <div class="form-section">
+        <p class="form-section-label">Preços e Estoque</p>
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>Preço de Venda (R$)</mat-label>
             <input matInput type="number" step="0.01" min="0.01" [(ngModel)]="form.price" name="price" required />
+            <mat-icon matPrefix>attach_money</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Preço de Custo (R$)</mat-label>
             <input matInput type="number" step="0.01" min="0" [(ngModel)]="form.costPrice" name="costPrice" />
+            <mat-icon matPrefix>money_off</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Estoque</mat-label>
             <input matInput type="number" min="0" [(ngModel)]="form.stockQuantity" name="stockQuantity" required />
+            <mat-icon matPrefix>inventory</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Categoria</mat-label>
             <input matInput [(ngModel)]="form.category" name="category" placeholder="Ex: Bebidas, Alimentos..." />
+            <mat-icon matPrefix>sell</mat-icon>
           </mat-form-field>
           <mat-form-field appearance="outline" *ngIf="editingId">
             <mat-label>Status</mat-label>
@@ -51,73 +122,113 @@
             </mat-select>
           </mat-form-field>
         </div>
-        <div class="form-actions">
-          <button mat-stroked-button type="button" (click)="cancelForm()">Cancelar</button>
-          <button mat-flat-button color="primary" type="submit">Salvar</button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+      </div>
+      <div class="form-actions">
+        <button mat-stroked-button type="button" (click)="cancelForm()">
+          <mat-icon>close</mat-icon> Cancelar
+        </button>
+        <button mat-flat-button color="primary" type="submit" class="btn-save">
+          <mat-icon>save</mat-icon> {{ editingId ? 'Atualizar Produto' : 'Cadastrar Produto' }}
+        </button>
+      </div>
+    </form>
+  </div>
 
-  <mat-card class="filter-bar" *ngIf="products.length > 0" appearance="outlined">
-    <mat-icon>search</mat-icon>
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Buscar por nome ou código de barras</mat-label>
-      <input matInput [(ngModel)]="searchTerm" placeholder="Digite o nome ou código de barras..." autocomplete="off" />
-      <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="searchTerm = ''">
+  <!-- Search & Filter Toolbar -->
+  <div class="toolbar" *ngIf="products.length > 0">
+    <div class="search-wrapper">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por nome ou código de barras..."
+        [(ngModel)]="searchTerm"
+        autocomplete="off"
+      />
+      <button class="search-clear" *ngIf="searchTerm" (click)="searchTerm = ''">
         <mat-icon>close</mat-icon>
       </button>
-    </mat-form-field>
-    <mat-icon>filter_list</mat-icon>
+    </div>
+    <div class="toolbar-divider"></div>
     <mat-form-field appearance="outline" class="filter-select">
-      <mat-label>Filtrar por Categoria</mat-label>
+      <mat-label>Categoria</mat-label>
       <mat-select [(ngModel)]="selectedCategory">
         <mat-option value="">Todas as Categorias</mat-option>
         <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
       </mat-select>
     </mat-form-field>
-  </mat-card>
+    <span class="toolbar-spacer"></span>
+    <span class="results-count">
+      {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'produto' : 'produtos' }}
+    </span>
+  </div>
 
-  <mat-card class="table-card" appearance="outlined">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Código de Barras</th>
-          <th>Descrição</th>
-          <th>Categoria</th>
-          <th>Preço Venda</th>
-          <th>Preço Custo</th>
-          <th>Estoque</th>
-          <th>Status</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let product of filteredProducts">
-          <td class="mono">{{ product.barcode }}</td>
-          <td>{{ product.description }}</td>
-          <td>{{ product.category || 'Sem Categoria' }}</td>
-          <td class="text-right">R$ {{ product.price | number:'1.2-2' }}</td>
-          <td class="text-right">R$ {{ product.costPrice | number:'1.2-2' }}</td>
-          <td class="text-center">{{ product.stockQuantity }}</td>
-          <td>
-            <mat-chip [highlighted]="product.active" [class.chip-success]="product.active" [class.chip-danger]="!product.active">
-              {{ product.active ? 'Ativo' : 'Inativo' }}
-            </mat-chip>
-          </td>
-          <td class="actions">
-            <button mat-icon-button matTooltip="Editar" (click)="openEditForm(product)">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button matTooltip="Remover" color="warn" (click)="deleteProduct(product.id!)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="filteredProducts.length === 0">
-          <td colspan="8" class="empty-state">Nenhum produto encontrado.</td>
-        </tr>
-      </tbody>
-    </table>
-  </mat-card>
+  <!-- Data Table -->
+  <div class="table-card">
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Código de Barras</th>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th class="text-right">Preço Venda</th>
+            <th class="text-right">Preço Custo</th>
+            <th class="text-center">Estoque</th>
+            <th class="text-center">Status</th>
+            <th class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let product of filteredProducts" class="product-row">
+            <td>
+              <code class="barcode-badge">{{ product.barcode }}</code>
+            </td>
+            <td class="product-name">{{ product.description }}</td>
+            <td>
+              <span class="category-tag" *ngIf="product.category">{{ product.category }}</span>
+              <span class="category-tag category-none" *ngIf="!product.category">Sem Categoria</span>
+            </td>
+            <td class="text-right price-cell">R$ {{ product.price | number:'1.2-2' }}</td>
+            <td class="text-right cost-cell">R$ {{ product.costPrice | number:'1.2-2' }}</td>
+            <td class="text-center">
+              <span class="stock-badge"
+                    [class.stock-ok]="(product.stockQuantity ?? 0) > 10"
+                    [class.stock-low]="(product.stockQuantity ?? 0) > 0 && (product.stockQuantity ?? 0) <= 10"
+                    [class.stock-out]="(product.stockQuantity ?? 0) === 0">
+                {{ product.stockQuantity }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="status-badge" [class.status-active]="product.active" [class.status-inactive]="!product.active">
+                <span class="status-dot"></span>
+                {{ product.active ? 'Ativo' : 'Inativo' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="actions">
+                <button mat-icon-button matTooltip="Editar" class="action-edit" (click)="openEditForm(product)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Remover" class="action-delete" (click)="deleteProduct(product.id!)">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredProducts.length === 0">
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <h3>Nenhum produto encontrado</h3>
+      <p *ngIf="searchTerm || selectedCategory">Tente alterar os filtros de busca.</p>
+      <p *ngIf="!searchTerm && !selectedCategory && products.length === 0">Comece adicionando seu primeiro produto.</p>
+      <button mat-flat-button color="primary" *ngIf="products.length === 0" (click)="openCreateForm()">
+        <mat-icon>add</mat-icon> Adicionar Produto
+      </button>
+    </div>
+  </div>
 </div>
