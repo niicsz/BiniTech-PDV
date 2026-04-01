@@ -26,6 +26,7 @@ import { CartItem } from '../../../shared/models/cart.model';
           <tr
             *ngFor="let item of items; let i = index"
             [class.selected]="i === selectedIndex"
+            [class.even]="i % 2 === 0"
             (click)="selectItem.emit(i)">
             <td class="col-seq">{{ i + 1 }}</td>
             <td class="col-barcode">{{ item.barcode }}</td>
@@ -44,9 +45,15 @@ import { CartItem } from '../../../shared/models/cart.model';
       </table>
 
       <div class="cart-empty" *ngIf="items.length === 0">
-        <mat-icon class="empty-icon">shopping_cart</mat-icon>
-        <p>Carrinho vazio</p>
-        <p class="empty-hint">Leia um código de barras ou digite e pressione Enter</p>
+        <div class="empty-visual">
+          <mat-icon class="empty-icon">shopping_cart</mat-icon>
+        </div>
+        <p class="empty-title">Carrinho vazio</p>
+        <p class="empty-hint">Leia um código de barras ou pesquise um produto para começar</p>
+        <div class="empty-shortcuts">
+          <span class="empty-shortcut"><kbd>Enter</kbd> para adicionar</span>
+          <span class="empty-shortcut"><kbd>F4-F9</kbd> para pagar</span>
+        </div>
       </div>
     </div>
   `,
@@ -54,8 +61,8 @@ import { CartItem } from '../../../shared/models/cart.model';
     .cart-wrapper {
       flex: 1;
       background: var(--surface);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
       overflow: auto;
     }
 
@@ -64,43 +71,78 @@ import { CartItem } from '../../../shared/models/cart.model';
       border-collapse: collapse;
 
       th, td {
-        padding: 10px 12px;
+        padding: 10px 14px;
         text-align: left;
       }
 
       thead th {
         position: sticky;
         top: 0;
-        background: var(--primary-dark);
-        color: var(--header-text);
-        font-size: 12px;
+        background: var(--table-header-bg);
+        color: var(--table-header-text);
+        font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border);
+        z-index: 1;
       }
 
       tbody tr {
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--border-light);
         cursor: pointer;
         transition: background 0.15s;
 
         &:hover {
-          background: var(--table-hover);
+          background: var(--surface-hover);
         }
 
         &.selected {
-          background: var(--info-bg);
+          background: var(--primary-bg);
           border-left: 3px solid var(--primary);
         }
       }
 
-      .col-seq { width: 40px; text-align: center; }
-      .col-barcode { width: 140px; font-family: monospace; font-size: 13px; }
-      .col-desc { min-width: 200px; }
-      .col-qty { width: 60px; text-align: center; font-weight: 700; }
-      .col-price, .col-subtotal { width: 120px; text-align: right; }
-      .col-subtotal { font-weight: 700; color: var(--primary-dark); }
-      .col-actions { width: 50px; text-align: center; }
+      .col-seq {
+        width: 40px;
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: 12px;
+      }
+      .col-barcode {
+        width: 140px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .col-desc {
+        min-width: 200px;
+        font-weight: 500;
+      }
+      .col-qty {
+        width: 60px;
+        text-align: center;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .col-price {
+        width: 120px;
+        text-align: right;
+        font-family: var(--font-mono);
+        font-size: 13px;
+      }
+      .col-subtotal {
+        width: 130px;
+        text-align: right;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        color: var(--text);
+        font-size: 14px;
+      }
+      .col-actions {
+        width: 48px;
+        text-align: center;
+      }
     }
 
     .cart-empty {
@@ -108,26 +150,63 @@ import { CartItem } from '../../../shared/models/cart.model';
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 60px 20px;
+      padding: 48px 24px;
       color: var(--text-secondary);
+      min-height: 300px;
+    }
 
-      .empty-icon {
-        font-size: 64px;
-        height: 64px;
-        width: 64px;
-        opacity: 0.3;
-        margin-bottom: 16px;
-      }
+    .empty-visual {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--surface-alt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      border: 2px dashed var(--border);
+    }
 
-      p {
-        font-size: 18px;
-        font-weight: 500;
-      }
+    .empty-icon {
+      font-size: 36px;
+      height: 36px;
+      width: 36px;
+      opacity: 0.4;
+      color: var(--text-tertiary);
+    }
 
-      .empty-hint {
-        font-size: 14px;
-        margin-top: 8px;
-        opacity: 0.7;
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .empty-hint {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .empty-shortcuts {
+      display: flex;
+      gap: 16px;
+    }
+
+    .empty-shortcut {
+      font-size: 12px;
+      color: var(--text-tertiary);
+
+      kbd {
+        display: inline-block;
+        background: var(--kbd-bg);
+        color: var(--kbd-color);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        margin-right: 4px;
       }
     }
   `]

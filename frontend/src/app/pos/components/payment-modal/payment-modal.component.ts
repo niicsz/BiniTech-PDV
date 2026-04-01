@@ -17,45 +17,45 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
   template: `
     <div class="modal-overlay" (click)="cancel.emit()">
       <mat-card class="modal-content modal-payment" (click)="$event.stopPropagation()" appearance="outlined">
-        <mat-card-header>
-          <mat-icon mat-card-avatar>payment</mat-icon>
-          <mat-card-title>Finalizar Venda</mat-card-title>
-        </mat-card-header>
+        <div class="modal-header">
+          <mat-icon class="modal-header-icon">payment</mat-icon>
+          <h3>Finalizar Venda</h3>
+        </div>
 
         <mat-card-content>
           <div class="payment-total">
-            <span>Total da Venda:</span>
-            <strong>R$ {{ total | number:'1.2-2' }}</strong>
+            <span class="total-label">Total da Venda</span>
+            <strong class="total-amount">R$ {{ total | number:'1.2-2' }}</strong>
           </div>
 
           <div class="payments-list" *ngIf="payments.length > 0">
-            <h4>Pagamentos adicionados:</h4>
+            <h4>Pagamentos adicionados</h4>
             <div class="payment-entry" *ngFor="let p of payments; let i = index">
               <mat-icon class="entry-icon">{{ getMethodIcon(p.method) }}</mat-icon>
               <span class="entry-label">{{ getPaymentLabel(p.method) }}</span>
               <strong class="entry-amount">R$ {{ p.amount | number:'1.2-2' }}</strong>
-              <button mat-icon-button color="warn" (click)="removePayment(i)">
+              <button mat-icon-button color="warn" (click)="removePayment(i)" class="entry-remove">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
             <div class="payments-summary">
               <div class="summary-line">
-                <span>Total pago:</span>
+                <span>Total pago</span>
                 <strong>R$ {{ getTotalPaid() | number:'1.2-2' }}</strong>
               </div>
               <div class="summary-line remaining" *ngIf="getRemaining() > 0">
-                <span>Falta pagar:</span>
+                <span>Falta pagar</span>
                 <strong class="text-danger">R$ {{ getRemaining() | number:'1.2-2' }}</strong>
               </div>
               <div class="summary-line change" *ngIf="getTotalChange() > 0">
-                <span>Troco:</span>
+                <span>Troco</span>
                 <strong class="text-success">R$ {{ getTotalChange() | number:'1.2-2' }}</strong>
               </div>
             </div>
           </div>
 
           <div class="add-payment-section">
-            <h4>{{ payments.length > 0 ? 'Adicionar outro pagamento:' : 'Forma de pagamento:' }}</h4>
+            <h4>{{ payments.length > 0 ? 'Adicionar outro pagamento' : 'Forma de pagamento' }}</h4>
             <div class="method-buttons">
               <button mat-stroked-button
                 *ngFor="let m of availableMethods"
@@ -94,7 +94,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
           <button mat-stroked-button (click)="cancel.emit()">
             Cancelar (Esc)
           </button>
-          <button mat-flat-button color="primary" class="confirm-btn"
+          <button mat-flat-button class="confirm-btn"
             (click)="confirmAll()"
             [disabled]="payments.length === 0 || getRemaining() > 0.001">
             <mat-icon>check</mat-icon>
@@ -108,12 +108,13 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       animation: fadeIn 0.2s ease;
+      backdrop-filter: blur(4px);
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -123,36 +124,66 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       animation: scaleIn 0.2s ease;
       max-height: 90vh;
       overflow-y: auto;
-      padding: 16px 24px;
+      padding: 24px;
+      border-radius: var(--radius-md);
     }
-    .modal-payment { width: 540px; }
+    .modal-payment { width: 540px; max-width: 95vw; }
     @keyframes scaleIn {
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .modal-header-icon {
+      font-size: 28px;
+      height: 28px;
+      width: 28px;
+      color: var(--primary);
+    }
+    .modal-header h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
     h4 {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
       margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .payment-total {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
-      background: var(--primary-dark);
-      color: var(--header-text);
+      padding: 16px 20px;
+      background: var(--primary);
+      color: #fff;
       border-radius: var(--radius);
-      margin: 16px 0;
-      font-size: 16px;
-      strong { font-size: 24px; }
+      margin-bottom: 20px;
+    }
+    .total-label {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+    .total-amount {
+      font-size: 28px;
+      font-family: var(--font-mono);
+      letter-spacing: -0.5px;
     }
     .payments-list {
       margin-bottom: 20px;
       padding: 16px;
-      background: var(--bg);
+      background: var(--surface-alt);
       border-radius: var(--radius);
+      border: 1px solid var(--border);
     }
     .payment-entry {
       display: flex;
@@ -160,10 +191,11 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       gap: 10px;
       padding: 8px 0;
       border-bottom: 1px solid var(--border);
-      .entry-icon { font-size: 20px; color: var(--primary); }
-      .entry-label { flex: 1; font-size: 14px; }
-      .entry-amount { font-size: 15px; color: var(--text); }
     }
+    .entry-icon { font-size: 20px; height: 20px; width: 20px; color: var(--primary); }
+    .entry-label { flex: 1; font-size: 14px; color: var(--text); }
+    .entry-amount { font-size: 15px; color: var(--text); font-weight: 600; font-family: var(--font-mono); }
+    .entry-remove { transform: scale(0.85); }
     .payments-summary {
       margin-top: 12px;
       padding-top: 12px;
@@ -174,13 +206,14 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       justify-content: space-between;
       font-size: 14px;
       padding: 4px 0;
-      &.remaining { color: var(--danger); }
-      &.change {
-        padding: 8px 12px;
-        background: var(--success-bg);
-        border-radius: var(--radius);
-        margin-top: 4px;
-      }
+      color: var(--text);
+    }
+    .summary-line.remaining { color: var(--danger); }
+    .summary-line.change {
+      padding: 10px 12px;
+      background: var(--success-bg);
+      border-radius: var(--radius);
+      margin-top: 8px;
     }
     .text-danger { color: var(--danger); }
     .text-success { color: var(--success); }
@@ -197,6 +230,8 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       justify-content: center;
       height: 48px;
       font-weight: 600;
+      border-radius: var(--radius) !important;
+      transition: all 0.15s;
       &.active {
         background: var(--primary) !important;
         color: #fff !important;
@@ -213,6 +248,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       font-size: 24px !important;
       font-weight: 700;
       text-align: right;
+      font-family: var(--font-mono) !important;
     }
     .btn-add { align-self: flex-end; }
     .confirm-btn {

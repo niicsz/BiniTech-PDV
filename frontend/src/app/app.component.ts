@@ -20,9 +20,11 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
   ],
   template: `
     @if (authService.isLoggedIn() && !isLoginRoute()) {
-      <mat-toolbar color="primary" class="app-toolbar">
-        <mat-icon class="logo-icon">point_of_sale</mat-icon>
-        <span class="logo-text">BiniTech PDV</span>
+      <mat-toolbar class="app-toolbar">
+        <div class="toolbar-brand">
+          <mat-icon class="logo-icon">point_of_sale</mat-icon>
+          <span class="logo-text">BiniTech PDV</span>
+        </div>
 
         <nav class="nav-links">
           <a mat-button routerLink="/pdv" routerLinkActive="active-link">
@@ -47,22 +49,26 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
 
         <span class="spacer"></span>
 
-        <button mat-icon-button matTooltip="Alternar Tema" (click)="themeService.toggleTheme()">
-          <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-        </button>
-        <button mat-icon-button matTooltip="Configurações" (click)="showSettings = true">
-          <mat-icon>settings</mat-icon>
-        </button>
+        <div class="toolbar-actions">
+          <button mat-icon-button matTooltip="Alternar Tema" (click)="themeService.toggleTheme()">
+            <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+          </button>
+          <button mat-icon-button matTooltip="Configurações" (click)="showSettings = true">
+            <mat-icon>settings</mat-icon>
+          </button>
 
-        <mat-chip class="user-chip">
-          <mat-icon matChipAvatar>account_circle</mat-icon>
-          {{ authService.getUsername() }}
-          <span class="role-badge">{{ authService.getRole() }}</span>
-        </mat-chip>
+          <div class="user-info">
+            <mat-icon class="user-avatar">account_circle</mat-icon>
+            <div class="user-details">
+              <span class="user-name">{{ authService.getUsername() }}</span>
+              <span class="user-role">{{ authService.getRole() }}</span>
+            </div>
+          </div>
 
-        <button mat-icon-button matTooltip="Sair" (click)="onLogout()">
-          <mat-icon>logout</mat-icon>
-        </button>
+          <button mat-icon-button matTooltip="Sair" (click)="onLogout()" class="logout-btn">
+            <mat-icon>logout</mat-icon>
+          </button>
+        </div>
       </mat-toolbar>
     }
 
@@ -79,59 +85,116 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       position: sticky;
       top: 0;
       z-index: 100;
+      background: var(--header-bg) !important;
+      color: var(--header-text) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0 16px;
+      gap: 0;
+      min-height: 56px;
+    }
+    .toolbar-brand {
+      display: flex;
+      align-items: center;
       gap: 8px;
+      margin-right: 24px;
+      flex-shrink: 0;
     }
     .logo-icon {
-      margin-right: 4px;
+      font-size: 26px;
+      height: 26px;
+      width: 26px;
+      color: var(--primary-light);
     }
     .logo-text {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      margin-right: 16px;
       white-space: nowrap;
+      letter-spacing: -0.3px;
     }
     .nav-links {
       display: flex;
-      gap: 4px;
+      gap: 2px;
       height: 100%;
     }
     .nav-links a {
-      color: rgba(255,255,255,0.85);
+      color: rgba(255,255,255,0.7);
       font-weight: 500;
+      font-size: 13px;
+      border-radius: 8px;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
+    }
+    .nav-links a mat-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+      margin-right: 4px;
     }
     .nav-links a:hover {
       color: #fff;
+      background: rgba(255,255,255,0.08);
     }
     .nav-links a.active-link {
       color: #fff;
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.15);
     }
     .spacer {
       flex: 1;
     }
-    .user-chip {
-      margin: 0 4px;
-      font-size: 13px;
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .role-badge {
-      font-size: 10px;
-      background: rgba(255,255,255,0.2);
-      padding: 1px 6px;
-      border-radius: 8px;
+    .toolbar-actions .mat-mdc-icon-button,
+    :host ::ng-deep .app-toolbar .mat-mdc-icon-button {
+      color: rgba(255,255,255,0.7);
+    }
+    .toolbar-actions .mat-mdc-icon-button:hover {
+      color: #fff;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      margin: 0 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 24px;
+    }
+    .user-avatar {
+      font-size: 24px;
+      height: 24px;
+      width: 24px;
+      color: rgba(255,255,255,0.8);
+    }
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .user-name {
+      font-size: 13px;
       font-weight: 600;
-      margin-left: 6px;
+      color: #fff;
+    }
+    .user-role {
+      font-size: 10px;
+      color: rgba(255,255,255,0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .logout-btn {
+      color: rgba(255,255,255,0.6) !important;
+    }
+    .logout-btn:hover {
+      color: #ef5350 !important;
     }
     .app-main {
       padding: 24px;
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
-    }
-    :host ::ng-deep .mat-toolbar {
-      background: var(--header-bg) !important;
-      color: var(--header-text) !important;
-    }
-    :host ::ng-deep .mat-toolbar .mat-mdc-icon-button {
-      color: var(--header-text);
+      width: 100%;
     }
   `]
 })

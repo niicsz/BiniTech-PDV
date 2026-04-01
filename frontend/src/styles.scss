@@ -40,6 +40,10 @@ body.dark-theme {
   @include mat.all-component-colors($dark-theme);
 }
 
+// ══════════════════════════════════════
+// ── Design Token Strategy ──
+// ══════════════════════════════════════
+
 // ── Reset ──
 * {
   margin: 0;
@@ -47,68 +51,157 @@ body.dark-theme {
   box-sizing: border-box;
 }
 
-// ── Custom CSS Variables ──
+// ── Spacing Scale: 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64 ──
+
+// ── Custom CSS Variables (Design Tokens) ──
 :root {
-  --primary: #1565c0;
-  --primary-dark: #0d47a1;
+  // ── Primary Palette ──
+  --primary: #1976d2;
+  --primary-dark: #1565c0;
   --primary-light: #42a5f5;
+  --primary-bg: rgba(25, 118, 210, 0.08);
+
+  // ── Semantic Colors ──
   --accent: #ff6f00;
   --success: #2e7d32;
   --danger: #c62828;
   --warning: #f9a825;
+
+  // ── Surfaces ──
   --bg: #f5f5f5;
   --surface: #ffffff;
+  --surface-alt: #fafafa;
+  --surface-hover: #f0f0f0;
+
+  // ── Text ──
   --text: #212121;
-  --text-secondary: #757575;
+  --text-secondary: #616161;
+  --text-tertiary: #9e9e9e;
+
+  // ── Borders & Dividers ──
   --border: #e0e0e0;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --border-light: #eeeeee;
+  --divider: #e0e0e0;
+
+  // ── Shadows ──
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+
+  // ── Radius ──
+  --radius-sm: 6px;
   --radius: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  // ── Header ──
   --header-bg: var(--primary-dark);
   --header-text: #ffffff;
+
+  // ── Input ──
   --input-bg: #ffffff;
+  --input-border: #bdbdbd;
+
+  // ── Semantic Backgrounds ──
   --success-bg: #e8f5e9;
   --danger-bg: #ffebee;
   --info-bg: #e3f2fd;
   --warning-bg: #fff3e0;
-  --table-hover: #f5f5f5;
-  --kbd-bg: var(--primary-dark);
+
+  // ── Table ──
+  --table-header-bg: #f5f5f5;
+  --table-header-text: #424242;
+  --table-hover: #fafafa;
+  --table-stripe: #fafafa;
+
+  // ── Keyboard ──
+  --kbd-bg: #37474f;
   --kbd-color: #ffffff;
+
+  // ── Typography ──
+  --font-mono: 'Roboto Mono', 'Consolas', monospace;
+  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  // ── Focus ──
+  --focus-ring: 0 0 0 3px rgba(25, 118, 210, 0.25);
+  --focus-ring-accent: 0 0 0 3px rgba(255, 111, 0, 0.2);
 }
 
 body.dark-theme {
-  --primary: #90caf9;
+  // ── Primary Palette ──
+  --primary: #64b5f6;
   --primary-dark: #42a5f5;
-  --primary-light: #e3f2fd;
+  --primary-light: #bbdefb;
+  --primary-bg: rgba(100, 181, 246, 0.1);
+
+  // ── Semantic Colors ──
   --accent: #ffb74d;
-  --success: #81c784;
-  --danger: #e57373;
-  --warning: #fff176;
-  --bg: #121212;
-  --surface: #1e1e1e;
-  --text: #e0e0e0;
-  --text-secondary: #aaaaaa;
-  --border: #333333;
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --header-bg: #1e1e1e;
-  --header-text: #e0e0e0;
-  --input-bg: #2d2d2d;
-  --success-bg: rgba(129, 199, 132, 0.15);
-  --danger-bg: rgba(229, 115, 115, 0.15);
-  --info-bg: rgba(144, 202, 249, 0.15);
-  --warning-bg: rgba(255, 183, 77, 0.15);
-  --table-hover: #2d2d2d;
-  --kbd-bg: #424242;
-  --kbd-color: #e0e0e0;
+  --success: #66bb6a;
+  --danger: #ef5350;
+  --warning: #ffca28;
+
+  // ── Surfaces ──
+  --bg: #0f1214;
+  --surface: #1a1d21;
+  --surface-alt: #22262b;
+  --surface-hover: #2a2e33;
+
+  // ── Text ──
+  --text: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --text-tertiary: #6b7280;
+
+  // ── Borders & Dividers ──
+  --border: #2d3139;
+  --border-light: #252930;
+  --divider: #2d3139;
+
+  // ── Shadows ──
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  // ── Header ──
+  --header-bg: #1a1d21;
+  --header-text: #e8eaed;
+
+  // ── Input ──
+  --input-bg: #22262b;
+  --input-border: #3d434d;
+
+  // ── Semantic Backgrounds ──
+  --success-bg: rgba(102, 187, 106, 0.12);
+  --danger-bg: rgba(239, 83, 80, 0.12);
+  --info-bg: rgba(100, 181, 246, 0.12);
+  --warning-bg: rgba(255, 202, 40, 0.12);
+
+  // ── Table ──
+  --table-header-bg: #22262b;
+  --table-header-text: #9aa0a6;
+  --table-hover: #22262b;
+  --table-stripe: rgba(255, 255, 255, 0.02);
+
+  // ── Keyboard ──
+  --kbd-bg: #37474f;
+  --kbd-color: #e8eaed;
+
+  // ── Focus ──
+  --focus-ring: 0 0 0 3px rgba(100, 181, 246, 0.3);
+  --focus-ring-accent: 0 0 0 3px rgba(255, 183, 77, 0.25);
 }
 
 // ── Body ──
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--font-family);
   background-color: var(--bg);
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -126,10 +219,20 @@ input, select, textarea {
   font-size: inherit;
 }
 
+// ── Ensure mat-icon renders correctly everywhere ──
+mat-icon,
+.mat-icon {
+  font-family: 'Material Icons' !important;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 // ── Material overrides for dark theme ──
 body.dark-theme {
   .mat-mdc-card {
     background: var(--surface);
+    border-color: var(--border);
   }
   .mat-toolbar {
     background: var(--header-bg);
@@ -138,6 +241,56 @@ body.dark-theme {
   .mdc-text-field--filled:not(.mdc-text-field--disabled) {
     background-color: var(--input-bg);
   }
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
+    border-color: var(--input-border);
+  }
+}
+
+// ══════════════════════════════════════
+// ── Typography Utilities ──
+// ══════════════════════════════════════
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value-lg {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.value-md {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.value-sm {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 // ── Utilities ──
@@ -150,9 +303,10 @@ body.dark-theme {
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .font-bold { font-weight: 700; }
-.text-success { color: var(--success); }
-.text-danger { color: var(--danger); }
-.text-warning { color: var(--warning); }
+.text-success { color: var(--success) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-secondary { color: var(--text-secondary); }
 .mt-1 { margin-top: 8px; }
 .mt-2 { margin-top: 16px; }
 .mb-1 { margin-bottom: 8px; }
@@ -170,6 +324,22 @@ body.dark-theme {
 .snackbar-info {
   --mdc-snackbar-container-color: var(--primary);
   --mdc-snackbar-supporting-text-color: #fff;
+}
+
+// ── Scrollbar (dark-friendly) ──
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+  &:hover {
+    background: var(--text-tertiary);
+  }
 }
 
 // ── Print ──
