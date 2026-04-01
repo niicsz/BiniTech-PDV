@@ -1,11 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CartItem } from '../../../shared/models/cart.model';
 
 @Component({
   selector: 'app-cart-table',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule, MatButtonModule, MatTooltipModule],
   template: `
     <div class="cart-wrapper">
       <table class="cart-table" *ngIf="items.length > 0">
@@ -32,8 +34,9 @@ import { CartItem } from '../../../shared/models/cart.model';
             <td class="col-price">R$ {{ item.unitPrice | number:'1.2-2' }}</td>
             <td class="col-subtotal">R$ {{ item.subtotal | number:'1.2-2' }}</td>
             <td class="col-actions">
-              <button class="btn-remove" (click)="removeItem.emit(i); $event.stopPropagation()" title="Remover item">
-                <span class="material-icons">close</span>
+              <button mat-icon-button matTooltip="Remover item" color="warn"
+                      (click)="removeItem.emit(i); $event.stopPropagation()">
+                <mat-icon>close</mat-icon>
               </button>
             </td>
           </tr>
@@ -41,7 +44,7 @@ import { CartItem } from '../../../shared/models/cart.model';
       </table>
 
       <div class="cart-empty" *ngIf="items.length === 0">
-        <span class="material-icons empty-icon">shopping_cart</span>
+        <mat-icon class="empty-icon">shopping_cart</mat-icon>
         <p>Carrinho vazio</p>
         <p class="empty-hint">Leia um código de barras ou digite e pressione Enter</p>
       </div>
@@ -97,28 +100,7 @@ import { CartItem } from '../../../shared/models/cart.model';
       .col-qty { width: 60px; text-align: center; font-weight: 700; }
       .col-price, .col-subtotal { width: 120px; text-align: right; }
       .col-subtotal { font-weight: 700; color: var(--primary-dark); }
-      .col-actions { width: 40px; text-align: center; }
-    }
-
-    .btn-remove {
-      background: none;
-      border: none;
-      color: var(--danger);
-      padding: 4px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
-
-      &:hover {
-        background: var(--danger-bg);
-      }
-
-      .material-icons {
-        font-size: 18px;
-      }
+      .col-actions { width: 50px; text-align: center; }
     }
 
     .cart-empty {
@@ -131,6 +113,8 @@ import { CartItem } from '../../../shared/models/cart.model';
 
       .empty-icon {
         font-size: 64px;
+        height: 64px;
+        width: 64px;
         opacity: 0.3;
         margin-bottom: 16px;
       }

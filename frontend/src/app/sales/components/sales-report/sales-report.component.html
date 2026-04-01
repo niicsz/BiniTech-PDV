@@ -1,57 +1,62 @@
 <div class="report-page">
   <div class="page-header">
-    <h2><span class="material-icons">assessment</span> Relatório de Vendas</h2>
+    <h2><mat-icon>assessment</mat-icon> Relatório de Vendas</h2>
   </div>
 
-  <div class="filters-card">
+  <mat-card class="filters-card" appearance="outlined">
     <div class="filter-actions">
-      <button class="btn" [class.btn-primary]="filterMode === 'today'" [class.btn-secondary]="filterMode !== 'today'" (click)="loadToday()">
-        <span class="material-icons">today</span> Vendas de Hoje
+      <button mat-flat-button [color]="filterMode === 'today' ? 'primary' : undefined"
+              [class.btn-secondary]="filterMode !== 'today'" (click)="loadToday()">
+        <mat-icon>today</mat-icon> Vendas de Hoje
       </button>
       <div class="period-filter">
-        <label>De:</label>
-        <input type="date" [(ngModel)]="startDate" class="form-input" />
-        <label>Até:</label>
-        <input type="date" [(ngModel)]="endDate" class="form-input" />
-        <button class="btn btn-primary" (click)="loadByPeriod()">
-          <span class="material-icons">search</span> Filtrar
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>De</mat-label>
+          <input matInput type="date" [(ngModel)]="startDate" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>Até</mat-label>
+          <input matInput type="date" [(ngModel)]="endDate" />
+        </mat-form-field>
+        <button mat-flat-button color="primary" (click)="loadByPeriod()">
+          <mat-icon>search</mat-icon> Filtrar
         </button>
       </div>
     </div>
-  </div>
+  </mat-card>
 
   <div class="summary-cards">
-    <div class="summary-card">
-      <span class="material-icons">receipt_long</span>
+    <mat-card class="summary-card" appearance="outlined">
+      <mat-icon>receipt_long</mat-icon>
       <div>
         <p class="summary-label">Total de Vendas</p>
         <p class="summary-value">{{ sales.length }}</p>
       </div>
-    </div>
-    <div class="summary-card highlight">
-      <span class="material-icons">attach_money</span>
+    </mat-card>
+    <mat-card class="summary-card highlight" appearance="outlined">
+      <mat-icon>attach_money</mat-icon>
       <div>
         <p class="summary-label">Faturamento</p>
         <p class="summary-value">R$ {{ totalRevenue | number:'1.2-2' }}</p>
       </div>
-    </div>
-    <div class="summary-card cost">
-      <span class="material-icons">shopping_cart</span>
+    </mat-card>
+    <mat-card class="summary-card cost" appearance="outlined">
+      <mat-icon>shopping_cart</mat-icon>
       <div>
         <p class="summary-label">Custo Total</p>
         <p class="summary-value">R$ {{ totalCost | number:'1.2-2' }}</p>
       </div>
-    </div>
-    <div class="summary-card" [ngClass]="totalProfit >= 0 ? 'profit' : 'loss'">
-      <span class="material-icons">{{ totalProfit >= 0 ? 'trending_up' : 'trending_down' }}</span>
+    </mat-card>
+    <mat-card class="summary-card" [ngClass]="totalProfit >= 0 ? 'profit' : 'loss'" appearance="outlined">
+      <mat-icon>{{ totalProfit >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
       <div>
         <p class="summary-label">Lucro</p>
         <p class="summary-value">R$ {{ totalProfit | number:'1.2-2' }}</p>
       </div>
-    </div>
+    </mat-card>
   </div>
 
-  <div class="table-card">
+  <mat-card class="table-card" appearance="outlined">
     <table class="data-table">
       <thead>
         <tr>
@@ -72,9 +77,9 @@
           <td>{{ formatTimestamp(sale.timestamp) }}</td>
           <td class="text-center">{{ sale.items?.length || 0 }}</td>
           <td>
-            <span *ngFor="let p of sale.payments" class="badge badge-info">
+            <mat-chip *ngFor="let p of sale.payments" class="badge-info">
               {{ getPaymentLabel(p.method) }}
-            </span>
+            </mat-chip>
           </td>
           <td class="text-right font-bold">R$ {{ sale.totalAmount | number:'1.2-2' }}</td>
           <td class="text-right">R$ {{ sale.totalCost | number:'1.2-2' }}</td>
@@ -91,6 +96,6 @@
         </tr>
       </tbody>
     </table>
-  </div>
+  </mat-card>
 </div>
 

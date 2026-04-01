@@ -1,6 +1,6 @@
 # 🛒 BiniTech PDV
 
-Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 19** no frontend.
+Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 21** no frontend.
 
 ---
 
@@ -54,8 +54,8 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 ### Frontend
 | Tecnologia | Versão |
 |---|---|
-| Angular | 19 |
-| TypeScript | ~5.6 |
+| Angular | 21 |
+| TypeScript | ~5.9 |
 | RxJS | ~7.8 |
 
 ### Infraestrutura
@@ -63,7 +63,7 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 |---|---|
 | MongoDB | 7 |
 | Docker / Docker Compose | — |
-| Node.js (build) | 20 |
+| Node.js (build) | 25 |
 
 ---
 
@@ -73,7 +73,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      Frontend (Angular 19)              │
+│                      Frontend (Angular 21)              │
 │    Login │ POS Screen │ Product List │ Sales Report     │
 └────────────────────────────┬────────────────────────────┘
                              │ HTTP (REST API + JWT)
@@ -141,7 +141,7 @@ com.binitech.pdv
 ## ✅ Pré-requisitos
 
 - **Java 17+**
-- **Node.js 20+** e **npm**
+- **Node.js 25+** e **npm**
 - **Docker** e **Docker Compose** (para o MongoDB)
 - **Maven** (ou use o wrapper `mvnw` incluído)
 

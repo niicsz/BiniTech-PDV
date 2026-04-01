@@ -1,4 +1,3 @@
-
 .pos-container {
   display: flex;
   flex-direction: column;
@@ -230,6 +229,27 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.action-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.success-btn {
+  background-color: var(--success) !important;
+  color: #fff !important;
+}
+
+.accent-btn {
+  background-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+.full-width {
+  width: 100%;
 }
 
 .btn {
@@ -610,4 +630,3 @@
     font-size: 12px;
   }
 }
-

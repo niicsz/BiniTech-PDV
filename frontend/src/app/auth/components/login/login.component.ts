@@ -2,63 +2,66 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, FormsModule,
+    MatCardModule, MatFormFieldModule, MatInputModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule
+  ],
   template: `
     <div class="login-container">
-      <div class="login-card">
-        <div class="login-header">
-          <span class="material-icons logo-icon">point_of_sale</span>
-          <h1>BiniTech PDV</h1>
-          <p>Faça login para continuar</p>
-        </div>
-        <form (ngSubmit)="onLogin()" class="login-form">
-          <div class="form-group">
-            <label for="username">
-              <span class="material-icons">person</span> Usuário
-            </label>
-            <input
-              id="username"
-              type="text"
-              [(ngModel)]="username"
-              name="username"
-              placeholder="Digite seu usuário"
-              required
-              autofocus
-            />
-          </div>
-          <div class="form-group">
-            <label for="password">
-              <span class="material-icons">lock</span> Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              [(ngModel)]="password"
-              name="password"
-              placeholder="Digite sua senha"
-              required
-            />
-          </div>
-          @if (errorMessage) {
-            <div class="error-message">
-              <span class="material-icons">error</span>
+      <mat-card class="login-card" appearance="outlined">
+        <mat-card-header class="login-header">
+          <mat-icon class="logo-icon">point_of_sale</mat-icon>
+          <mat-card-title>BiniTech PDV</mat-card-title>
+          <mat-card-subtitle>Faça login para continuar</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form (ngSubmit)="onLogin()" class="login-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Usuário</mat-label>
+              <mat-icon matPrefix>person</mat-icon>
+              <input matInput [(ngModel)]="username" name="username"
+                     placeholder="Digite seu usuário" required autofocus />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Senha</mat-label>
+              <mat-icon matPrefix>lock</mat-icon>
+              <input matInput [type]="hidePassword ? 'password' : 'text'"
+                     [(ngModel)]="password" name="password"
+                     placeholder="Digite sua senha" required />
+              <button mat-icon-button matSuffix type="button"
+                      (click)="hidePassword = !hidePassword">
+                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <div *ngIf="errorMessage" class="error-message">
+              <mat-icon>error</mat-icon>
               {{ errorMessage }}
             </div>
-          }
-          <button type="submit" [disabled]="loading" class="login-btn">
-            @if (loading) {
-              <span>Entrando...</span>
-            } @else {
-              <span class="material-icons">login</span> Entrar
-            }
-          </button>
-        </form>
-      </div>
+
+            <button mat-flat-button color="primary" type="submit"
+                    [disabled]="loading" class="login-btn">
+              <mat-icon *ngIf="!loading">login</mat-icon>
+              <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+              {{ loading ? 'Entrando...' : 'Entrar' }}
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styles: [`
@@ -70,96 +73,52 @@ import { AuthService } from '../../services/auth.service';
       background: var(--bg);
     }
     .login-card {
-      background: var(--surface);
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      padding: 40px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
+      padding: 32px;
     }
     .login-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
     .logo-icon {
       font-size: 48px;
+      height: 48px;
+      width: 48px;
       color: var(--primary-dark);
+      margin-bottom: 8px;
     }
-    .login-header h1 {
-      margin: 8px 0 4px;
-      font-size: 24px;
-      color: var(--primary-dark);
-    }
-    .login-header p {
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    .form-group label {
+    .login-form {
       display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 6px;
-      color: var(--text);
+      flex-direction: column;
+      gap: 4px;
     }
-    .form-group label .material-icons {
-      font-size: 18px;
-    }
-    .form-group input {
+    .full-width {
       width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      background: var(--input-bg);
-      color: var(--text);
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.2s;
-      box-sizing: border-box;
-    }
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--primary-dark);
     }
     .error-message {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       background: var(--danger-bg);
       color: var(--danger);
-      padding: 10px 14px;
+      padding: 12px 16px;
       border-radius: 8px;
       font-size: 13px;
-      margin-bottom: 16px;
-    }
-    .error-message .material-icons {
-      font-size: 18px;
+      margin-bottom: 8px;
     }
     .login-btn {
       width: 100%;
-      padding: 12px;
-      background: var(--primary-dark);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
+      height: 48px;
       font-size: 15px;
       font-weight: 600;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: background 0.2s;
-    }
-    .login-btn:hover:not(:disabled) {
-      background: var(--primary);
-    }
-    .login-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
     }
   `]
 })
@@ -168,6 +127,7 @@ export class LoginComponent {
   password = '';
   errorMessage = '';
   loading = false;
+  hidePassword = true;
 
   constructor(private authService: AuthService, private router: Router) {}
 

@@ -1,10 +1,53 @@
+@use '@angular/material' as mat;
 
+// ── Material 3 Theme ──
+$light-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$orange-palette,
+  ),
+  typography: (
+    brand-family: 'Roboto',
+    plain-family: 'Roboto',
+  ),
+  density: (
+    scale: 0,
+  ),
+));
+
+$dark-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$azure-palette,
+    tertiary: mat.$orange-palette,
+  ),
+  typography: (
+    brand-family: 'Roboto',
+    plain-family: 'Roboto',
+  ),
+  density: (
+    scale: 0,
+  ),
+));
+
+html {
+  @include mat.all-component-themes($light-theme);
+  @include mat.typography-hierarchy($light-theme);
+}
+
+body.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+}
+
+// ── Reset ──
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+// ── Custom CSS Variables ──
 :root {
   --primary: #1565c0;
   --primary-dark: #0d47a1;
@@ -58,6 +101,7 @@ body.dark-theme {
   --kbd-color: #e0e0e0;
 }
 
+// ── Body ──
 body {
   font-family: 'Roboto', sans-serif;
   background-color: var(--bg);
@@ -82,6 +126,21 @@ input, select, textarea {
   font-size: inherit;
 }
 
+// ── Material overrides for dark theme ──
+body.dark-theme {
+  .mat-mdc-card {
+    background: var(--surface);
+  }
+  .mat-toolbar {
+    background: var(--header-bg);
+    color: var(--header-text);
+  }
+  .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+    background-color: var(--input-bg);
+  }
+}
+
+// ── Utilities ──
 .container {
   max-width: 1400px;
   margin: 0 auto;
@@ -99,6 +158,21 @@ input, select, textarea {
 .mb-1 { margin-bottom: 8px; }
 .mb-2 { margin-bottom: 16px; }
 
+// ── Snackbar custom classes ──
+.snackbar-success {
+  --mdc-snackbar-container-color: var(--success);
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+.snackbar-error {
+  --mdc-snackbar-container-color: var(--danger);
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+.snackbar-info {
+  --mdc-snackbar-container-color: var(--primary);
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+
+// ── Print ──
 @media print {
   body {
     background: #fff !important;
@@ -107,6 +181,7 @@ input, select, textarea {
   }
 
   .app-header,
+  mat-toolbar,
   .app-main > *:not(app-pos-screen),
   .pos-container,
   .status-bar,
@@ -144,4 +219,3 @@ input, select, textarea {
     padding: 0 !important;
   }
 }
-
