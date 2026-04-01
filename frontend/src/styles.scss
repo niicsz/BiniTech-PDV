@@ -40,159 +40,124 @@ body.dark-theme {
   @include mat.all-component-colors($dark-theme);
 }
 
-// ══════════════════════════════════════
-// ── Design Token Strategy ──
-// ══════════════════════════════════════
-
-// ── Reset ──
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-// ── Spacing Scale: 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64 ──
-
-// ── Custom CSS Variables (Design Tokens) ──
 :root {
-  // ── Primary Palette ──
   --primary: #1976d2;
   --primary-dark: #1565c0;
   --primary-light: #42a5f5;
   --primary-bg: rgba(25, 118, 210, 0.08);
 
-  // ── Semantic Colors ──
   --accent: #ff6f00;
   --success: #2e7d32;
   --danger: #c62828;
   --warning: #f9a825;
 
-  // ── Surfaces ──
   --bg: #f5f5f5;
   --surface: #ffffff;
   --surface-alt: #fafafa;
   --surface-hover: #f0f0f0;
 
-  // ── Text ──
   --text: #212121;
   --text-secondary: #616161;
   --text-tertiary: #9e9e9e;
 
-  // ── Borders & Dividers ──
   --border: #e0e0e0;
   --border-light: #eeeeee;
   --divider: #e0e0e0;
 
-  // ── Shadows ──
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
 
-  // ── Radius ──
   --radius-sm: 6px;
   --radius: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  // ── Header ──
   --header-bg: var(--primary-dark);
   --header-text: #ffffff;
 
-  // ── Input ──
   --input-bg: #ffffff;
   --input-border: #bdbdbd;
 
-  // ── Semantic Backgrounds ──
   --success-bg: #e8f5e9;
   --danger-bg: #ffebee;
   --info-bg: #e3f2fd;
   --warning-bg: #fff3e0;
 
-  // ── Table ──
   --table-header-bg: #f5f5f5;
   --table-header-text: #424242;
   --table-hover: #fafafa;
   --table-stripe: #fafafa;
 
-  // ── Keyboard ──
   --kbd-bg: #37474f;
   --kbd-color: #ffffff;
 
-  // ── Typography ──
   --font-mono: 'Roboto Mono', 'Consolas', monospace;
   --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  // ── Focus ──
   --focus-ring: 0 0 0 3px rgba(25, 118, 210, 0.25);
   --focus-ring-accent: 0 0 0 3px rgba(255, 111, 0, 0.2);
 }
 
 body.dark-theme {
-  // ── Primary Palette ──
   --primary: #64b5f6;
   --primary-dark: #42a5f5;
   --primary-light: #bbdefb;
   --primary-bg: rgba(100, 181, 246, 0.1);
 
-  // ── Semantic Colors ──
   --accent: #ffb74d;
   --success: #66bb6a;
   --danger: #ef5350;
   --warning: #ffca28;
 
-  // ── Surfaces ──
   --bg: #0f1214;
   --surface: #1a1d21;
   --surface-alt: #22262b;
   --surface-hover: #2a2e33;
 
-  // ── Text ──
   --text: #e8eaed;
   --text-secondary: #9aa0a6;
   --text-tertiary: #6b7280;
 
-  // ── Borders & Dividers ──
   --border: #2d3139;
   --border-light: #252930;
   --divider: #2d3139;
 
-  // ── Shadows ──
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
 
-  // ── Header ──
   --header-bg: #1a1d21;
   --header-text: #e8eaed;
 
-  // ── Input ──
   --input-bg: #22262b;
   --input-border: #3d434d;
 
-  // ── Semantic Backgrounds ──
   --success-bg: rgba(102, 187, 106, 0.12);
   --danger-bg: rgba(239, 83, 80, 0.12);
   --info-bg: rgba(100, 181, 246, 0.12);
   --warning-bg: rgba(255, 202, 40, 0.12);
 
-  // ── Table ──
   --table-header-bg: #22262b;
   --table-header-text: #9aa0a6;
   --table-hover: #22262b;
   --table-stripe: rgba(255, 255, 255, 0.02);
 
-  // ── Keyboard ──
   --kbd-bg: #37474f;
   --kbd-color: #e8eaed;
 
-  // ── Focus ──
   --focus-ring: 0 0 0 3px rgba(100, 181, 246, 0.3);
   --focus-ring-accent: 0 0 0 3px rgba(255, 183, 77, 0.25);
 }
 
-// ── Body ──
 body {
   font-family: var(--font-family);
   background-color: var(--bg);
@@ -219,7 +184,6 @@ input, select, textarea {
   font-size: inherit;
 }
 
-// ── Ensure mat-icon renders correctly everywhere ──
 mat-icon,
 .mat-icon {
   font-family: 'Material Icons' !important;
@@ -228,7 +192,6 @@ mat-icon,
   -webkit-font-smoothing: antialiased;
 }
 
-// ── Material overrides for dark theme ──
 body.dark-theme {
   .mat-mdc-card {
     background: var(--surface);
@@ -247,11 +210,6 @@ body.dark-theme {
     border-color: var(--input-border);
   }
 }
-
-// ══════════════════════════════════════
-// ── Typography Utilities ──
-// ══════════════════════════════════════
-
 .page-title {
   font-size: 24px;
   font-weight: 700;
@@ -293,7 +251,6 @@ body.dark-theme {
   font-family: var(--font-mono);
 }
 
-// ── Utilities ──
 .container {
   max-width: 1400px;
   margin: 0 auto;
@@ -312,7 +269,6 @@ body.dark-theme {
 .mb-1 { margin-bottom: 8px; }
 .mb-2 { margin-bottom: 16px; }
 
-// ── Snackbar custom classes ──
 .snackbar-success {
   --mdc-snackbar-container-color: var(--success);
   --mdc-snackbar-supporting-text-color: #fff;
@@ -326,7 +282,6 @@ body.dark-theme {
   --mdc-snackbar-supporting-text-color: #fff;
 }
 
-// ── Scrollbar (dark-friendly) ──
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -342,7 +297,6 @@ body.dark-theme {
   }
 }
 
-// ── Print ──
 @media print {
   body {
     background: #fff !important;
