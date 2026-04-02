@@ -291,6 +291,85 @@ import { CartItem } from '../../../shared/models/cart.model';
       }
     }
 
+    @media (max-width: 1024px) {
+      .cart-table {
+        th, td {
+          padding: 5px 6px;
+          font-size: 11px;
+        }
+
+        thead th {
+          font-size: 9px;
+          letter-spacing: 0.3px;
+        }
+
+        .col-seq {
+          width: 28px;
+          font-size: 10px;
+        }
+        .col-barcode {
+          display: none;
+        }
+        .col-desc {
+          min-width: 100px;
+          font-size: 12px;
+        }
+        .col-qty {
+          width: 36px;
+          font-size: 12px;
+        }
+        .col-price {
+          width: 75px;
+          font-size: 11px;
+        }
+        .col-subtotal {
+          width: 85px;
+          font-size: 12px;
+        }
+        .col-actions {
+          width: 32px;
+
+          button {
+            transform: scale(0.8);
+          }
+        }
+      }
+
+      .cart-empty {
+        padding: 20px 12px;
+        min-height: 120px;
+      }
+
+      .empty-visual {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 10px;
+      }
+
+      .empty-icon {
+        font-size: 24px;
+        height: 24px;
+        width: 24px;
+      }
+
+      .empty-title {
+        font-size: 14px;
+      }
+
+      .empty-hint {
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+
+      .empty-shortcuts {
+        gap: 10px;
+      }
+
+      .empty-shortcut {
+        font-size: 10px;
+      }
+    }
+
     @media (max-height: 768px) {
       .cart-table {
         th, td {
