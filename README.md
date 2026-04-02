@@ -24,12 +24,13 @@ Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura 
 O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 
 - **Autenticação JWT** — Login com access token e refresh token, controle de roles (ADMIN / OPERATOR).
-- **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço, estoque e **categoria**.
-- **Filtro por categoria** — Na listagem de produtos, filtre rapidamente por categoria cadastrada.
-- **Tela de PDV** — Leitura rápida por código de barras, carrinho de compras e finalização de venda.
-- **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito e PIX.
+- **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço, preço de custo, estoque, **categoria** e **status ativo/inativo**.
+- **Filtro por categoria e busca** — Na listagem de produtos, filtre rapidamente por categoria ou pesquise por descrição/código de barras. Indicadores de **produtos ativos** e **estoque baixo**.
+- **Tela de PDV** — Leitura rápida por código de barras **ou pesquisa por nome do produto** (autocompletar), carrinho de compras e finalização de venda.
+- **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito e PIX, com suporte a **pagamento misto** na mesma venda.
+- **Alerta de estoque baixo** — Após finalizar uma venda, o sistema alerta automaticamente quando produtos vendidos ficam com estoque abaixo de 5 unidades.
 - **Nota impressa com nome do operador** — O comprovante de venda exibe o nome do usuário logado.
-- **Relatório de vendas** — Consulta de vendas por data ou período.
+- **Relatório de vendas** — Consulta de vendas por data ou período, com cálculo de **receita, custo e lucro**.
 - **Registro de usuários** — Somente administradores podem registrar novos usuários.
 - **Personalização Visual** — Suporte nativo a Modo Escuro (Dark Mode) e customização de cores da interface (cor primária e cabeçalho).
 
@@ -45,6 +46,7 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 | Spring Security | — |
 | Spring Data MongoDB | — |
 | JWT (jjwt) | 0.12.6 |
+| BouncyCastle (Argon2) | 1.80 |
 | OpenAPI Generator | 7.12.0 |
 | MapStruct | 1.6.3 |
 | Lombok | 1.18.36 |
@@ -55,6 +57,8 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 | Tecnologia | Versão |
 |---|---|
 | Angular | 21 |
+| Angular Material | ~21.2.4 |
+| Angular CDK | ~21.2.4 |
 | TypeScript | ~5.9 |
 | RxJS | ~7.8 |
 
@@ -98,6 +102,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 │                   Config / Security                     │
 │  SecurityConfig │ JwtTokenProvider │ JwtAuthFilter       │
 │  CorsConfig │ DataInitializer │ BeanConfig              │
+│  PepperedPasswordEncoder │ SpaWebConfig                 │
 └────────────────────────────┬────────────────────────────┘
                              │
                     ┌────────▼────────┐
@@ -132,6 +137,7 @@ com.binitech.pdv
 ├── config/
 │   ├── SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter
 │   ├── CorsConfig, BeanConfig, DataInitializer
+│   ├── PepperedPasswordEncoder, SpaWebConfig
 │   └── DotenvEnvironmentPostProcessor
 └── utils/
 ```
@@ -181,6 +187,8 @@ npm start
 
 O frontend estará disponível em **http://localhost:4200** e fará proxy das requisições `/api` para o backend na porta `8080`.
 
+> **Produção:** O Dockerfile multi-stage compila o frontend Angular e o serve como arquivos estáticos pelo próprio Spring Boot (via `SpaWebConfig`), eliminando a necessidade de um servidor separado para o frontend.
+
 ---
 
 ## 🔐 Variáveis de Ambiente
@@ -227,14 +235,14 @@ Na primeira execução, o `DataInitializer` cria automaticamente um usuário adm
 
 As passwords são protegidas com a técnica mais robusta disponível:
 
-1. **Argon2id** — algoritmo vencedor da Password Hashing Competition, resistente a ataques por GPU e side-channel. Parâmetros OWASP:
+1. **Argon2id** — algoritmo vencedor da Password Hashing Competition, resistente a ataques por GPU e side-channel. Implementado via **BouncyCastle**. Parâmetros OWASP:
    - Salt: 16 bytes (gerado automaticamente)
    - Hash: 32 bytes
    - Parallelism: 1
    - Memória: 19 456 KiB (~19 MB)
    - Iterações: 2
 
-2. **Pepper** — um valor secreto (`SECURITY_PEPPER`) que é concatenado à password **antes** do hash. Este valor:
+2. **Pepper** — um valor secreto (`SECURITY_PEPPER`) que é concatenado à password **antes** do hash pelo `PepperedPasswordEncoder`. Este valor:
    - Vive **apenas** nas variáveis de ambiente do servidor
    - **Nunca** é guardado na base de dados
    - Garante que mesmo com acesso total à BD, os hashes são **inúteis** sem o pepper
@@ -279,6 +287,7 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 | `costPrice` | number | Não | Preço de custo |
 | `stockQuantity` | integer | Sim | Quantidade em estoque |
 | `category` | string | Não | Categoria do produto (ex: Bebidas, Alimentos, Limpeza) |
+| `active` | boolean | Não | Se o produto está ativo (padrão: `true`) |
 
 ### Sales
 
@@ -301,16 +310,29 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 
 ### Tela de PDV (Ponto de Venda)
 
-- Leitura rápida de produtos por **código de barras**
-- Carrinho de compras com atalhos de teclado (`F2` alterar quantidade, `F5` dinheiro, `F7` crédito, `F8` débito, `F9` PIX, `Del` remover item)
-- Modal de pagamento com suporte a **múltiplas formas de pagamento** na mesma venda
+- Leitura rápida de produtos por **código de barras** ou **pesquisa por nome** com dropdown de autocompletar (até 8 sugestões)
+- Carrinho de compras com atalhos de teclado:
+  - `F2` — Alterar quantidade do item selecionado
+  - `F4` — Pagamento em Dinheiro
+  - `F7` — Pagamento em Cartão de Crédito
+  - `F8` — Pagamento em Cartão de Débito
+  - `F9` — Pagamento via PIX
+  - `Del` — Remover item selecionado
+  - `Esc` — Cancelar / Fechar modal
+  - `↑ ↓` — Navegar nas sugestões do autocompletar
+- Modal de pagamento com suporte a **múltiplas formas de pagamento** na mesma venda (pagamento misto)
+- Cálculo automático de **troco** e valor **restante** a pagar
+- **Alerta de estoque baixo** — Após finalizar a venda, exibe alerta se algum produto vendido ficou com estoque abaixo de 5 unidades
 - **Comprovante de venda** com dados da venda, itens, pagamentos e **nome do operador logado**
 - Impressão da nota via `window.print()`
+- Sidebar com **resumo da venda** (itens distintos, total de produtos, valor total)
 
 ### Cadastro de Produtos
 
-- Formulário completo: código de barras, descrição, preço de venda, preço de custo, estoque e **categoria**
-- **Filtro por categoria** — dropdown que filtra a listagem de produtos por categoria cadastrada
+- Formulário completo: código de barras, descrição, preço de venda, preço de custo, estoque, **categoria** e **status ativo/inativo**
+- **Filtro por categoria** — Dropdown que filtra a listagem de produtos por categoria cadastrada
+- **Busca por texto** — Campo de pesquisa que filtra por descrição ou código de barras
+- **Indicadores** — Contadores de produtos ativos e produtos com estoque baixo (≤ 5 unidades)
 - Edição e exclusão de produtos
 - Coluna de categoria visível na tabela de produtos
 
@@ -318,18 +340,24 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 
 - Consulta por data específica ou período (data inicial / data final)
 - Exibição de itens vendidos, pagamentos e totais
+- Cálculo de **receita total**, **custo total** e **lucro** por venda e no período
 
 ### Aparência e Tema
 
-- Alternância entre **Modo Claro** e **Modo Escuro** (Dark Mode).
-- Modal de **Configurações de Aparência** que permite customizar a Cor Primária e a Cor do Cabeçalho.
-- Persistência das preferências de tema do usuário utilizando `localStorage`.
+- Alternância entre **Modo Claro** e **Modo Escuro** (Dark Mode) com detecção automática da preferência do sistema
+- Modal de **Configurações de Aparência** que permite customizar a Cor Primária e a Cor do Cabeçalho
+- Botão de **Restaurar Padrões** nas configurações de aparência
+- Persistência das preferências de tema do usuário utilizando `localStorage`
 
 ---
 
 ## 🐳 Docker
 
-O projeto inclui um **Dockerfile multi-stage** que compila frontend e backend em uma única imagem otimizada.
+O projeto inclui um **Dockerfile multi-stage** (3 estágios) que compila frontend e backend em uma única imagem otimizada:
+
+1. **frontend-build** — Compila o Angular com Node.js 25 Alpine
+2. **backend-build** — Compila o Spring Boot com Eclipse Temurin JDK 17, copiando o build do frontend para `resources/static/`
+3. **runtime** — Imagem final mínima com Eclipse Temurin JRE 17, executando com usuário não-root para segurança
 
 ### Build da imagem
 
@@ -353,9 +381,17 @@ docker run -d \
   -p 8080:8080 \
   -e MONGODB_URI=mongodb://host.docker.internal:27017/binitech_pdv \
   -e JWT_SECRET=sua-chave-secreta \
+  -e JWT_ACCESS_EXPIRATION=3600000 \
+  -e JWT_REFRESH_EXPIRATION=604800000 \
+  -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=sua-senha-admin \
+  -e SECURITY_PEPPER=seu-pepper-secreto \
+  -e CORS_ALLOWED_ORIGINS=http://localhost:8080 \
   binitech-pdv
 ```
+
+> Em produção, o frontend Angular é servido como arquivos estáticos pelo Spring Boot (via `SpaWebConfig`), sendo acessível diretamente em **http://localhost:8080**.
+
 ---
 
 ## 📂 Estrutura do Projeto
@@ -372,7 +408,7 @@ pdv/
 │   │   │   ├── domain/         # Entidades de domínio
 │   │   │   ├── application/    # Portas e casos de uso
 │   │   │   ├── adapters/       # Controllers e Repositories
-│   │   │   ├── config/         # Security, JWT, CORS, Beans
+│   │   │   ├── config/         # Security, JWT, CORS, Beans, SpaWebConfig
 │   │   │   └── utils/
 │   │   └── resources/
 │   │       ├── application.yaml
@@ -381,10 +417,15 @@ pdv/
 ├── frontend/
 │   ├── src/app/
 │   │   ├── auth/               # Login, Register, Guards, Interceptors
-│   │   ├── pos/                # Tela de PDV (carrinho, pagamento)
+│   │   ├── pos/                # Tela de PDV (carrinho, pagamento, busca)
+│   │   │   ├── components/     # PosScreen, CartTable, PaymentModal
+│   │   │   └── services/       # ProductService, SaleService
 │   │   ├── products/           # Listagem e cadastro de produtos
-│   │   ├── sales/              # Relatório de vendas
-│   │   └── shared/             # Models compartilhados
+│   │   ├── sales/              # Relatório de vendas (receita, custo, lucro)
+│   │   └── shared/
+│   │       ├── components/     # SettingsModal (configurações de aparência)
+│   │       ├── models/         # DTOs e modelos (api.models, cart.model)
+│   │       └── services/       # ThemeService (dark mode, cores custom)
 │   ├── proxy.conf.json
 │   └── package.json
 └── target/                     # Build artifacts
