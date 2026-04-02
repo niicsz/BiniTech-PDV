@@ -1000,52 +1000,133 @@
 
 @media (max-width: 1024px) {
   .pos-container {
-    height: calc(100vh - 78px);
-    gap: 6px;
+    height: calc(100vh - 68px);
+    gap: 4px;
   }
 
   .pos-layout {
-    flex-direction: column;
-  }
-
-  .pos-sidebar {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
     gap: 8px;
   }
 
-  .sidebar-summary {
-    flex: 1;
-    min-width: 260px;
+  .pos-sidebar {
+    width: 210px;
+    gap: 6px;
+  }
+
+  .pos-main {
+    gap: 6px;
+  }
+
+  .summary-header {
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 5px;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+    }
+  }
+
+  .summary-rows {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .summary-row {
+    font-size: 11px;
+
+    strong {
+      font-size: 12px;
+    }
+  }
+
+  .total-display {
+    padding: 8px 10px;
+  }
+
+  .total-label {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .total-value {
+    font-size: 18px;
   }
 
   .sidebar-actions {
-    flex: 1;
-    min-width: 260px;
-    flex-direction: row;
-    flex-wrap: wrap;
+    gap: 4px;
+  }
 
-    .action-btn {
-      flex: 1;
-      min-width: 120px;
+  .actions-label {
+    font-size: 9px;
+    padding: 0 2px;
+  }
+
+  .action-btn {
+    height: 32px;
+    font-size: 11px;
+    padding: 0 8px !important;
+    gap: 5px;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+    }
+
+    kbd {
+      font-size: 8px;
+      padding: 1px 3px;
+    }
+
+    .btn-label {
+      font-size: 11px;
     }
   }
 
   .shortcuts-bar {
-    padding: 4px 6px;
+    padding: 3px 6px;
     gap: 2px;
   }
 
   .shortcut-item {
-    font-size: 10px;
+    font-size: 9px;
     padding: 2px 4px;
+    gap: 3px;
 
     kbd {
-      font-size: 9px;
+      font-size: 8px;
       padding: 1px 4px;
-      min-width: 20px;
+      min-width: 18px;
     }
+  }
+
+  .barcode-input {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .barcode-icon-area {
+    padding: 0 8px;
+
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+    }
+  }
+
+  .status-bar {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .status-icon {
+    font-size: 14px;
+    height: 14px;
+    width: 14px;
   }
 }
 
