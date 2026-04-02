@@ -209,6 +209,100 @@ import { CartItem } from '../../../shared/models/cart.model';
         margin-right: 4px;
       }
     }
+
+    @media (max-width: 1366px) {
+      .cart-table {
+        th, td {
+          padding: 8px 10px;
+        }
+
+        .col-barcode {
+          width: 120px;
+        }
+        .col-price {
+          width: 100px;
+        }
+        .col-subtotal {
+          width: 110px;
+        }
+      }
+    }
+
+    @media (max-width: 1280px) {
+      .cart-table {
+        th, td {
+          padding: 7px 8px;
+          font-size: 12px;
+        }
+
+        thead th {
+          font-size: 10px;
+        }
+
+        .col-seq {
+          width: 32px;
+        }
+        .col-barcode {
+          width: 100px;
+          font-size: 11px;
+        }
+        .col-desc {
+          min-width: 140px;
+        }
+        .col-qty {
+          width: 48px;
+        }
+        .col-price {
+          width: 90px;
+          font-size: 12px;
+        }
+        .col-subtotal {
+          width: 100px;
+          font-size: 13px;
+        }
+        .col-actions {
+          width: 40px;
+        }
+      }
+
+      .cart-empty {
+        padding: 32px 16px;
+        min-height: 200px;
+      }
+
+      .empty-visual {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 14px;
+      }
+
+      .empty-icon {
+        font-size: 28px;
+        height: 28px;
+        width: 28px;
+      }
+
+      .empty-title {
+        font-size: 15px;
+      }
+
+      .empty-hint {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-height: 768px) {
+      .cart-table {
+        th, td {
+          padding: 6px 8px;
+        }
+      }
+
+      .cart-empty {
+        padding: 24px 16px;
+        min-height: 150px;
+      }
+    }
   `]
 })
 export class CartTableComponent {

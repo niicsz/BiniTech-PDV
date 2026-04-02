@@ -1,15 +1,11 @@
-// ══════════════════════════════════════
-// ── POS Screen Styles ──
-// ══════════════════════════════════════
-
 .pos-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: calc(100vh - 104px);
+  min-height: 0;
 }
 
-// ── Shortcuts Bar ──
 .shortcuts-bar {
   display: flex;
   gap: 6px;
@@ -50,7 +46,6 @@
   }
 }
 
-// ── Status Bar ──
 .status-bar {
   display: flex;
   align-items: center;
@@ -93,7 +88,6 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-// ── Layout ──
 .pos-layout {
   display: flex;
   gap: 16px;
@@ -109,7 +103,6 @@
   min-width: 0;
 }
 
-// ── Barcode Section ──
 .barcode-section {
   position: relative;
 }
@@ -162,7 +155,6 @@
   }
 }
 
-// ── Autocomplete Dropdown ──
 .autocomplete-dropdown {
   position: absolute;
   top: 100%;
@@ -239,7 +231,6 @@
   }
 }
 
-// ── Sidebar ──
 .pos-sidebar {
   width: 320px;
   display: flex;
@@ -316,7 +307,6 @@
   letter-spacing: -0.5px;
 }
 
-// ── Sidebar Actions ──
 .sidebar-actions {
   display: flex;
   flex-direction: column;
@@ -394,7 +384,6 @@
   width: 100%;
 }
 
-// ── Modals ──
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -468,7 +457,6 @@
   border-left: 3px solid var(--primary);
 }
 
-// ── Receipt Modal ──
 .receipt-overlay {
   background: rgba(0, 0, 0, 0.7);
 }
@@ -672,7 +660,6 @@
   }
 }
 
-// ── Receipt Actions ──
 .receipt-actions {
   display: flex;
   gap: 12px;
@@ -693,7 +680,6 @@
   background-color: var(--primary) !important;
 }
 
-// ── Low Stock ──
 .low-stock-description {
   font-size: 14px;
   color: var(--text-secondary);
@@ -745,7 +731,6 @@
   }
 }
 
-// ── Print Styles ──
 @media print {
   :host > *:not(.modal-overlay) {
     display: none !important;
@@ -792,8 +777,233 @@
   }
 }
 
-// ── Responsive ──
+@media (max-width: 1440px) {
+  .pos-sidebar {
+    width: 290px;
+  }
+
+  .total-value {
+    font-size: 24px;
+  }
+
+  .barcode-input {
+    font-size: 16px;
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 1366px) {
+  .pos-container {
+    gap: 8px;
+    height: calc(100vh - 88px);
+  }
+
+  .pos-layout {
+    gap: 12px;
+  }
+
+  .pos-sidebar {
+    width: 260px;
+  }
+
+  .shortcuts-bar {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .shortcut-item {
+    font-size: 11px;
+    padding: 3px 6px;
+    gap: 4px;
+
+    kbd {
+      font-size: 10px;
+      padding: 1px 6px;
+      min-width: 24px;
+    }
+  }
+
+  .summary-header {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .summary-rows {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .summary-row {
+    font-size: 12px;
+  }
+
+  .total-display {
+    padding: 12px 16px;
+  }
+
+  .total-label {
+    font-size: 12px;
+  }
+
+  .total-value {
+    font-size: 22px;
+  }
+
+  .action-btn {
+    height: 42px;
+    font-size: 13px;
+    padding: 0 12px !important;
+    gap: 8px;
+  }
+
+  .actions-label {
+    font-size: 10px;
+  }
+
+  .barcode-input {
+    font-size: 15px;
+    padding: 12px 14px;
+  }
+
+  .barcode-icon-area {
+    padding: 0 12px;
+
+    mat-icon {
+      font-size: 24px;
+      height: 24px;
+      width: 24px;
+    }
+  }
+}
+
+@media (max-width: 1280px) {
+  .pos-container {
+    gap: 6px;
+    height: calc(100vh - 80px);
+  }
+
+  .pos-layout {
+    gap: 10px;
+  }
+
+  .pos-sidebar {
+    width: 240px;
+  }
+
+  .shortcuts-bar {
+    padding: 4px 8px;
+    gap: 2px;
+  }
+
+  .shortcut-item {
+    font-size: 10px;
+    padding: 2px 4px;
+    gap: 3px;
+
+    kbd {
+      font-size: 9px;
+      padding: 1px 5px;
+      min-width: 22px;
+    }
+  }
+
+  .barcode-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .barcode-icon-area {
+    padding: 0 10px;
+
+    mat-icon {
+      font-size: 22px;
+      height: 22px;
+      width: 22px;
+    }
+  }
+
+  .summary-header {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 6px;
+
+    mat-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  .summary-rows {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .summary-row {
+    font-size: 12px;
+    strong {
+      font-size: 13px;
+    }
+  }
+
+  .total-display {
+    padding: 10px 12px;
+  }
+
+  .total-label {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  .total-value {
+    font-size: 20px;
+  }
+
+  .sidebar-actions {
+    gap: 6px;
+  }
+
+  .action-btn {
+    height: 38px;
+    font-size: 12px;
+    padding: 0 10px !important;
+    gap: 6px;
+
+    mat-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+    }
+
+    kbd {
+      font-size: 9px;
+      padding: 1px 4px;
+    }
+  }
+
+  .actions-label {
+    font-size: 10px;
+    padding: 0 2px;
+  }
+
+  .status-bar {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .status-icon {
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+  }
+}
+
 @media (max-width: 1024px) {
+  .pos-container {
+    height: calc(100vh - 78px);
+    gap: 6px;
+  }
+
   .pos-layout {
     flex-direction: column;
   }
@@ -802,23 +1012,107 @@
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
   }
 
   .sidebar-summary {
     flex: 1;
-    min-width: 280px;
+    min-width: 260px;
   }
 
   .sidebar-actions {
     flex: 1;
-    min-width: 280px;
+    min-width: 260px;
     flex-direction: row;
     flex-wrap: wrap;
 
     .action-btn {
       flex: 1;
-      min-width: 140px;
+      min-width: 120px;
     }
+  }
+
+  .shortcuts-bar {
+    padding: 4px 6px;
+    gap: 2px;
+  }
+
+  .shortcut-item {
+    font-size: 10px;
+    padding: 2px 4px;
+
+    kbd {
+      font-size: 9px;
+      padding: 1px 4px;
+      min-width: 20px;
+    }
+  }
+}
+
+@media (max-height: 800px) {
+  .pos-container {
+    gap: 4px;
+  }
+
+  .shortcuts-bar {
+    padding: 4px 8px;
+  }
+
+  .shortcut-item {
+    padding: 2px 5px;
+  }
+
+  .status-bar {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .action-btn {
+    height: 36px;
+  }
+
+  .summary-header {
+    padding: 8px 14px;
+  }
+
+  .summary-rows {
+    padding: 8px 14px;
+    gap: 4px;
+  }
+
+  .total-display {
+    padding: 10px 14px;
+  }
+}
+
+@media (max-height: 768px) {
+  .pos-container {
+    gap: 4px;
+  }
+
+  .sidebar-actions {
+    gap: 4px;
+  }
+
+  .action-btn {
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .summary-rows {
+    padding: 6px 12px;
+    gap: 4px;
+  }
+
+  .summary-row {
+    font-size: 11px;
+  }
+
+  .total-value {
+    font-size: 18px;
+  }
+
+  .total-display {
+    padding: 8px 12px;
   }
 }

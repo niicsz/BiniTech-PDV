@@ -296,6 +296,23 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       60% { transform: translateX(-4px); }
       80% { transform: translateX(4px); }
     }
+
+    @media (max-width: 1280px) {
+      .modal-payment { width: 480px; }
+      .total-amount { font-size: 24px; }
+      .payment-total { padding: 12px 16px; }
+      .amount-input { font-size: 20px !important; }
+    }
+
+    @media (max-height: 768px) {
+      .modal-content { padding: 16px; }
+      .modal-header { margin-bottom: 14px; }
+      .payment-total { padding: 10px 14px; margin-bottom: 14px; }
+      .total-amount { font-size: 22px; }
+      .payments-list { margin-bottom: 14px; padding: 12px; }
+      .method-btn { height: 42px; }
+      mat-card-actions { padding: 12px 0 0; }
+    }
   `]
 })
 export class PaymentModalComponent implements AfterViewInit {
