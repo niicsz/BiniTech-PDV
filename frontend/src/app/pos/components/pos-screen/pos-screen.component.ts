@@ -38,6 +38,8 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   showPaymentModal = false;
   initialPaymentMethod: PaymentMethodEnum | null = null;
+  paymentErrorMessage = '';
+  paymentProcessing = false;
 
   showQuantityModal = false;
   selectedCartIndex = -1;
@@ -328,6 +330,8 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       return;
     }
     this.initialPaymentMethod = method;
+    this.paymentErrorMessage = '';
+    this.paymentProcessing = false;
     this.showPaymentModal = true;
   }
 
@@ -340,8 +344,12 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     const soldProductIds = this.cart.map(item => item.productId);
     const sale: CreateSaleDTO = { items, payments };
 
+    this.paymentProcessing = true;
+    this.paymentErrorMessage = '';
+
     this.saleService.create(sale).subscribe({
       next: (result: SaleDTO) => {
+        this.paymentProcessing = false;
         this.lastSale = result;
         this.showPaymentModal = false;
         this.showReceiptModal = true;
@@ -350,8 +358,9 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.checkLowStock(soldProductIds);
       },
       error: (err) => {
+        this.paymentProcessing = false;
         const msg = err.error?.message || 'Erro ao finalizar a venda.';
-        this.showStatus(msg, 'error');
+        this.paymentErrorMessage = msg;
       }
     });
   }
