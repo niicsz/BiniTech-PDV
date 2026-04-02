@@ -631,9 +631,184 @@
 }
 
 // ── Responsive ──
+
+@media (max-width: 1440px) {
+  .stat-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+
+    mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+    }
+  }
+
+  .data-table {
+    th, td {
+      padding: 10px 12px;
+    }
+  }
+}
+
+@media (max-width: 1366px) {
+  .products-page {
+    gap: 16px;
+  }
+
+  .header-text {
+    h2 {
+      font-size: 20px;
+    }
+  }
+
+  .header-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    mat-icon {
+      font-size: 22px;
+      height: 22px;
+      width: 22px;
+    }
+  }
+
+  .stat-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .product-name {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .products-page {
+    gap: 12px;
+  }
+
+  .stats-row {
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+
+    mat-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  .data-table {
+    th, td {
+      padding: 8px 10px;
+    }
+
+    thead th {
+      font-size: 10px;
+    }
+  }
+
+  .barcode-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .product-name {
+    max-width: 180px;
+    font-size: 13px;
+  }
+
+  .price-cell, .cost-cell {
+    font-size: 12px;
+  }
+
+  .form-body {
+    padding: 16px;
+  }
+
+  .toolbar {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .search-wrapper {
+    min-width: 200px;
+    height: 38px;
+  }
+
+  .filter-select {
+    min-width: 160px;
+  }
+}
+
 @media (max-width: 1100px) {
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 10px;
+  }
+
+  .data-table {
+    th, td {
+      padding: 7px 8px;
+      font-size: 12px;
+    }
+  }
+
+  .product-name {
+    max-width: 140px;
+  }
+
+  .form-row {
+    mat-form-field {
+      min-width: 150px;
+    }
+  }
+
+  .btn-new-product {
+    height: 40px;
+    padding: 0 16px !important;
+    font-size: 13px;
   }
 }
 

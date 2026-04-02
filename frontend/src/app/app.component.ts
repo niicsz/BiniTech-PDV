@@ -89,7 +89,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
     }
   `,
   styles: [`
-    /* ── Header Shell ── */
     .app-header {
       position: sticky;
       top: 0;
@@ -108,7 +107,7 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       margin: 0 auto;
     }
 
-    /* ── Brand ── */
+
     .toolbar-brand {
       display: flex;
       align-items: center;
@@ -295,6 +294,100 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       max-width: 1440px;
       margin: 0 auto;
       width: 100%;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1366px) {
+      .header-inner {
+        padding: 0 16px;
+      }
+      .nav-divider {
+        margin: 0 14px;
+      }
+      .nav-item {
+        padding: 7px 10px;
+        font-size: 12.5px;
+        gap: 5px;
+      }
+      .nav-item mat-icon {
+        font-size: 18px;
+        height: 18px;
+        width: 18px;
+      }
+      .user-chip {
+        gap: 7px;
+        padding: 4px 10px 4px 4px;
+        margin: 0 4px;
+      }
+      .user-name {
+        font-size: 12px;
+      }
+      .app-main {
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 1280px) {
+      .nav-item {
+        padding: 6px 8px;
+        font-size: 12px;
+        gap: 4px;
+      }
+      .nav-item mat-icon {
+        font-size: 17px;
+        height: 17px;
+        width: 17px;
+      }
+      .nav-divider {
+        margin: 0 10px;
+      }
+      .logo-text {
+        font-size: 15px;
+      }
+      .user-details {
+        display: none;
+      }
+      .user-chip {
+        padding: 4px;
+        margin: 0 2px;
+      }
+      .app-main {
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .header-inner {
+        padding: 0 12px;
+        height: 48px;
+      }
+      .nav-item {
+        padding: 5px 7px;
+        font-size: 11.5px;
+      }
+      .nav-item span {
+        display: none;
+      }
+      .nav-item mat-icon {
+        font-size: 20px;
+        height: 20px;
+        width: 20px;
+      }
+      .nav-divider {
+        margin: 0 8px;
+        height: 20px;
+      }
+      .logo-wrapper {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+      }
+      .logo-text {
+        font-size: 14px;
+      }
+      .app-main {
+        padding: 10px;
+      }
     }
   `]
 })
