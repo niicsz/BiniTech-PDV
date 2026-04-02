@@ -90,15 +90,20 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
           </div>
         </mat-card-content>
 
+        <div class="error-banner" *ngIf="errorMessage">
+          <mat-icon class="error-icon">error</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+
         <mat-card-actions align="end">
           <button mat-stroked-button (click)="cancel.emit()">
             Cancelar (Esc)
           </button>
           <button mat-flat-button class="confirm-btn"
             (click)="confirmAll()"
-            [disabled]="payments.length === 0 || getRemaining() > 0.001">
-            <mat-icon>check</mat-icon>
-            Confirmar Pagamento
+            [disabled]="payments.length === 0 || getRemaining() > 0.001 || processing">
+            <mat-icon>{{ processing ? 'hourglass_empty' : 'check' }}</mat-icon>
+            {{ processing ? 'Processando...' : 'Confirmar Pagamento' }}
           </button>
         </mat-card-actions>
       </mat-card>
@@ -263,6 +268,34 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
     .add-payment-section {
       margin-bottom: 8px;
     }
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #fdecea;
+      color: #b71c1c;
+      border: 1px solid #f5c6cb;
+      border-radius: var(--radius, 8px);
+      margin: 12px 0 4px;
+      font-size: 14px;
+      font-weight: 500;
+      animation: shakeIn 0.3s ease;
+    }
+    .error-banner .error-icon {
+      font-size: 22px;
+      height: 22px;
+      width: 22px;
+      color: #d32f2f;
+      flex-shrink: 0;
+    }
+    @keyframes shakeIn {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
   `]
 })
 export class PaymentModalComponent implements AfterViewInit {
@@ -272,6 +305,8 @@ export class PaymentModalComponent implements AfterViewInit {
   @Input() total = 0;
   @Input() initialMethod: PaymentMethodEnum | null = null;
   @Input() getPaymentLabel!: (method: string) => string;
+  @Input() errorMessage: string = '';
+  @Input() processing: boolean = false;
 
   @Output() paymentsConfirmed = new EventEmitter<PaymentDTO[]>();
   @Output() cancel = new EventEmitter<void>();

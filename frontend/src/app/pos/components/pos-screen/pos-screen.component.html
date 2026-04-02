@@ -157,6 +157,8 @@
   [total]="total"
   [initialMethod]="initialPaymentMethod"
   [getPaymentLabel]="getPaymentLabel"
+  [errorMessage]="paymentErrorMessage"
+  [processing]="paymentProcessing"
   (paymentsConfirmed)="onPaymentsConfirmed($event)"
   (cancel)="closePaymentModal()">
 </app-payment-modal>
