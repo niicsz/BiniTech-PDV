@@ -30,6 +30,9 @@ export interface SaleDTO {
   change?: number;
   timestamp?: string;
   userId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  paid?: boolean;
 }
 
 export interface SaleItemDTO {
@@ -44,6 +47,9 @@ export interface SaleItemDTO {
 export interface CreateSaleDTO {
   items: CreateSaleItemDTO[];
   payments: PaymentDTO[];
+  customerName?: string;
+  customerPhone?: string;
+  skipStockValidation?: boolean;
 }
 
 export interface CreateSaleItemDTO {
@@ -56,7 +62,7 @@ export interface PaymentDTO {
   amount: number;
 }
 
-export type PaymentMethodEnum = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'PIX';
+export type PaymentMethodEnum = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'PIX' | 'CREDIARIO';
 
 export interface ErrorDTO {
   code?: string;

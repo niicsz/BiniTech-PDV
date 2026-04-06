@@ -33,5 +33,12 @@ export class SaleService {
   listAll(): Observable<SaleDTO[]> {
     return this.http.get<SaleDTO[]>(this.baseUrl);
   }
-}
 
+  listDebtors(): Observable<SaleDTO[]> {
+    return this.http.get<SaleDTO[]>(`${this.baseUrl}/debtors`);
+  }
+
+  markAsPaid(id: string): Observable<SaleDTO> {
+    return this.http.patch<SaleDTO>(`${this.baseUrl}/${id}/mark-paid`, {});
+  }
+}

@@ -5,5 +5,6 @@ export interface CartItem {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  stockQuantity?: number;
 }
 

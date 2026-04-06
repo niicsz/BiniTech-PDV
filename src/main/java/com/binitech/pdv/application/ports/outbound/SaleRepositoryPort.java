@@ -18,4 +18,8 @@ public interface SaleRepositoryPort {
   List<Sale> findAllByUserId(String userId);
 
   List<Sale> findByTimestampBetweenAndUserId(LocalDateTime start, LocalDateTime end, String userId);
+
+  List<Sale> findDebtors();
+
+  List<Sale> findDebtorsByUserId(String userId);
 }

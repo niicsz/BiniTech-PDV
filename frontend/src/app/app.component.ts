@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -6,9 +6,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from './auth/services/auth.service';
 import { ThemeService } from './shared/services/theme.service';
 import { SettingsModalComponent } from './shared/components/settings-modal.component';
+import { SaleService } from './pos/services/sale.service';
 
 @Component({
   selector: 'app-root',
@@ -16,6 +19,7 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
   imports: [
     CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule,
+    MatBadgeModule, MatSnackBarModule,
     SettingsModalComponent
   ],
   template: `
@@ -43,6 +47,12 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
             <a routerLink="/sales-report" routerLinkActive="active-link" class="nav-item">
               <mat-icon>bar_chart</mat-icon>
               <span>Relatórios</span>
+            </a>
+            <a routerLink="/debtors" routerLinkActive="active-link" class="nav-item debtors-nav"
+               [matBadge]="debtorsCount > 0 ? debtorsCount : null"
+               matBadgeColor="warn" matBadgeSize="small" matBadgeOverlap="false">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <span>Devedores</span>
             </a>
             @if (authService.isAdmin()) {
               <a routerLink="/register" routerLinkActive="active-link" class="nav-item">
@@ -144,7 +154,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       color: var(--primary-light);
     }
 
-    /* ── Divider ── */
     .nav-divider {
       width: 1px;
       height: 24px;
@@ -153,7 +162,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       flex-shrink: 0;
     }
 
-    /* ── Navigation ── */
     .nav-links {
       display: flex;
       align-items: center;
@@ -198,7 +206,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       width: 0;
       height: 0;
     }
-    /* pill glow under active */
     .nav-item.active-link::before {
       content: '';
       position: absolute;
@@ -215,7 +222,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       flex: 1;
     }
 
-    /* ── Actions ── */
     .toolbar-actions {
       display: flex;
       align-items: center;
@@ -230,7 +236,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       background: rgba(255, 255, 255, 0.07);
     }
 
-    /* ── User Chip ── */
     .user-chip {
       display: flex;
       align-items: center;
@@ -278,7 +283,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       font-weight: 500;
     }
 
-    /* ── Logout ── */
     .logout-btn {
       color: rgba(255, 255, 255, 0.45) !important;
       transition: color 0.2s !important;
@@ -288,7 +292,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       background: rgba(239, 83, 80, 0.1);
     }
 
-    /* ── Main Content ── */
     .app-main {
       padding: 24px;
       max-width: 1440px;
@@ -296,7 +299,6 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
       width: 100%;
     }
 
-    /* ── Responsive ── */
     @media (max-width: 1366px) {
       .header-inner {
         padding: 0 16px;
@@ -391,13 +393,54 @@ import { SettingsModalComponent } from './shared/components/settings-modal.compo
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'BiniTech PDV';
   authService = inject(AuthService);
   themeService = inject(ThemeService);
   private router = inject(Router);
-  
+  private saleService = inject(SaleService);
+  private snackBar = inject(MatSnackBar);
+
   showSettings = false;
+  debtorsCount = 0;
+
+  ngOnInit(): void {
+    this.loadDebtorsCount();
+    this.router.events.subscribe(() => {
+      if (this.authService.isLoggedIn()) {
+        this.loadDebtorsCount();
+      }
+    });
+  }
+
+  private loadDebtorsCount(): void {
+    if (!this.authService.isLoggedIn()) return;
+    this.saleService.listDebtors().subscribe({
+      next: (debtors) => {
+        this.debtorsCount = debtors.length;
+        this.checkDailyReminder(debtors.length);
+      },
+      error: () => {}
+    });
+  }
+
+  private checkDailyReminder(count: number): void {
+    if (count === 0) return;
+    const storageKey = 'pdv_debtor_reminder_date';
+    const today = new Date().toISOString().split('T')[0];
+    const lastReminder = localStorage.getItem(storageKey);
+
+    if (lastReminder !== today) {
+      localStorage.setItem(storageKey, today);
+      this.snackBar.open(
+        `⚠️ Você tem ${count} venda(s) no crediário pendente(s) de cobrança!`,
+        'Ver Devedores',
+        { duration: 8000, horizontalPosition: 'right', verticalPosition: 'top' }
+      ).onAction().subscribe(() => {
+        this.router.navigate(['/debtors']);
+      });
+    }
+  }
 
   isLoginRoute(): boolean {
     return this.router.url === '/login';

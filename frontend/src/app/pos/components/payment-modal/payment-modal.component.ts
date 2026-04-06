@@ -8,6 +8,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models';
 
+export interface PaymentConfirmation {
+  payments: PaymentDTO[];
+  customerName?: string;
+  customerPhone?: string;
+}
+
 @Component({
   selector: 'app-payment-modal',
   imports: [
@@ -68,6 +74,22 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
             </div>
 
             <div class="amount-section" *ngIf="selectedMethod">
+              <div class="crediario-fields" *ngIf="selectedMethod === 'CREDIARIO'">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Nome do Cliente</mat-label>
+                  <input matInput #customerNameInput type="text"
+                         [(ngModel)]="customerName"
+                         placeholder="Digite o nome do cliente" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Telefone do Cliente</mat-label>
+                  <input matInput type="tel"
+                         [(ngModel)]="customerPhone"
+                         placeholder="(00) 00000-0000"
+                         (keydown.enter)="addPayment()" />
+                </mat-form-field>
+              </div>
+
               <mat-form-field appearance="outline" class="full-width" *ngIf="selectedMethod === 'CASH'">
                 <mat-label>Valor Recebido (R$)</mat-label>
                 <input matInput #amountInput type="number" step="0.01" min="0"
@@ -256,6 +278,16 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
       font-family: var(--font-mono) !important;
     }
     .btn-add { align-self: flex-end; }
+    .crediario-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+      padding: 12px 16px;
+      background: var(--surface-alt, #f5f5f5);
+      border-radius: var(--radius, 8px);
+      border-left: 3px solid #7b1fa2;
+    }
     .confirm-btn {
       background-color: var(--success) !important;
       color: #fff !important;
@@ -318,6 +350,7 @@ import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models
 export class PaymentModalComponent implements AfterViewInit {
   @ViewChild('amountInput') amountInput!: ElementRef<HTMLInputElement>;
   @ViewChild('amountInputCard') amountInputCard!: ElementRef<HTMLInputElement>;
+  @ViewChild('customerNameInput') customerNameInput!: ElementRef<HTMLInputElement>;
 
   @Input() total = 0;
   @Input() initialMethod: PaymentMethodEnum | null = null;
@@ -325,18 +358,21 @@ export class PaymentModalComponent implements AfterViewInit {
   @Input() errorMessage: string = '';
   @Input() processing: boolean = false;
 
-  @Output() paymentsConfirmed = new EventEmitter<PaymentDTO[]>();
+  @Output() paymentsConfirmed = new EventEmitter<PaymentConfirmation>();
   @Output() cancel = new EventEmitter<void>();
 
   payments: PaymentDTO[] = [];
   selectedMethod: PaymentMethodEnum | null = null;
   currentAmount = 0;
+  customerName = '';
+  customerPhone = '';
 
   availableMethods = [
     { value: 'CASH' as PaymentMethodEnum, label: 'Dinheiro', icon: 'payments' },
     { value: 'CREDIT_CARD' as PaymentMethodEnum, label: 'Crédito', icon: 'credit_card' },
     { value: 'DEBIT_CARD' as PaymentMethodEnum, label: 'Débito', icon: 'credit_card' },
     { value: 'PIX' as PaymentMethodEnum, label: 'PIX', icon: 'pix' },
+    { value: 'CREDIARIO' as PaymentMethodEnum, label: 'Crediário', icon: 'account_balance_wallet' },
   ];
 
   ngAfterViewInit(): void {
@@ -351,7 +387,9 @@ export class PaymentModalComponent implements AfterViewInit {
     this.currentAmount = remaining > 0 ? parseFloat(remaining.toFixed(2)) : parseFloat(this.total.toFixed(2));
 
     setTimeout(() => {
-      if (method === 'CASH') {
+      if (method === 'CREDIARIO') {
+        this.customerNameInput?.nativeElement?.focus();
+      } else if (method === 'CASH') {
         this.amountInput?.nativeElement?.focus();
         this.amountInput?.nativeElement?.select();
       } else {
@@ -363,6 +401,10 @@ export class PaymentModalComponent implements AfterViewInit {
 
   addPayment(): void {
     if (!this.selectedMethod || this.currentAmount <= 0) return;
+
+    if (this.selectedMethod === 'CREDIARIO' && (!this.customerName.trim() || !this.customerPhone.trim())) {
+      return;
+    }
 
     this.payments.push({
       method: this.selectedMethod,
@@ -391,7 +433,13 @@ export class PaymentModalComponent implements AfterViewInit {
 
   confirmAll(): void {
     if (this.payments.length === 0 || this.getRemaining() > 0.001) return;
-    this.paymentsConfirmed.emit([...this.payments]);
+    const hasCrediario = this.payments.some(p => p.method === 'CREDIARIO');
+    const confirmation: PaymentConfirmation = {
+      payments: [...this.payments],
+      ...(hasCrediario && this.customerName.trim() ? { customerName: this.customerName.trim() } : {}),
+      ...(hasCrediario && this.customerPhone.trim() ? { customerPhone: this.customerPhone.trim() } : {})
+    };
+    this.paymentsConfirmed.emit(confirmation);
   }
 
   getMethodIcon(method: PaymentMethodEnum): string {
@@ -399,7 +447,8 @@ export class PaymentModalComponent implements AfterViewInit {
       'CASH': 'payments',
       'CREDIT_CARD': 'credit_card',
       'DEBIT_CARD': 'credit_card',
-      'PIX': 'pix'
+      'PIX': 'pix',
+      'CREDIARIO': 'account_balance_wallet'
     };
     return icons[method] || 'payment';
   }

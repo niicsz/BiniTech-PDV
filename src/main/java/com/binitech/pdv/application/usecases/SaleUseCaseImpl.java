@@ -43,7 +43,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
         throw new BusinessException("Produto inativo: " + product.getDescription());
       }
 
-      if (product.getStockQuantity() < item.getQuantity()) {
+      if (!sale.isSkipStockValidation() && product.getStockQuantity() < item.getQuantity()) {
         throw new BusinessException(
             String.format(
                 "Estoque insuficiente para '%s'. Disponível: %d, Solicitado: %d",
@@ -64,7 +64,15 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
               .findById(item.getProductId())
               .orElseThrow(
                   () -> new ResourceNotFoundException("Produto", "id", item.getProductId()));
-      product.decreaseStock(item.getQuantity());
+      if (sale.isSkipStockValidation()) {
+        int available = product.getStockQuantity();
+        int toDecrease = Math.min(available, item.getQuantity());
+        if (toDecrease > 0) {
+          product.decreaseStock(toDecrease);
+        }
+      } else {
+        product.decreaseStock(item.getQuantity());
+      }
       productRepository.save(product);
     }
 
@@ -115,5 +123,28 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       return saleRepository.findAll();
     }
     return saleRepository.findAllByUserId(userId);
+  }
+
+  @Override
+  public List<Sale> listDebtors(String userId, Role role) {
+    if (role == Role.ADMIN) {
+      return saleRepository.findDebtors();
+    }
+    return saleRepository.findDebtorsByUserId(userId);
+  }
+
+  @Override
+  public Sale markAsPaid(String id, String userId, Role role) {
+    Sale sale =
+        saleRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Venda", "id", id));
+
+    if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
+      throw new ResourceNotFoundException("Venda", "id", id);
+    }
+
+    sale.setPaid(true);
+    return saleRepository.save(sale);
   }
 }

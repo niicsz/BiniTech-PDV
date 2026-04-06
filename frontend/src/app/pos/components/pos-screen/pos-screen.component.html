@@ -1,6 +1,5 @@
 <div class="pos-container">
 
-  <!-- Shortcuts Bar -->
   <div class="shortcuts-bar">
     <div class="shortcut-item" *ngFor="let s of [
       {key: 'F2', label: 'Alterar Qtd'},
@@ -8,6 +7,7 @@
       {key: 'F7', label: 'Crédito'},
       {key: 'F8', label: 'Débito'},
       {key: 'F9', label: 'PIX'},
+      {key: 'F10', label: 'Crediário'},
       {key: 'Del', label: 'Remover'},
       {key: 'Esc', label: 'Cancelar'}
     ]">
@@ -16,7 +16,6 @@
     </div>
   </div>
 
-  <!-- Status Bar -->
   <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
     <mat-icon class="status-icon">
       {{ statusType === 'success' ? 'check_circle' : statusType === 'error' ? 'error' : 'info' }}
@@ -24,10 +23,8 @@
     <span class="status-text">{{ statusMessage }}</span>
   </div>
 
-  <!-- Main Layout -->
   <div class="pos-layout">
     <div class="pos-main">
-      <!-- Barcode Input Section -->
       <div class="barcode-section">
         <div class="barcode-input-wrapper">
           <div class="barcode-icon-area">
@@ -64,7 +61,6 @@
         </div>
       </div>
 
-      <!-- Cart Table -->
       <app-cart-table
         [items]="cart"
         [selectedIndex]="selectedCartIndex"
@@ -73,7 +69,6 @@
       </app-cart-table>
     </div>
 
-    <!-- Sidebar -->
     <div class="pos-sidebar">
       <div class="sidebar-summary">
         <div class="summary-header">
@@ -118,6 +113,11 @@
           <span class="btn-label">PIX</span>
           <kbd>F9</kbd>
         </button>
+        <button mat-flat-button class="action-btn crediario-btn" (click)="startPayment('CREDIARIO')">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span class="btn-label">Crediário</span>
+          <kbd>F10</kbd>
+        </button>
         <button mat-stroked-button class="action-btn clear-btn" (click)="clearCart()" *ngIf="cart.length > 0">
           <mat-icon>delete_sweep</mat-icon>
           <span class="btn-label">Limpar Carrinho</span>
@@ -127,7 +127,6 @@
   </div>
 </div>
 
-<!-- Quantity Modal -->
 <div class="modal-overlay" *ngIf="showQuantityModal" (click)="closeQuantityModal()">
   <mat-card class="modal-content modal-sm" (click)="$event.stopPropagation()" appearance="outlined">
     <div class="modal-header">
@@ -151,7 +150,6 @@
   </mat-card>
 </div>
 
-<!-- Payment Modal -->
 <app-payment-modal
   *ngIf="showPaymentModal"
   [total]="total"
@@ -163,11 +161,9 @@
   (cancel)="closePaymentModal()">
 </app-payment-modal>
 
-<!-- Receipt Modal -->
 <div class="modal-overlay receipt-overlay" *ngIf="showReceiptModal" (click)="closeReceiptModal()">
   <div class="receipt-modal-container" (click)="$event.stopPropagation()">
 
-    <!-- Success Banner -->
     <div class="success-banner">
       <div class="success-icon-wrapper">
         <mat-icon>check_circle</mat-icon>
@@ -178,7 +174,6 @@
       </p>
     </div>
 
-    <!-- Receipt Paper -->
     <div class="receipt-print-area" id="receiptArea" *ngIf="lastSale">
       <div class="receipt-paper">
         <div class="receipt-company">
@@ -202,6 +197,14 @@
           <div class="receipt-info-line">
             <span>Operador</span>
             <span>{{ loggedInUsername }}</span>
+          </div>
+          <div class="receipt-info-line" *ngIf="lastSale.customerName">
+            <span>Cliente</span>
+            <span>{{ lastSale.customerName }}</span>
+          </div>
+          <div class="receipt-info-line" *ngIf="lastSale.customerPhone">
+            <span>Telefone</span>
+            <span>{{ lastSale.customerPhone }}</span>
           </div>
         </div>
 
@@ -260,7 +263,6 @@
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="receipt-actions">
       <button mat-stroked-button class="receipt-action-btn" (click)="printReceipt()">
         <mat-icon>print</mat-icon>
@@ -274,7 +276,6 @@
   </div>
 </div>
 
-<!-- Low Stock Alert -->
 <div class="modal-overlay low-stock-overlay" *ngIf="showLowStockAlert" (click)="closeLowStockAlert()">
   <mat-card class="modal-content modal-sm" (click)="$event.stopPropagation()" appearance="outlined">
     <div class="modal-header warning-header">
@@ -297,6 +298,47 @@
       <button mat-flat-button color="primary" (click)="closeLowStockAlert()">
         <mat-icon>check</mat-icon>
         Entendido
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+
+<div class="modal-overlay" *ngIf="showOutOfStockModal" (click)="closeOutOfStockModal()">
+  <mat-card class="modal-content modal-md" (click)="$event.stopPropagation()" appearance="outlined">
+    <div class="modal-header warning-header">
+      <mat-icon class="modal-header-icon warning-icon">inventory</mat-icon>
+      <h3>Produto Sem Estoque</h3>
+    </div>
+    <mat-card-content>
+      <div class="out-of-stock-info" *ngIf="outOfStockProduct">
+        <p class="modal-product-name">{{ outOfStockProduct.description }}</p>
+        <div class="stock-details">
+          <div class="stock-detail-row">
+            <span>Estoque atual</span>
+            <strong class="stock-zero">{{ outOfStockProduct.stockQuantity ?? 0 }} un.</strong>
+          </div>
+          <div class="stock-detail-row">
+            <span>Quantidade solicitada</span>
+            <strong>{{ outOfStockRequestedQty }} un.</strong>
+          </div>
+        </div>
+        <p class="out-of-stock-question">
+          O que deseja fazer?
+        </p>
+      </div>
+    </mat-card-content>
+    <mat-card-actions class="out-of-stock-actions">
+      <button mat-stroked-button (click)="closeOutOfStockModal()">
+        <mat-icon>close</mat-icon>
+        Cancelar
+      </button>
+      <button mat-flat-button class="btn-sell-without" (click)="confirmSellWithoutStock()">
+        <mat-icon>remove_shopping_cart</mat-icon>
+        Vender sem Estoque
+      </button>
+      <button mat-flat-button color="primary" (click)="confirmAddStockAndSell()">
+        <mat-icon>add_circle</mat-icon>
+        Adicionar ao Estoque e Vender
       </button>
     </mat-card-actions>
   </mat-card>

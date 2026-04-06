@@ -28,11 +28,14 @@ public interface WebMapper {
   @Mapping(target = "change", ignore = true)
   @Mapping(target = "timestamp", ignore = true)
   @Mapping(target = "userId", ignore = true)
+  @Mapping(target = "totalCost", ignore = true)
+  @Mapping(target = "paid", ignore = true)
   Sale toDomain(CreateSaleDTO dto);
 
   @Mapping(target = "productDescription", ignore = true)
   @Mapping(target = "unitPrice", ignore = true)
   @Mapping(target = "subtotal", ignore = true)
+  @Mapping(target = "costPrice", ignore = true)
   SaleItem toDomain(CreateSaleItemDTO dto);
 
   SaleDTO toDto(Sale sale);

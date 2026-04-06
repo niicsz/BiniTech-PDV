@@ -16,6 +16,10 @@ public class Sale {
   private double change;
   private LocalDateTime timestamp;
   private String userId;
+  private String customerName;
+  private String customerPhone;
+  private boolean skipStockValidation;
+  private boolean paid;
 
   public Sale() {
     this.items = new ArrayList<>();
@@ -129,6 +133,38 @@ public class Sale {
 
   public void setUserId(String userId) {
     this.userId = userId;
+  }
+
+  public String getCustomerName() {
+    return customerName;
+  }
+
+  public void setCustomerName(String customerName) {
+    this.customerName = customerName;
+  }
+
+  public String getCustomerPhone() {
+    return customerPhone;
+  }
+
+  public void setCustomerPhone(String customerPhone) {
+    this.customerPhone = customerPhone;
+  }
+
+  public boolean isSkipStockValidation() {
+    return skipStockValidation;
+  }
+
+  public void setSkipStockValidation(boolean skipStockValidation) {
+    this.skipStockValidation = skipStockValidation;
+  }
+
+  public boolean isPaid() {
+    return paid;
+  }
+
+  public void setPaid(boolean paid) {
+    this.paid = paid;
   }
 
   @Override

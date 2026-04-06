@@ -26,4 +26,7 @@ public class SaleDocument {
   private double change;
   private LocalDateTime timestamp;
   private String userId;
+  private String customerName;
+  private String customerPhone;
+  private boolean paid;
 }
