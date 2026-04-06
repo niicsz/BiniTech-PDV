@@ -59,4 +59,16 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
         .map(mapper::toDomain)
         .collect(Collectors.toList());
   }
+
+  @Override
+  public List<Sale> findDebtors() {
+    return repository.findDebtors().stream().map(mapper::toDomain).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Sale> findDebtorsByUserId(String userId) {
+    return repository.findDebtorsByUserId(userId).stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
+  }
 }

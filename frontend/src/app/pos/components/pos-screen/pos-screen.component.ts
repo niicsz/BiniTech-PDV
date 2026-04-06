@@ -14,10 +14,10 @@ import { AuthService } from '../../../auth/services/auth.service';
 import { CartItem } from '../../../shared/models/cart.model';
 import {
   ProductDTO, CreateSaleDTO, CreateSaleItemDTO,
-  PaymentDTO, PaymentMethodEnum, SaleDTO
+  PaymentDTO, PaymentMethodEnum, SaleDTO, CreateProductDTO
 } from '../../../shared/models/api.models';
 import { CartTableComponent } from '../cart-table/cart-table.component';
-import { PaymentModalComponent } from '../payment-modal/payment-modal.component';
+import { PaymentModalComponent, PaymentConfirmation } from '../payment-modal/payment-modal.component';
 
 @Component({
   selector: 'app-pos-screen',
@@ -58,6 +58,11 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   lowStockProducts: { description: string; stockQuantity: number }[] = [];
   private pendingLowStockProducts: { description: string; stockQuantity: number }[] = [];
 
+  showOutOfStockModal = false;
+  outOfStockProduct: ProductDTO | null = null;
+  outOfStockRequestedQty = 1;
+  hasOutOfStockItems = false;
+
   allProducts: ProductDTO[] = [];
   filteredProducts: ProductDTO[] = [];
   showDropdown = false;
@@ -94,6 +99,14 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent): void {
+    if (this.showOutOfStockModal) {
+      if (event.key === 'Escape') {
+        this.closeOutOfStockModal();
+        event.preventDefault();
+      }
+      return;
+    }
+
     if (this.showLowStockAlert) {
       if (event.key === 'Escape' || event.key === 'Enter') {
         this.closeLowStockAlert();
@@ -111,7 +124,6 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Dropdown navigation
     if (this.showDropdown) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
@@ -151,6 +163,10 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         event.preventDefault();
         this.startPayment('PIX');
         break;
+      case 'F10':
+        event.preventDefault();
+        this.startPayment('CREDIARIO');
+        break;
       case 'Delete':
         event.preventDefault();
         this.removeSelectedItem();
@@ -174,8 +190,6 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   onSearchChange(): void {
     const val = this.barcodeValue.trim().toLowerCase();
     
-    // Only search if not purely numbers (like an active barcode scan in progress)
-    // or if the user typed at least 3 chars
     if (val.length < 2) {
       this.hideDropdown();
       return;
@@ -186,7 +200,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         (p.description && p.description.toLowerCase().includes(val)) ||
         (p.barcode && p.barcode.includes(val))
       )
-      .slice(0, 8); // show up to 8 items
+      .slice(0, 8);
 
     this.showDropdown = this.filteredProducts.length > 0;
     this.dropdownSelectedIndex = this.showDropdown ? 0 : -1;
@@ -196,7 +210,6 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     const barcode = this.barcodeValue.trim();
     if (!barcode) return;
 
-    // Se tiver dropdown aberto e um item selecionado, usa o item
     if (this.showDropdown && this.dropdownSelectedIndex >= 0) {
       const selected = this.filteredProducts[this.dropdownSelectedIndex];
       this.addToCart(selected);
@@ -206,7 +219,6 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Try exact barcode match locally first for faster response
     const exactMatch = this.allProducts.find(p => p.barcode === barcode);
     if (exactMatch) {
       this.addToCart(exactMatch);
@@ -216,7 +228,6 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Fallback to API
     this.productService.getByBarcode(barcode).subscribe({
       next: (product: ProductDTO) => {
         this.addToCart(product);
@@ -242,6 +253,22 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   addToCart(product: ProductDTO): void {
     const existing = this.cart.find(item => item.productId === product.id);
+    const currentQtyInCart = existing ? existing.quantity : 0;
+    const newTotalQty = currentQtyInCart + 1;
+    const availableStock = product.stockQuantity ?? 0;
+
+    if (newTotalQty > availableStock) {
+      this.outOfStockProduct = product;
+      this.outOfStockRequestedQty = 1;
+      this.showOutOfStockModal = true;
+      return;
+    }
+
+    this.doAddToCart(product);
+  }
+
+  private doAddToCart(product: ProductDTO, forceSkipStock = false): void {
+    const existing = this.cart.find(item => item.productId === product.id);
     if (existing) {
       existing.quantity += 1;
       existing.subtotal = existing.quantity * existing.unitPrice;
@@ -252,11 +279,61 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         description: product.description || '',
         quantity: 1,
         unitPrice: product.price || 0,
-        subtotal: product.price || 0
+        subtotal: product.price || 0,
+        stockQuantity: product.stockQuantity ?? 0
       });
+    }
+    if (forceSkipStock) {
+      this.hasOutOfStockItems = true;
     }
     this.recalculateTotal();
     this.showStatus(`${product.description} adicionado ao carrinho`, 'success');
+  }
+
+  confirmAddStockAndSell(): void {
+    if (!this.outOfStockProduct) return;
+    const product = this.outOfStockProduct;
+    const existing = this.cart.find(item => item.productId === product.id);
+    const currentQtyInCart = existing ? existing.quantity : 0;
+    const needed = currentQtyInCart + this.outOfStockRequestedQty;
+    const currentStock = product.stockQuantity ?? 0;
+    const newStock = needed > currentStock ? needed : currentStock;
+
+    const updateDto: CreateProductDTO = {
+      barcode: product.barcode!,
+      description: product.description!,
+      price: product.price!,
+      costPrice: product.costPrice || 0,
+      stockQuantity: newStock,
+      category: product.category || '',
+      active: product.active ?? true
+    };
+
+    this.productService.update(product.id!, updateDto).subscribe({
+      next: (updated) => {
+        const idx = this.allProducts.findIndex(p => p.id === product.id);
+        if (idx >= 0) this.allProducts[idx] = updated;
+        this.outOfStockProduct!.stockQuantity = updated.stockQuantity;
+        this.doAddToCart(this.outOfStockProduct!);
+        this.closeOutOfStockModal();
+      },
+      error: () => {
+        this.showStatus('Erro ao atualizar estoque do produto.', 'error');
+        this.closeOutOfStockModal();
+      }
+    });
+  }
+
+  confirmSellWithoutStock(): void {
+    if (!this.outOfStockProduct) return;
+    this.doAddToCart(this.outOfStockProduct, true);
+    this.closeOutOfStockModal();
+  }
+
+  closeOutOfStockModal(): void {
+    this.showOutOfStockModal = false;
+    this.outOfStockProduct = null;
+    this.focusBarcode();
   }
 
   removeItem(index: number): void {
@@ -290,6 +367,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     this.cart = [];
     this.selectedCartIndex = -1;
     this.total = 0;
+    this.hasOutOfStockItems = false;
     this.focusBarcode();
   }
 
@@ -335,14 +413,20 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     this.showPaymentModal = true;
   }
 
-  onPaymentsConfirmed(payments: PaymentDTO[]): void {
+  onPaymentsConfirmed(confirmation: PaymentConfirmation): void {
     const items: CreateSaleItemDTO[] = this.cart.map(item => ({
       productId: item.productId,
       quantity: item.quantity
     }));
 
     const soldProductIds = this.cart.map(item => item.productId);
-    const sale: CreateSaleDTO = { items, payments };
+    const sale: CreateSaleDTO = {
+      items,
+      payments: confirmation.payments,
+      ...(confirmation.customerName ? { customerName: confirmation.customerName } : {}),
+      ...(confirmation.customerPhone ? { customerPhone: confirmation.customerPhone } : {}),
+      ...(this.hasOutOfStockItems ? { skipStockValidation: true } : {})
+    };
 
     this.paymentProcessing = true;
     this.paymentErrorMessage = '';
@@ -354,6 +438,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.showPaymentModal = false;
         this.showReceiptModal = true;
         this.clearCart();
+        this.hasOutOfStockItems = false;
         this.showStatus('Venda finalizada com sucesso!', 'success');
         this.checkLowStock(soldProductIds);
       },
@@ -442,7 +527,8 @@ export class PosScreenComponent implements OnInit, OnDestroy {
       'CASH': 'Dinheiro',
       'CREDIT_CARD': 'Cartão de Crédito',
       'DEBIT_CARD': 'Cartão de Débito',
-      'PIX': 'PIX'
+      'PIX': 'PIX',
+      'CREDIARIO': 'Crediário / Fiado'
     };
     return labels[method] || method;
   }

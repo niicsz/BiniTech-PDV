@@ -71,7 +71,8 @@ export class SalesReportComponent implements OnInit {
       'CASH': 'Dinheiro',
       'CREDIT_CARD': 'Crédito',
       'DEBIT_CARD': 'Débito',
-      'PIX': 'PIX'
+      'PIX': 'PIX',
+      'CREDIARIO': 'Crediário'
     };
     return method ? (labels[method] || method) : '';
   }

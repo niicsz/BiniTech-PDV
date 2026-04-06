@@ -16,4 +16,8 @@ public interface SaleUseCasePort {
   List<Sale> listSalesByPeriod(LocalDate startDate, LocalDate endDate, String userId, Role role);
 
   List<Sale> listAll(String userId, Role role);
+
+  List<Sale> listDebtors(String userId, Role role);
+
+  Sale markAsPaid(String id, String userId, Role role);
 }

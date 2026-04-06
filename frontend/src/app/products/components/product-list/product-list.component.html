@@ -1,6 +1,5 @@
 <div class="products-page">
 
-  <!-- Page Header -->
   <div class="page-header">
     <div class="header-left">
       <div class="header-icon-wrapper">
@@ -16,7 +15,6 @@
     </button>
   </div>
 
-  <!-- Stats Cards -->
   <div class="stats-row" *ngIf="products.length > 0">
     <div class="stat-card">
       <div class="stat-icon stat-icon-total">
@@ -56,7 +54,6 @@
     </div>
   </div>
 
-  <!-- Status Message -->
   <div *ngIf="statusMessage" class="status-bar" [ngClass]="'status-' + statusType">
     <mat-icon class="status-icon">
       {{ statusType === 'success' ? 'check_circle' : 'error' }}
@@ -64,7 +61,6 @@
     <span>{{ statusMessage }}</span>
   </div>
 
-  <!-- Form Card -->
   <div class="form-card" *ngIf="showForm">
     <div class="form-card-header">
       <div class="form-header-left">
@@ -134,7 +130,6 @@
     </form>
   </div>
 
-  <!-- Search & Filter Toolbar -->
   <div class="toolbar" *ngIf="products.length > 0">
     <div class="search-wrapper">
       <mat-icon class="search-icon">search</mat-icon>
@@ -163,7 +158,6 @@
     </span>
   </div>
 
-  <!-- Data Table -->
   <div class="table-card">
     <div class="table-wrapper">
       <table class="data-table">
@@ -220,7 +214,6 @@
       </table>
     </div>
 
-    <!-- Empty State -->
     <div class="empty-state" *ngIf="filteredProducts.length === 0">
       <mat-icon class="empty-icon">search_off</mat-icon>
       <h3>Nenhum produto encontrado</h3>

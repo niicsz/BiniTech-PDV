@@ -22,6 +22,7 @@ public interface PersistenceMapper {
 
   SaleDocument toDocument(Sale sale);
 
+  @Mapping(target = "skipStockValidation", ignore = true)
   Sale toDomain(SaleDocument document);
 
   SaleItemDocument toDocument(SaleItem item);

@@ -9,7 +9,6 @@
     </div>
   </div>
 
-  <!-- Filters -->
   <div class="filters-card">
     <div class="filter-actions">
       <button mat-flat-button [class.filter-active]="filterMode === 'today'"
@@ -35,7 +34,6 @@
     </div>
   </div>
 
-  <!-- Summary Cards -->
   <div class="summary-cards">
     <div class="summary-card">
       <div class="card-icon-wrapper card-icon-default">
@@ -80,7 +78,6 @@
     </div>
   </div>
 
-  <!-- Table -->
   <div class="table-card">
     <div class="table-header">
       <mat-icon>list_alt</mat-icon>
@@ -111,6 +108,10 @@
               <span class="payment-badge" *ngFor="let p of sale.payments"
                     [ngClass]="'badge-' + p.method.toLowerCase()">
                 {{ getPaymentLabel(p.method) }}
+              </span>
+              <span class="customer-info" *ngIf="sale.customerName">
+                <mat-icon class="customer-icon">person</mat-icon>
+                {{ sale.customerName }}
               </span>
             </td>
             <td class="text-right col-amount">R$ {{ sale.totalAmount | number:'1.2-2' }}</td>

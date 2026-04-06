@@ -57,6 +57,20 @@ public class SaleController implements SalesApi {
     return ResponseEntity.ok(webMapper.toDto(sale));
   }
 
+  @Override
+  public ResponseEntity<List<SaleDTO>> listDebtors() {
+    String userId = getUserId();
+    Role role = getUserRole();
+    List<Sale> debtors = saleUseCase.listDebtors(userId, role);
+    return ResponseEntity.ok(webMapper.toSaleDtoList(debtors));
+  }
+
+  @Override
+  public ResponseEntity<SaleDTO> markSaleAsPaid(String id) {
+    Sale updated = saleUseCase.markAsPaid(id, getUserId(), getUserRole());
+    return ResponseEntity.ok(webMapper.toDto(updated));
+  }
+
   private String getUserId() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     return (String) auth.getPrincipal();

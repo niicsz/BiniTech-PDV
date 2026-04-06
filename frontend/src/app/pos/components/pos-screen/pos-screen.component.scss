@@ -371,6 +371,11 @@
   color: #fff !important;
 }
 
+.crediario-btn {
+  background-color: #7b1fa2 !important;
+  color: #fff !important;
+}
+
 .clear-btn {
   color: var(--danger) !important;
   border-color: var(--danger) !important;
@@ -729,6 +734,57 @@
     color: var(--danger);
     font-weight: 700;
   }
+}
+
+.out-of-stock-info {
+  margin-bottom: 8px;
+}
+
+.stock-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.stock-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+
+  strong {
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+}
+
+.stock-zero {
+  color: var(--danger) !important;
+  font-weight: 700;
+}
+
+.out-of-stock-question {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.out-of-stock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0 0;
+}
+
+.btn-sell-without {
+  background-color: var(--warning, #ff9800) !important;
+  color: #fff !important;
 }
 
 @media print {

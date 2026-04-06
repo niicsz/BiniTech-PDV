@@ -1,6 +1,5 @@
 @use '@angular/material' as mat;
 
-// ── Material 3 Theme ──
 $light-theme: mat.define-theme((
   color: (
     theme-type: light,

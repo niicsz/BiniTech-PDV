@@ -1,6 +1,3 @@
-// ══════════════════════════════════════
-// ── Sales Report Styles ──
-// ══════════════════════════════════════
 
 .report-page {
   display: flex;
@@ -8,7 +5,6 @@
   gap: 20px;
 }
 
-// ── Page Header ──
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -42,7 +38,6 @@
   margin: 2px 0 0;
 }
 
-// ── Filters ──
 .filters-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -88,7 +83,6 @@
   height: 48px;
 }
 
-// ── Summary Cards ──
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -197,7 +191,6 @@
   }
 }
 
-// ── Table Card ──
 .table-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -329,7 +322,6 @@
   }
 }
 
-// ── Payment Badges ──
 .payment-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -357,9 +349,29 @@
     background: var(--warning-bg);
     color: var(--accent);
   }
+
+  &.badge-crediario {
+    background: #f3e5f5;
+    color: #7b1fa2;
+  }
 }
 
-// ── Responsive ──
+.customer-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #7b1fa2;
+  font-weight: 500;
+  margin-left: 4px;
+
+  .customer-icon {
+    font-size: 14px;
+    height: 14px;
+    width: 14px;
+  }
+}
+
 
 @media (max-width: 1440px) {
   .summary-card {
