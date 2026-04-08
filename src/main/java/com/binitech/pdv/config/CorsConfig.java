@@ -12,7 +12,7 @@ import org.springframework.web.filter.CorsFilter;
 public class CorsConfig {
 
   @Value(
-      "${cors.allowed-origins:http://localhost:4200,https://binitech-pdv-production.up.railway.app}")
+      "${cors.allowed-origins}")
   private String[] allowedOrigins;
 
   @Bean

@@ -414,14 +414,17 @@ export class DebtorsListComponent implements OnInit {
 
   loadDebtors(): void {
     this.loading = true;
+    console.info('[DebtorsList] Carregando devedores');
     this.saleService.listDebtors().subscribe({
       next: (sales) => {
         this.allDebtSales = sales;
         this.groupDebtors(sales);
         this.totalDebt = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
         this.loading = false;
+        console.info('[DebtorsList] Devedores carregados:', this.debtorGroups.length, 'grupos, total:', this.totalDebt);
       },
       error: () => {
+        console.error('[DebtorsList] Erro ao carregar devedores');
         this.allDebtSales = [];
         this.debtorGroups = [];
         this.loading = false;
@@ -462,12 +465,14 @@ export class DebtorsListComponent implements OnInit {
 
   markAsPaid(sale: SaleDTO): void {
     if (!sale.id) return;
+    console.info('[DebtorsList] Marcando venda como paga:', sale.id);
     this.saleService.markAsPaid(sale.id).subscribe({
       next: () => {
+        console.info('[DebtorsList] Venda marcada como paga com sucesso:', sale.id);
         this.loadDebtors();
       },
       error: () => {
-        console.error('Erro ao marcar como pago');
+        console.error('[DebtorsList] Erro ao marcar venda como paga:', sale.id);
       }
     });
   }

@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: BiniTech PDV Test
+  data:
+    mongodb:
+      database: test_pdv
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.0
+
+jwt:
+  secret: test-secret-key-that-is-at-least-32-characters-long-for-hmac
+  access-expiration: 3600000
+  refresh-expiration: 86400000
+
+admin:
+  username: admin
+  password: admin123
+
+security:
+  pepper: test-pepper-value
+
+cors:
+  allowed-origins: http://localhost:4200
+
+server:
+  port: 0

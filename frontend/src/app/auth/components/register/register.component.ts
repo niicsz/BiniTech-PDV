@@ -181,25 +181,30 @@ export class RegisterComponent {
     this.successMessage = '';
 
     if (!this.username || !this.password || !this.confirmPassword) {
+      console.warn('[RegisterComponent] Tentativa de registro com campos vazios');
       this.errorMessage = 'Preencha todos os campos.';
       return;
     }
 
     if (this.password.length < 6) {
+      console.warn('[RegisterComponent] Senha muito curta');
       this.errorMessage = 'A senha deve ter no mínimo 6 caracteres.';
       return;
     }
 
     if (this.password !== this.confirmPassword) {
+      console.warn('[RegisterComponent] Senhas não coincidem');
       this.errorMessage = 'As senhas não coincidem.';
       return;
     }
 
     this.loading = true;
+    console.info('[RegisterComponent] Registrando usuário:', this.username, 'role:', this.role);
     this.authService.register(this.username, this.password, this.role).subscribe({
       next: (res: AuthResponse) => {
         this.loading = false;
         this.successMessage = `Usuário "${res.username}" criado com sucesso como ${res.role}.`;
+        console.info('[RegisterComponent] Usuário registrado com sucesso:', res.username);
         this.username = '';
         this.password = '';
         this.confirmPassword = '';
@@ -208,6 +213,7 @@ export class RegisterComponent {
       error: (err: { error?: { message?: string } }) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || 'Erro ao registrar usuário.';
+        console.error('[RegisterComponent] Erro no registro:', this.errorMessage);
       }
     });
   }

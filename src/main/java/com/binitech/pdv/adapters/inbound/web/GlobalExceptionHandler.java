@@ -5,6 +5,8 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import java.time.OffsetDateTime;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorDTO> handleValidation(MethodArgumentNotValidException ex) {
@@ -33,6 +37,7 @@ public class GlobalExceptionHandler {
     if (message.isBlank()) {
       message = "Dados inválidos. Verifique os campos e tente novamente.";
     }
+    log.warn("Erro de validação: {}", message);
     ErrorDTO error = new ErrorDTO();
     error.setCode("VALIDATION_ERROR");
     error.setMessage(message);
@@ -42,6 +47,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ErrorDTO> handleNotFound(ResourceNotFoundException ex) {
+    log.warn("Recurso não encontrado: {}", ex.getMessage());
     ErrorDTO error = new ErrorDTO();
     error.setCode("NOT_FOUND");
     error.setMessage(ex.getMessage());
@@ -51,6 +57,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorDTO> handleBusiness(BusinessException ex) {
+    log.warn("Erro de negócio: {}", ex.getMessage());
     ErrorDTO error = new ErrorDTO();
     error.setCode("BUSINESS_ERROR");
     error.setMessage(ex.getMessage());
@@ -60,6 +67,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorDTO> handleIllegalArgument(IllegalArgumentException ex) {
+    log.warn("Argumento inválido: {}", ex.getMessage());
     ErrorDTO error = new ErrorDTO();
     error.setCode("BAD_REQUEST");
     error.setMessage(ex.getMessage());
@@ -69,6 +77,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<ErrorDTO> handleAccessDenied(AccessDeniedException ex) {
+    log.warn("Acesso negado: {}", ex.getMessage());
     ErrorDTO error = new ErrorDTO();
     error.setCode("FORBIDDEN");
     error.setMessage("Acesso negado. Você não tem permissão para esta operação.");
@@ -78,6 +87,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorDTO> handleGeneric(Exception ex) {
+    log.error("Erro interno inesperado: {}", ex.getMessage(), ex);
     ErrorDTO error = new ErrorDTO();
     error.setCode("INTERNAL_ERROR");
     error.setMessage("Erro interno do servidor. Tente novamente mais tarde.");

@@ -15,12 +15,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Configuration
 public class BeanConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(BeanConfig.class);
+
   @Bean
   public PasswordEncoder passwordEncoder(@Value("${security.pepper}") String pepper) {
+    log.info("Configurando PasswordEncoder com Argon2 + pepper");
     Argon2PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 1, 19456, 2);
     return new PepperedPasswordEncoder(argon2, pepper);
   }
@@ -32,6 +37,7 @@ public class BeanConfig {
       JwtTokenProvider jwtTokenProvider,
       PasswordEncoder passwordEncoder,
       @Value("${jwt.refresh-expiration}") long refreshExpiration) {
+    log.info("Configurando AuthUseCasePort com refresh expiration: {}ms", refreshExpiration);
     return new AuthUseCaseImpl(
         userRepositoryPort,
         refreshTokenRepositoryPort,
@@ -42,12 +48,14 @@ public class BeanConfig {
 
   @Bean
   public ProductUseCasePort productUseCasePort(ProductRepositoryPort productRepositoryPort) {
+    log.info("Configurando ProductUseCasePort");
     return new ProductUseCaseImpl(productRepositoryPort);
   }
 
   @Bean
   public SaleUseCasePort saleUseCasePort(
       SaleRepositoryPort saleRepositoryPort, ProductRepositoryPort productRepositoryPort) {
+    log.info("Configurando SaleUseCasePort");
     return new SaleUseCaseImpl(saleRepositoryPort, productRepositoryPort);
   }
 }
