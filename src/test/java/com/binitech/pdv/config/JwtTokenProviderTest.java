@@ -12,9 +12,8 @@ class JwtTokenProviderTest {
 
   @BeforeEach
   void setUp() {
-    // 256-bit key (32+ chars) required for HS256
     String secret = "test-secret-key-that-is-at-least-32-characters-long-for-hmac";
-    jwtTokenProvider = new JwtTokenProvider(secret, 3600000L); // 1h
+    jwtTokenProvider = new JwtTokenProvider(secret, 3600000L);
   }
 
   @Test
@@ -74,12 +73,10 @@ class JwtTokenProviderTest {
   @Test
   @DisplayName("Token expirado deve ser inválido")
   void validateToken_withExpiredToken_shouldReturnFalse() {
-    // Create a provider with 0ms expiration
     JwtTokenProvider expiredProvider =
         new JwtTokenProvider("test-secret-key-that-is-at-least-32-characters-long-for-hmac", 0L);
     String token = expiredProvider.generateAccessToken("user1", "admin", "ADMIN");
 
-    // Token created with 0ms expiration is immediately expired
     assertFalse(expiredProvider.validateToken(token));
   }
 
