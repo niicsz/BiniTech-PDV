@@ -86,8 +86,14 @@ export class ProductListComponent implements OnInit {
 
   loadProducts(): void {
     this.productService.listAll().subscribe({
-      next: (products) => this.products = products,
-      error: () => this.showStatus('Erro ao carregar produtos.', 'error')
+      next: (products) => {
+        this.products = products;
+        console.info('[ProductList] Produtos carregados:', products.length);
+      },
+      error: () => {
+        console.error('[ProductList] Erro ao carregar produtos');
+        this.showStatus('Erro ao carregar produtos.', 'error');
+      }
     });
   }
 
@@ -113,34 +119,49 @@ export class ProductListComponent implements OnInit {
 
   saveProduct(): void {
     if (this.editingId) {
+      console.info('[ProductList] Atualizando produto:', this.editingId);
       this.productService.update(this.editingId, this.form).subscribe({
         next: () => {
+          console.info('[ProductList] Produto atualizado com sucesso:', this.editingId);
           this.showStatus('Produto atualizado com sucesso!', 'success');
           this.showForm = false;
           this.loadProducts();
         },
-        error: (err) => this.showStatus(err.error?.message || 'Erro ao atualizar.', 'error')
+        error: (err) => {
+          console.error('[ProductList] Erro ao atualizar produto:', err.error?.message);
+          this.showStatus(err.error?.message || 'Erro ao atualizar.', 'error');
+        }
       });
     } else {
+      console.info('[ProductList] Criando novo produto:', this.form.description);
       this.productService.create(this.form).subscribe({
         next: () => {
+          console.info('[ProductList] Produto criado com sucesso:', this.form.description);
           this.showStatus('Produto cadastrado com sucesso!', 'success');
           this.showForm = false;
           this.loadProducts();
         },
-        error: (err) => this.showStatus(err.error?.message || 'Erro ao cadastrar.', 'error')
+        error: (err) => {
+          console.error('[ProductList] Erro ao cadastrar produto:', err.error?.message);
+          this.showStatus(err.error?.message || 'Erro ao cadastrar.', 'error');
+        }
       });
     }
   }
 
   deleteProduct(id: string): void {
     if (confirm('Deseja realmente remover este produto?')) {
+      console.info('[ProductList] Removendo produto:', id);
       this.productService.delete(id).subscribe({
         next: () => {
+          console.info('[ProductList] Produto removido com sucesso:', id);
           this.showStatus('Produto removido.', 'success');
           this.loadProducts();
         },
-        error: () => this.showStatus('Erro ao remover produto.', 'error')
+        error: () => {
+          console.error('[ProductList] Erro ao remover produto:', id);
+          this.showStatus('Erro ao remover produto.', 'error');
+        }
       });
     }
   }

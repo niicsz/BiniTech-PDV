@@ -133,19 +133,23 @@ export class LoginComponent {
 
   onLogin(): void {
     if (!this.username || !this.password) {
+      console.warn('[LoginComponent] Tentativa de login com campos vazios');
       this.errorMessage = 'Preencha usuário e senha.';
       return;
     }
     this.loading = true;
     this.errorMessage = '';
+    console.info('[LoginComponent] Iniciando login para:', this.username);
     this.authService.login(this.username, this.password).subscribe({
       next: () => {
         this.loading = false;
+        console.info('[LoginComponent] Login bem-sucedido, redirecionando para /pdv');
         this.router.navigate(['/pdv']);
       },
       error: (err) => {
         this.loading = false;
         this.errorMessage = err?.error?.message || 'Erro ao fazer login. Verifique suas credenciais.';
+        console.error('[LoginComponent] Erro no login:', this.errorMessage);
       }
     });
   }

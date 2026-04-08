@@ -19,15 +19,19 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     authReq = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` }
     });
+  } else {
+    console.warn('[AuthInterceptor] Requisição sem token para:', req.url);
   }
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && !isRefreshing) {
+        console.warn('[AuthInterceptor] Recebido 401, tentando renovar token para:', req.url);
         isRefreshing = true;
         return authService.refreshToken().pipe(
           switchMap(res => {
             isRefreshing = false;
+            console.info('[AuthInterceptor] Token renovado, reenviando requisição:', req.url);
             const newReq = req.clone({
               setHeaders: { Authorization: `Bearer ${res.accessToken}` }
             });
@@ -35,13 +39,18 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           }),
           catchError(refreshError => {
             isRefreshing = false;
+            console.error('[AuthInterceptor] Falha ao renovar token, realizando logout');
             authService.logout();
             return throwError(() => refreshError);
           })
         );
       }
+      if (error.status >= 500) {
+        console.error('[AuthInterceptor] Erro do servidor:', error.status, req.url, error.message);
+      } else if (error.status >= 400) {
+        console.warn('[AuthInterceptor] Erro do cliente:', error.status, req.url, error.error?.message);
+      }
       return throwError(() => error);
     })
   );
 };
-

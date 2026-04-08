@@ -76,6 +76,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loggedInUsername = this.authService.getUsername() || 'Operador';
+    console.info('[PosScreen] Tela PDV inicializada para:', this.loggedInUsername);
     this.focusBarcode();
     this.loadProducts();
   }
@@ -84,9 +85,10 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     this.productService.listAll().subscribe({
       next: (products) => {
         this.allProducts = products;
+        console.info('[PosScreen] Produtos carregados para busca offline:', products.length);
       },
       error: () => {
-        console.warn('Não foi possível carregar os produtos para busca offline.');
+        console.warn('[PosScreen] Não foi possível carregar os produtos para busca offline');
       }
     });
   }
@@ -230,12 +232,14 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
     this.productService.getByBarcode(barcode).subscribe({
       next: (product: ProductDTO) => {
+        console.info('[PosScreen] Produto encontrado por barcode da API:', product.description);
         this.addToCart(product);
         this.barcodeValue = '';
         this.hideDropdown();
         this.focusBarcode();
       },
       error: () => {
+        console.warn('[PosScreen] Produto não encontrado por barcode:', barcode);
         this.showStatus(`Produto não encontrado: ${barcode}`, 'error');
         this.barcodeValue = '';
         this.hideDropdown();
@@ -311,6 +315,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
 
     this.productService.update(product.id!, updateDto).subscribe({
       next: (updated) => {
+        console.info('[PosScreen] Estoque atualizado com sucesso para produto:', product.description, 'novo estoque:', updated.stockQuantity);
         const idx = this.allProducts.findIndex(p => p.id === product.id);
         if (idx >= 0) this.allProducts[idx] = updated;
         this.outOfStockProduct!.stockQuantity = updated.stockQuantity;
@@ -318,6 +323,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.closeOutOfStockModal();
       },
       error: () => {
+        console.error('[PosScreen] Erro ao atualizar estoque do produto:', product.description);
         this.showStatus('Erro ao atualizar estoque do produto.', 'error');
         this.closeOutOfStockModal();
       }
@@ -431,6 +437,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
     this.paymentProcessing = true;
     this.paymentErrorMessage = '';
 
+    console.info('[PosScreen] Finalizando venda com', items.length, 'item(ns), total:', this.total);
     this.saleService.create(sale).subscribe({
       next: (result: SaleDTO) => {
         this.paymentProcessing = false;
@@ -439,6 +446,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.showReceiptModal = true;
         this.clearCart();
         this.hasOutOfStockItems = false;
+        console.info('[PosScreen] Venda finalizada com sucesso: id=', result.id, 'total=', result.totalAmount);
         this.showStatus('Venda finalizada com sucesso!', 'success');
         this.checkLowStock(soldProductIds);
       },
@@ -446,6 +454,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
         this.paymentProcessing = false;
         const msg = err.error?.message || 'Erro ao finalizar a venda.';
         this.paymentErrorMessage = msg;
+        console.error('[PosScreen] Erro ao finalizar venda:', msg);
       }
     });
   }
@@ -464,11 +473,12 @@ export class PosScreenComponent implements OnInit, OnDestroy {
           }));
 
         if (lowStock.length > 0) {
+          console.warn('[PosScreen] Produtos com estoque baixo detectados:', lowStock.length, lowStock.map(p => `${p.description} (${p.stockQuantity})`));
           this.pendingLowStockProducts = lowStock;
         }
       },
       error: () => {
-        console.warn('Não foi possível verificar estoque dos produtos.');
+        console.warn('[PosScreen] Não foi possível verificar estoque dos produtos');
       }
     });
   }
