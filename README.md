@@ -14,6 +14,7 @@ Sistema Frente de Caixa (PDV — Ponto de Venda) desenvolvido com **Arquitetura 
 - [Variáveis de Ambiente](#-variáveis-de-ambiente)
 - [Autenticação e Autorização](#-autenticação-e-autorização)
 - [API Endpoints](#-api-endpoints)
+- [Logging e Observabilidade](#-logging-e-observabilidade)
 - [Docker](#-docker)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 
@@ -27,12 +28,16 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 - **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço, preço de custo, estoque, **categoria** e **status ativo/inativo**.
 - **Filtro por categoria e busca** — Na listagem de produtos, filtre rapidamente por categoria ou pesquise por descrição/código de barras. Indicadores de **produtos ativos** e **estoque baixo**.
 - **Tela de PDV** — Leitura rápida por código de barras **ou pesquisa por nome do produto** (autocompletar), carrinho de compras e finalização de venda.
-- **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito e PIX, com suporte a **pagamento misto** na mesma venda.
+- **Múltiplas formas de pagamento** — Dinheiro, Cartão de Crédito, Cartão de Débito, PIX e **Crediário (Fiado)**, com suporte a **pagamento misto** na mesma venda.
+- **Crediário / Fiado** — Vendas no crediário com registro de nome e telefone do cliente. Controle completo de devedores com opção de marcar como pago.
+- **Gestão de Devedores** — Tela dedicada para visualização de vendas pendentes no crediário, agrupadas por cliente, com indicador de dias em atraso e link direto para **WhatsApp**.
+- **Venda sem estoque** — Ao tentar vender um produto sem estoque suficiente, o sistema oferece a opção de atualizar o estoque automaticamente ou vender mesmo assim (skip stock validation).
 - **Alerta de estoque baixo** — Após finalizar uma venda, o sistema alerta automaticamente quando produtos vendidos ficam com estoque abaixo de 5 unidades.
 - **Nota impressa com nome do operador** — O comprovante de venda exibe o nome do usuário logado.
 - **Relatório de vendas** — Consulta de vendas por data ou período, com cálculo de **receita, custo e lucro**.
 - **Registro de usuários** — Somente administradores podem registrar novos usuários.
 - **Personalização Visual** — Suporte nativo a Modo Escuro (Dark Mode) e customização de cores da interface (cor primária e cabeçalho).
+- **Logging estruturado** — Logs de info, warning e erro em toda a aplicação (backend com SLF4J, frontend com console estruturado) para facilitar monitoramento e depuração.
 
 ---
 
@@ -45,6 +50,7 @@ O **BiniTech PDV** é um sistema completo de frente de caixa que permite:
 | Spring Boot | 3.4.3 |
 | Spring Security | — |
 | Spring Data MongoDB | — |
+| SLF4J / Logback | — |
 | JWT (jjwt) | 0.12.6 |
 | BouncyCastle (Argon2) | 1.80 |
 | OpenAPI Generator | 7.12.0 |
@@ -78,7 +84,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      Frontend (Angular 21)              │
-│    Login │ POS Screen │ Product List │ Sales Report     │
+│  Login │ POS Screen │ Products │ Sales │ Debtors        │
 └────────────────────────────┬────────────────────────────┘
                              │ HTTP (REST API + JWT)
 ┌────────────────────────────▼────────────────────────────┐
@@ -217,8 +223,8 @@ O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para protege
 
 | Role | Permissões |
 |---|---|
-| `ADMIN` | Acesso completo: PDV, produtos, vendas, registro de usuários |
-| `OPERATOR` | Acesso ao PDV, produtos e vendas |
+| `ADMIN` | Acesso completo: PDV, produtos, vendas, devedores, registro de usuários |
+| `OPERATOR` | Acesso ao PDV, produtos, vendas e devedores (apenas dados próprios) |
 
 ### Fluxo de autenticação
 
@@ -274,7 +280,7 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 | `POST` | `/api/products` | Cadastrar um novo produto | Autenticado |
 | `GET` | `/api/products/{id}` | Buscar produto por ID | Autenticado |
 | `PUT` | `/api/products/{id}` | Atualizar um produto | Autenticado |
-| `DELETE` | `/api/products/{id}` | Remover um produto | Autenticado |
+| `DELETE` | `/api/products/{id}` | Remover (desativar) um produto | Autenticado |
 | `GET` | `/api/products/barcode/{barcode}` | Buscar produto por código de barras | Autenticado |
 
 #### Campos do Produto
@@ -296,6 +302,18 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 | `POST` | `/api/sales` | Registrar uma nova venda | Autenticado |
 | `GET` | `/api/sales` | Listar vendas (filtro por data/período) | Autenticado |
 | `GET` | `/api/sales/{id}` | Buscar venda por ID | Autenticado |
+| `GET` | `/api/sales/debtors` | Listar vendas crediário não pagas (devedores) | Autenticado |
+| `PATCH` | `/api/sales/{id}/mark-paid` | Marcar venda crediário como paga | Autenticado |
+
+#### Campos da Venda (CreateSaleDTO)
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `items` | array | Sim | Lista de itens da venda (`productId` + `quantity`) |
+| `payments` | array | Sim | Lista de pagamentos (`method` + `amount`) |
+| `customerName` | string | Não | Nome do cliente (obrigatório para crediário) |
+| `customerPhone` | string | Não | Telefone do cliente (obrigatório para crediário) |
+| `skipStockValidation` | boolean | Não | Ignorar validação de estoque (vendas sem estoque) |
 
 ### Formas de Pagamento
 
@@ -303,6 +321,62 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 - `CREDIT_CARD` — Cartão de Crédito
 - `DEBIT_CARD` — Cartão de Débito
 - `PIX` — PIX
+- `CREDIARIO` — Crediário / Fiado
+
+---
+
+## 📊 Logging e Observabilidade
+
+O projeto conta com um sistema de logging estruturado em todas as camadas, facilitando o monitoramento, depuração e auditoria.
+
+### Backend (SLF4J / Logback)
+
+Todos os componentes do backend utilizam **SLF4J** com níveis de log adequados:
+
+| Camada | Classe | Logs |
+|---|---|---|
+| **Controllers** | `AuthController`, `ProductController`, `SaleController` | `INFO` — requisições recebidas e respostas de sucesso |
+| **Exception Handler** | `GlobalExceptionHandler` | `WARN` — exceções de negócio, validação, not found, acesso negado; `ERROR` — erros internos com stack trace |
+| **Use Cases** | `AuthUseCaseImpl`, `ProductUseCaseImpl`, `SaleUseCaseImpl` | `INFO` — operações de negócio (login, registro, CRUD, vendas); `WARN` — falhas de validação, permissões, duplicatas; `DEBUG` — consultas e listagens |
+| **Security** | `JwtAuthenticationFilter`, `JwtTokenProvider` | `DEBUG` — autenticação JWT configurada; `WARN` — tokens inválidos ou expirados; `INFO` — inicialização |
+| **Config** | `BeanConfig`, `SecurityConfig`, `DataInitializer` | `INFO` — inicialização de beans e configurações |
+| **Infra** | `DotenvEnvironmentPostProcessor` | `INFO` — carregamento de variáveis .env; `ERROR` — falha na leitura |
+
+#### Exemplos de logs do backend
+
+```
+INFO  AuthController       - Requisição de login recebida para o usuário: admin
+INFO  AuthUseCaseImpl      - Login realizado com sucesso: userId=abc123 username=admin role=ADMIN
+WARN  AuthUseCaseImpl      - Login falhou - senha inválida para o usuário: operador1
+INFO  ProductUseCaseImpl   - Produto criado com sucesso: id=xyz789 barcode=7891234567890
+WARN  GlobalExceptionHandler - Erro de negócio: Estoque insuficiente para 'Coca-Cola'. Disponível: 2, Solicitado: 5
+ERROR GlobalExceptionHandler - Erro interno inesperado: NullPointerException [stack trace]
+INFO  SaleUseCaseImpl      - Venda criada com sucesso: id=sale123 total=157.50 userId=abc123
+```
+
+### Frontend (Console estruturado)
+
+Todos os serviços e componentes do frontend utilizam **console** com prefixos de identificação:
+
+| Camada | Prefixo | Logs |
+|---|---|---|
+| **Services** | `[AuthService]`, `[ProductService]`, `[SaleService]` | `console.info` — chamadas à API e respostas de sucesso |
+| **Interceptor** | `[AuthInterceptor]` | `console.warn` — erros 401 e refresh de token; `console.error` — falhas de renovação |
+| **Guards** | `[AuthGuard]`, `[AdminGuard]` | `console.debug` — acesso permitido; `console.warn` — acesso negado |
+| **Components** | `[LoginComponent]`, `[PosScreen]`, `[ProductList]`, etc. | `console.info` — ações do usuário e sucesso; `console.error` — falhas; `console.warn` — validações e alertas |
+
+#### Exemplos de logs do frontend
+
+```
+[AuthService] Realizando login para o usuário: admin
+[AuthService] Login realizado com sucesso: admin role: ADMIN
+[PosScreen] Tela PDV inicializada para: admin
+[PosScreen] Produtos carregados para busca offline: 47
+[PosScreen] Venda finalizada com sucesso: id= sale123 total= 157.50
+[PosScreen] Produtos com estoque baixo detectados: 2 ["Coca-Cola (3)", "Biscoito (1)"]
+[AuthInterceptor] Recebido 401, tentando renovar token para: /api/products
+[AdminGuard] Acesso negado - usuário não é ADMIN, redirecionando para /pdv
+```
 
 ---
 
@@ -317,11 +391,14 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
   - `F7` — Pagamento em Cartão de Crédito
   - `F8` — Pagamento em Cartão de Débito
   - `F9` — Pagamento via PIX
+  - `F10` — Pagamento via Crediário / Fiado
   - `Del` — Remover item selecionado
   - `Esc` — Cancelar / Fechar modal
   - `↑ ↓` — Navegar nas sugestões do autocompletar
 - Modal de pagamento com suporte a **múltiplas formas de pagamento** na mesma venda (pagamento misto)
 - Cálculo automático de **troco** e valor **restante** a pagar
+- **Crediário / Fiado** — Ao selecionar crediário, campos de nome e telefone do cliente são exibidos para registro
+- **Venda sem estoque** — Ao tentar adicionar um produto com estoque insuficiente, o sistema oferece opções: adicionar estoque e vender, ou vender sem validar estoque
 - **Alerta de estoque baixo** — Após finalizar a venda, exibe alerta se algum produto vendido ficou com estoque abaixo de 5 unidades
 - **Comprovante de venda** com dados da venda, itens, pagamentos e **nome do operador logado**
 - Impressão da nota via `window.print()`
@@ -341,6 +418,15 @@ A API é documentada via **OpenAPI 3.0** e acessível pelo **Swagger UI**:
 - Consulta por data específica ou período (data inicial / data final)
 - Exibição de itens vendidos, pagamentos e totais
 - Cálculo de **receita total**, **custo total** e **lucro** por venda e no período
+
+### Gestão de Devedores (Crediário)
+
+- Tela dedicada com **lista de devedores** agrupados por cliente
+- **Cards de resumo** — Total de devedores, vendas pendentes e valor total a receber
+- **Indicador de atraso** — Exibe quantidade de dias sem pagamento com destaque visual para débitos em atraso
+- **Link para WhatsApp** — Botão de contato direto com o cliente via WhatsApp
+- **Marcar como pago** — Botão para quitar individualmente cada venda pendente
+- **Dados do cliente** — Nome e telefone exibidos para cada devedor
 
 ### Aparência e Tema
 
@@ -422,6 +508,8 @@ pdv/
 │   │   │   └── services/       # ProductService, SaleService
 │   │   ├── products/           # Listagem e cadastro de produtos
 │   │   ├── sales/              # Relatório de vendas (receita, custo, lucro)
+│   │   ├── debtors/            # Gestão de devedores (crediário)
+│   │   │   └── components/     # DebtorsList (agrupamento, WhatsApp, mark paid)
 │   │   └── shared/
 │   │       ├── components/     # SettingsModal (configurações de aparência)
 │   │       ├── models/         # DTOs e modelos (api.models, cart.model)
