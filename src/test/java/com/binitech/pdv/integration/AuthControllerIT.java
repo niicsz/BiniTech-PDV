@@ -183,7 +183,6 @@ class AuthControllerIT {
     @Test
     @DisplayName("Refresh com token válido deve retornar 200")
     void refresh_withValidToken_shouldReturn200() throws Exception {
-      // First login to get a refresh token
       String loginResponse =
           mockMvc
               .perform(

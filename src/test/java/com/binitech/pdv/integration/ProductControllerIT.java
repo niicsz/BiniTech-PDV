@@ -55,7 +55,6 @@ class ProductControllerIT {
                   return userRepository.save(u);
                 });
 
-    // Get or create operator
     operatorUser =
         userRepository
             .findByUsername("operator_test")
