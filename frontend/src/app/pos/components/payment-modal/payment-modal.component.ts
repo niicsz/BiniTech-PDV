@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -6,7 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { PaymentDTO, PaymentMethodEnum } from '../../../shared/models/api.models';
+import { PaymentDTO, PaymentMethodEnum, SaleDTO } from '../../../shared/models/api.models';
+import { SaleService } from '../../services/sale.service';
 
 export interface PaymentConfirmation {
   payments: PaymentDTO[];
@@ -16,6 +17,7 @@ export interface PaymentConfirmation {
 
 @Component({
   selector: 'app-payment-modal',
+  standalone: true,
   imports: [
     CommonModule, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule
@@ -79,15 +81,43 @@ export interface PaymentConfirmation {
                   <mat-label>Nome do Cliente</mat-label>
                   <input matInput #customerNameInput type="text"
                          [(ngModel)]="customerName"
-                         placeholder="Digite o nome do cliente" />
+                         (ngModelChange)="onCustomerNameChange($event)"
+                         placeholder="Digite o nome do cliente"
+                         autocomplete="off" />
                 </mat-form-field>
+
+                <div class="debtor-suggestions" *ngIf="filteredDebtors.length > 0 && showSuggestions">
+                  <div class="suggestion-header">
+                    <mat-icon>people</mat-icon>
+                    <span>Devedores cadastrados</span>
+                  </div>
+                  <div class="suggestion-item" *ngFor="let d of filteredDebtors"
+                       (click)="selectDebtor(d)">
+                    <div class="suggestion-info">
+                      <strong>{{ d.name }}</strong>
+                      <span *ngIf="d.phone" class="suggestion-phone">{{ d.phone }}</span>
+                    </div>
+                    <span class="suggestion-debt">R$ {{ d.totalDebt | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Telefone do Cliente</mat-label>
                   <input matInput type="tel"
                          [(ngModel)]="customerPhone"
+                         (ngModelChange)="onPhoneChange($event)"
                          placeholder="(00) 00000-0000"
-                         (keydown.enter)="addPayment()" />
+                         (keydown.enter)="addPayment()"
+                         maxlength="15" />
+                  <mat-hint *ngIf="customerPhone && !isPhoneValid()" class="phone-error">
+                    Telefone inválido. Use: (00) 00000-0000
+                  </mat-hint>
                 </mat-form-field>
+
+                <div class="duplicate-warning" *ngIf="duplicatePhoneWarning">
+                  <mat-icon>warning</mat-icon>
+                  <span>{{ duplicatePhoneWarning }}</span>
+                </div>
               </div>
 
               <mat-form-field appearance="outline" class="full-width" *ngIf="selectedMethod === 'CASH'">
@@ -288,6 +318,88 @@ export interface PaymentConfirmation {
       border-radius: var(--radius, 8px);
       border-left: 3px solid #7b1fa2;
     }
+    .debtor-suggestions {
+      margin: -4px 0 8px;
+      border: 1px solid var(--border, #e0e0e0);
+      border-radius: var(--radius, 8px);
+      background: var(--surface, #fff);
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .suggestion-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary, #888);
+      border-bottom: 1px solid var(--border, #e0e0e0);
+    }
+    .suggestion-header mat-icon {
+      font-size: 16px; height: 16px; width: 16px;
+    }
+    .suggestion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .suggestion-item:hover {
+      background: var(--primary-bg, rgba(66,165,245,0.08));
+    }
+    .suggestion-item:not(:last-child) {
+      border-bottom: 1px solid var(--border, #eee);
+    }
+    .suggestion-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .suggestion-info strong {
+      font-size: 14px;
+      color: var(--text, #333);
+    }
+    .suggestion-phone {
+      font-size: 12px;
+      color: var(--text-secondary, #888);
+    }
+    .suggestion-debt {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--danger, #ef5350);
+      font-family: var(--font-mono, monospace);
+    }
+    .phone-error {
+      color: var(--danger, #ef5350) !important;
+      font-weight: 500;
+    }
+    .duplicate-warning {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(255, 152, 0, 0.1);
+      border: 1px solid rgba(255, 152, 0, 0.4);
+      border-radius: var(--radius, 8px);
+      color: #e65100;
+      font-size: 13px;
+      font-weight: 500;
+      margin-top: 4px;
+      animation: fadeIn 0.2s ease;
+    }
+    .duplicate-warning mat-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+      color: #ff9800;
+      flex-shrink: 0;
+    }
     .confirm-btn {
       background-color: var(--success) !important;
       color: #fff !important;
@@ -347,7 +459,7 @@ export interface PaymentConfirmation {
     }
   `]
 })
-export class PaymentModalComponent implements AfterViewInit {
+export class PaymentModalComponent implements AfterViewInit, OnInit {
   @ViewChild('amountInput') amountInput!: ElementRef<HTMLInputElement>;
   @ViewChild('amountInputCard') amountInputCard!: ElementRef<HTMLInputElement>;
   @ViewChild('customerNameInput') customerNameInput!: ElementRef<HTMLInputElement>;
@@ -366,6 +478,13 @@ export class PaymentModalComponent implements AfterViewInit {
   currentAmount = 0;
   customerName = '';
   customerPhone = '';
+  showSuggestions = false;
+
+  existingDebtors: { name: string; phone: string; totalDebt: number }[] = [];
+  filteredDebtors: { name: string; phone: string; totalDebt: number }[] = [];
+  duplicatePhoneWarning = '';
+
+  constructor(private saleService: SaleService) {}
 
   availableMethods = [
     { value: 'CASH' as PaymentMethodEnum, label: 'Dinheiro', icon: 'payments' },
@@ -374,6 +493,10 @@ export class PaymentModalComponent implements AfterViewInit {
     { value: 'PIX' as PaymentMethodEnum, label: 'PIX', icon: 'pix' },
     { value: 'CREDIARIO' as PaymentMethodEnum, label: 'Crediário', icon: 'account_balance_wallet' },
   ];
+
+  ngOnInit(): void {
+    this.loadExistingDebtors();
+  }
 
   ngAfterViewInit(): void {
     if (this.initialMethod) {
@@ -399,10 +522,97 @@ export class PaymentModalComponent implements AfterViewInit {
     }, 100);
   }
 
+  loadExistingDebtors(): void {
+    this.saleService.listDebtors().subscribe({
+      next: (sales: SaleDTO[]) => {
+        const grouped = new Map<string, { name: string; phone: string; totalDebt: number }>();
+        for (const sale of sales) {
+          const key = (sale.customerName || 'Desconhecido') + '|' + (sale.customerPhone || '');
+          if (!grouped.has(key)) {
+            grouped.set(key, {
+              name: sale.customerName || 'Desconhecido',
+              phone: sale.customerPhone || '',
+              totalDebt: 0
+            });
+          }
+          grouped.get(key)!.totalDebt += sale.totalAmount || 0;
+        }
+        this.existingDebtors = Array.from(grouped.values());
+      }
+    });
+  }
+
+  onCustomerNameChange(value: string): void {
+    this.checkDuplicatePhone();
+    if (!value || value.trim().length < 2) {
+      this.filteredDebtors = [];
+      this.showSuggestions = false;
+      return;
+    }
+    const term = value.trim().toLowerCase();
+    this.filteredDebtors = this.existingDebtors.filter(d =>
+      d.name.toLowerCase().includes(term) ||
+      d.phone.includes(term)
+    );
+    this.showSuggestions = this.filteredDebtors.length > 0;
+  }
+
+  selectDebtor(debtor: { name: string; phone: string; totalDebt: number }): void {
+    this.customerName = debtor.name;
+    this.customerPhone = debtor.phone;
+    this.showSuggestions = false;
+    this.filteredDebtors = [];
+  }
+
+  onPhoneChange(value: string): void {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 2) {
+      this.customerPhone = digits.length > 0 ? '(' + digits : '';
+    } else if (digits.length <= 7) {
+      this.customerPhone = '(' + digits.substring(0, 2) + ') ' + digits.substring(2);
+    } else if (digits.length <= 11) {
+      this.customerPhone = '(' + digits.substring(0, 2) + ') ' + digits.substring(2, 7) + '-' + digits.substring(7);
+    } else {
+      this.customerPhone = '(' + digits.substring(0, 2) + ') ' + digits.substring(2, 7) + '-' + digits.substring(7, 11);
+    }
+    this.checkDuplicatePhone();
+  }
+
+  private checkDuplicatePhone(): void {
+    this.duplicatePhoneWarning = '';
+    const phoneDigits = this.customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) return;
+
+    const match = this.existingDebtors.find(d => {
+      const existingDigits = d.phone.replace(/\D/g, '');
+      return existingDigits === phoneDigits;
+    });
+
+    if (match) {
+      const currentName = this.customerName.trim().toLowerCase();
+      const matchName = match.name.trim().toLowerCase();
+      if (currentName && matchName !== currentName) {
+        this.duplicatePhoneWarning = `Este telefone já está cadastrado para "${match.name}" com dívida de R$ ${match.totalDebt.toFixed(2)}. Verifique se é o mesmo cliente.`;
+      } else {
+        this.duplicatePhoneWarning = `Cliente "${match.name}" já possui dívida de R$ ${match.totalDebt.toFixed(2)} neste telefone.`;
+      }
+    }
+  }
+
+  isPhoneValid(): boolean {
+    if (!this.customerPhone || !this.customerPhone.trim()) return true;
+    const digits = this.customerPhone.replace(/\D/g, '');
+    return digits.length === 10 || digits.length === 11;
+  }
+
   addPayment(): void {
     if (!this.selectedMethod || this.currentAmount <= 0) return;
 
     if (this.selectedMethod === 'CREDIARIO' && (!this.customerName.trim() || !this.customerPhone.trim())) {
+      return;
+    }
+
+    if (this.selectedMethod === 'CREDIARIO' && !this.isPhoneValid()) {
       return;
     }
 
