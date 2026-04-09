@@ -64,6 +64,14 @@ export class ProductListComponent implements OnInit {
     return this.products.filter(p => (p.stockQuantity ?? 0) <= 5 && p.active).length;
   }
 
+  get totalSaleValue(): number {
+    return this.filteredProducts.reduce((sum, p) => sum + (p.price || 0) * (p.stockQuantity || 0), 0);
+  }
+
+  get totalCostValue(): number {
+    return this.filteredProducts.reduce((sum, p) => sum + (p.costPrice || 0) * (p.stockQuantity || 0), 0);
+  }
+
   get filteredProducts(): ProductDTO[] {
     let result = this.products;
 
