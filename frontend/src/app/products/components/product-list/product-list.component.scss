@@ -383,6 +383,40 @@
   font-weight: 500;
 }
 
+.toolbar-totals {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.total-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+  }
+
+  &.total-sale {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  &.total-cost {
+    background: var(--warning-bg);
+    color: var(--warning);
+  }
+}
+
 .table-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -834,6 +868,15 @@
 
   .results-count {
     text-align: center;
+  }
+
+  .toolbar-totals {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .total-badge {
+    justify-content: center;
   }
 
   .data-table {

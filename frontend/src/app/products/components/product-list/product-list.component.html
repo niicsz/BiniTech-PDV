@@ -153,6 +153,16 @@
       </mat-select>
     </mat-form-field>
     <span class="toolbar-spacer"></span>
+    <div class="toolbar-totals">
+      <span class="total-badge total-sale">
+        <mat-icon>attach_money</mat-icon>
+        Venda: R$ {{ totalSaleValue | number:'1.2-2' }}
+      </span>
+      <span class="total-badge total-cost">
+        <mat-icon>money_off</mat-icon>
+        Custo: R$ {{ totalCostValue | number:'1.2-2' }}
+      </span>
+    </div>
     <span class="results-count">
       {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'produto' : 'produtos' }}
     </span>
