@@ -26,8 +26,7 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     log.info("Configurando SecurityFilterChain com JWT stateless");
-    http.csrf(csrf -> csrf.disable())
-        .sessionManagement(
+    http.sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
