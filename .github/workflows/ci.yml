@@ -21,7 +21,9 @@ jobs:
           cache: maven
 
       - name: Build & run tests
-        run: ./mvnw verify -B
+        run: |
+          chmod +x mvnw
+          ./mvnw verify -B
 
       - name: Upload test reports
         if: always()
@@ -74,3 +76,4 @@ jobs:
           tags: binitech-pdv:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
