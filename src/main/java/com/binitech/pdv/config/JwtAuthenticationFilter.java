@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import org.owasp.encoder.Encode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -43,20 +44,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      log.debug("Autenticação JWT configurada: userId={} username={} role={} path={}", sanitize(userId), sanitize(username), sanitize(role), sanitize(request.getRequestURI()));
+      log.debug("Autenticação JWT configurada: userId={} username={} role={} path={}", Encode.forJava(userId), Encode.forJava(username), Encode.forJava(role), Encode.forJava(request.getRequestURI()));
     } else if (StringUtils.hasText(token)) {
-      log.warn("Token JWT inválido recebido para path={}", sanitize(request.getRequestURI()));
+      log.warn("Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
     }
 
     filterChain.doFilter(request, response);
   }
 
-  private static String sanitize(String value) {
-    if (value == null) {
-      return null;
-    }
-    return value.replaceAll("[\\r\\n\\t]", "_");
-  }
 
   private String extractToken(HttpServletRequest request) {
     String bearerToken = request.getHeader("Authorization");
