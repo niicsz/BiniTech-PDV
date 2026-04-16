@@ -8,7 +8,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { SaleService } from '../../../pos/services/sale.service';
-import { SaleDTO } from '../../../shared/models/api.models';
+import { SaleDTO, SaleItemDTO } from '../../../shared/models/api.models';
+
+interface ProductRanking {
+  name: string;
+  quantity: number;
+  revenue: number;
+}
 
 @Component({
   selector: 'app-sales-report',
@@ -29,6 +35,8 @@ export class SalesReportComponent implements OnInit {
   totalRevenue = 0;
   totalCost = 0;
   totalProfit = 0;
+  topProducts: ProductRanking[] = [];
+  bottomProducts: ProductRanking[] = [];
 
   constructor(private saleService: SaleService) {}
 
@@ -74,6 +82,23 @@ export class SalesReportComponent implements OnInit {
     this.totalRevenue = this.sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
     this.totalCost = this.sales.reduce((sum, sale) => sum + (sale.totalCost || 0), 0);
     this.totalProfit = this.totalRevenue - this.totalCost;
+    this.calculateProductRanking();
+  }
+
+  calculateProductRanking(): void {
+    const map = new Map<string, ProductRanking>();
+    for (const sale of this.sales) {
+      for (const item of sale.items || []) {
+        const name = item.productDescription || 'Desconhecido';
+        const existing = map.get(name) || { name, quantity: 0, revenue: 0 };
+        existing.quantity += item.quantity || 0;
+        existing.revenue += item.subtotal || 0;
+        map.set(name, existing);
+      }
+    }
+    const sorted = Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
+    this.topProducts = sorted.slice(0, 5);
+    this.bottomProducts = [...sorted].reverse().slice(0, 5);
   }
 
   getPaymentLabel(method: string | undefined): string {

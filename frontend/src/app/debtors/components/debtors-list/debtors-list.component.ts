@@ -105,6 +105,11 @@ interface DebtorGroup {
                 <span class="sale-date">{{ formatTimestamp(sale.timestamp) }}</span>
                 <span class="sale-items">{{ sale.items?.length || 0 }} item(ns)</span>
               </div>
+              <div class="sale-products">
+                <span class="product-tag" *ngFor="let item of sale.items">
+                  {{ item.productDescription }} (x{{ item.quantity }})
+                </span>
+              </div>
               <div class="sale-actions">
                 <strong class="sale-amount">R$ {{ sale.totalAmount | number:'1.2-2' }}</strong>
                 <button mat-flat-button color="primary" class="btn-mark-paid"
@@ -317,9 +322,11 @@ interface DebtorGroup {
     .sale-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       padding: 12px 0;
       border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 6px;
     }
     .sale-row:last-child { border-bottom: none; }
     .sale-info {
@@ -343,6 +350,22 @@ interface DebtorGroup {
       background: var(--surface-alt, rgba(0,0,0,0.04));
       padding: 2px 8px;
       border-radius: 4px;
+    }
+    .sale-products {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .sale-products .product-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(66,165,245,0.1);
+      color: var(--primary, #42a5f5);
+      white-space: nowrap;
     }
     .sale-actions {
       display: flex;
