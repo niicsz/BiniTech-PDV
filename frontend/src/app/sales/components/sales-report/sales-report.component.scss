@@ -298,6 +298,24 @@
     gap: 4px;
   }
 
+  .col-products {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 280px;
+  }
+
+  .product-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--primary-bg, rgba(66,165,245,0.1));
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
   .text-right { text-align: right; }
   .text-center { text-align: center; }
   .text-success { color: var(--success) !important; }
@@ -542,4 +560,104 @@
   .period-filter {
     flex-wrap: wrap;
   }
+
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-section {
+  margin-top: 4px;
+}
+
+.dashboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dashboard-icon {
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+
+  &.icon-success { color: var(--success); }
+  &.icon-danger { color: var(--danger); }
+}
+
+.ranking-list {
+  padding: 8px 0;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.05));
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--surface-hover); }
+}
+
+.ranking-pos {
+  font-size: 13px;
+  font-weight: 700;
+  width: 28px;
+  text-align: center;
+
+  &.ranking-top { color: var(--success); }
+  &.ranking-bottom { color: var(--danger); }
+}
+
+.ranking-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ranking-qty {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  background: var(--surface-alt, rgba(0,0,0,0.04));
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ranking-revenue {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text);
+  min-width: 80px;
+  text-align: right;
+}
+
+.ranking-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
