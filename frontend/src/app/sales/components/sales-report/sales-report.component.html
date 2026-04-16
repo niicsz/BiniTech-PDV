@@ -78,6 +78,43 @@
     </div>
   </div>
 
+
+  <div class="dashboard-section" *ngIf="sales.length > 0">
+    <div class="dashboard-row">
+      <div class="dashboard-card">
+        <div class="dashboard-header">
+          <mat-icon class="dashboard-icon icon-success">trending_up</mat-icon>
+          <span>Produtos Mais Vendidos</span>
+        </div>
+        <div class="ranking-list">
+          <div class="ranking-item" *ngFor="let p of topProducts; let i = index">
+            <span class="ranking-pos ranking-top">{{ i + 1 }}º</span>
+            <span class="ranking-name">{{ p.name }}</span>
+            <span class="ranking-qty">{{ p.quantity }} un.</span>
+            <span class="ranking-revenue">R$ {{ p.revenue | number:'1.2-2' }}</span>
+          </div>
+          <div *ngIf="topProducts.length === 0" class="ranking-empty">Sem dados</div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-header">
+          <mat-icon class="dashboard-icon icon-danger">trending_down</mat-icon>
+          <span>Produtos Menos Vendidos</span>
+        </div>
+        <div class="ranking-list">
+          <div class="ranking-item" *ngFor="let p of bottomProducts; let i = index">
+            <span class="ranking-pos ranking-bottom">{{ i + 1 }}º</span>
+            <span class="ranking-name">{{ p.name }}</span>
+            <span class="ranking-qty">{{ p.quantity }} un.</span>
+            <span class="ranking-revenue">R$ {{ p.revenue | number:'1.2-2' }}</span>
+          </div>
+          <div *ngIf="bottomProducts.length === 0" class="ranking-empty">Sem dados</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="table-card">
     <div class="table-header">
       <mat-icon>list_alt</mat-icon>
@@ -138,42 +175,6 @@
           </tr>
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <div class="dashboard-section" *ngIf="sales.length > 0">
-    <div class="dashboard-row">
-      <div class="dashboard-card">
-        <div class="dashboard-header">
-          <mat-icon class="dashboard-icon icon-success">trending_up</mat-icon>
-          <span>Produtos Mais Vendidos</span>
-        </div>
-        <div class="ranking-list">
-          <div class="ranking-item" *ngFor="let p of topProducts; let i = index">
-            <span class="ranking-pos ranking-top">{{ i + 1 }}º</span>
-            <span class="ranking-name">{{ p.name }}</span>
-            <span class="ranking-qty">{{ p.quantity }} un.</span>
-            <span class="ranking-revenue">R$ {{ p.revenue | number:'1.2-2' }}</span>
-          </div>
-          <div *ngIf="topProducts.length === 0" class="ranking-empty">Sem dados</div>
-        </div>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-header">
-          <mat-icon class="dashboard-icon icon-danger">trending_down</mat-icon>
-          <span>Produtos Menos Vendidos</span>
-        </div>
-        <div class="ranking-list">
-          <div class="ranking-item" *ngFor="let p of bottomProducts; let i = index">
-            <span class="ranking-pos ranking-bottom">{{ i + 1 }}º</span>
-            <span class="ranking-name">{{ p.name }}</span>
-            <span class="ranking-qty">{{ p.quantity }} un.</span>
-            <span class="ranking-revenue">R$ {{ p.revenue | number:'1.2-2' }}</span>
-          </div>
-          <div *ngIf="bottomProducts.length === 0" class="ranking-empty">Sem dados</div>
-        </div>
-      </div>
     </div>
   </div>
 </div>
