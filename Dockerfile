@@ -28,11 +28,12 @@ FROM eclipse-temurin:17-jre AS runtime
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get clean && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get install -y --no-install-recommends ca-certificates && \
     update-ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    find /etc/ssl/certs -name "*.pem" -exec \
-      sh -c 'keytool -import -trustcacerts -cacerts -storepass changeit -noprompt -alias "$(basename "$1" .pem)" -file "$1" 2>/dev/null || true' _ {} \;
+    rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
