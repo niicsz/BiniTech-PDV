@@ -32,7 +32,10 @@ public class SaleController implements SalesApi {
 
   @Override
   public ResponseEntity<SaleDTO> createSale(CreateSaleDTO createSaleDTO) {
-    log.info("Criando venda com {} item(ns) para userId={}", createSaleDTO.getItems() != null ? createSaleDTO.getItems().size() : 0, getUserId());
+    log.info(
+        "Criando venda com {} item(ns) para userId={}",
+        createSaleDTO.getItems() != null ? createSaleDTO.getItems().size() : 0,
+        getUserId());
     Sale sale = webMapper.toDomain(createSaleDTO);
     Sale created = saleUseCase.createSale(sale, getUserId());
     log.info("Venda criada com sucesso: id={} total={}", created.getId(), created.getTotalAmount());
@@ -50,7 +53,12 @@ public class SaleController implements SalesApi {
       log.info("Listando vendas por dia: date={} userId={} role={}", date, userId, role);
       sales = saleUseCase.listSalesByDay(date, userId, role);
     } else if (startDate != null && endDate != null) {
-      log.info("Listando vendas por período: startDate={} endDate={} userId={} role={}", startDate, endDate, userId, role);
+      log.info(
+          "Listando vendas por período: startDate={} endDate={} userId={} role={}",
+          startDate,
+          endDate,
+          userId,
+          role);
       sales = saleUseCase.listSalesByPeriod(startDate, endDate, userId, role);
     } else {
       log.info("Listando todas as vendas: userId={} role={}", userId, role);

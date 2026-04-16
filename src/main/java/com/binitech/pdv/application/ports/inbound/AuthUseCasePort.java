@@ -10,5 +10,7 @@ public interface AuthUseCasePort {
 
   AuthResult refreshToken(String refreshToken);
 
+  void logout(String accessToken);
+
   record AuthResult(String accessToken, String refreshToken, String username, String role) {}
 }

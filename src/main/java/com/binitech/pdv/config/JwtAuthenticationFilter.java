@@ -22,9 +22,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
   private final JwtTokenProvider jwtTokenProvider;
+  private final TokenBlacklistService tokenBlacklistService;
 
-  public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+  public JwtAuthenticationFilter(
+      JwtTokenProvider jwtTokenProvider, TokenBlacklistService tokenBlacklistService) {
     this.jwtTokenProvider = jwtTokenProvider;
+    this.tokenBlacklistService = tokenBlacklistService;
   }
 
   @Override
@@ -34,7 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     String token = extractToken(request);
 
-    if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+    if (StringUtils.hasText(token)
+        && jwtTokenProvider.validateToken(token)
+        && !tokenBlacklistService.isBlacklisted(token)) {
       String userId = jwtTokenProvider.getUserIdFromToken(token);
       String username = jwtTokenProvider.getUsernameFromToken(token);
       String role = jwtTokenProvider.getRoleFromToken(token);
@@ -44,14 +49,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      log.debug("Autenticação JWT configurada: userId={} username={} role={} path={}", Encode.forJava(userId), Encode.forJava(username), Encode.forJava(role), Encode.forJava(request.getRequestURI()));
+      log.debug(
+          "Autenticação JWT configurada: userId={} username={} role={} path={}",
+          Encode.forJava(userId),
+          Encode.forJava(username),
+          Encode.forJava(role),
+          Encode.forJava(request.getRequestURI()));
     } else if (StringUtils.hasText(token)) {
       log.warn("Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
     }
 
     filterChain.doFilter(request, response);
   }
-
 
   private String extractToken(HttpServletRequest request) {
     String bearerToken = request.getHeader("Authorization");

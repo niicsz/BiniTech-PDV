@@ -92,6 +92,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Fazer logout e invalidar token
+      operationId: logout
+      responses:
+        '204':
+          description: Logout realizado com sucesso
+
   /api/products:
     get:
       tags: [Products]

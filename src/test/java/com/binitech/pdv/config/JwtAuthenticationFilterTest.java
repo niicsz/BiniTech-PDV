@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class JwtAuthenticationFilterTest {
 
   @Mock private JwtTokenProvider jwtTokenProvider;
+  @Mock private TokenBlacklistService tokenBlacklistService;
   @Mock private HttpServletRequest request;
   @Mock private HttpServletResponse response;
   @Mock private FilterChain filterChain;
@@ -26,7 +27,7 @@ class JwtAuthenticationFilterTest {
 
   @BeforeEach
   void setUp() {
-    filter = new JwtAuthenticationFilter(jwtTokenProvider);
+    filter = new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistService);
     SecurityContextHolder.clearContext();
   }
 

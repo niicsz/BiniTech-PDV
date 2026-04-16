@@ -4,6 +4,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
+import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -21,6 +22,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
   private final UserRepositoryPort userRepository;
   private final RefreshTokenRepositoryPort refreshTokenRepository;
   private final JwtTokenProvider jwtTokenProvider;
+  private final TokenBlacklistService tokenBlacklistService;
   private final PasswordEncoder passwordEncoder;
   private final long refreshExpiration;
 
@@ -28,11 +30,13 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       UserRepositoryPort userRepository,
       RefreshTokenRepositoryPort refreshTokenRepository,
       JwtTokenProvider jwtTokenProvider,
+      TokenBlacklistService tokenBlacklistService,
       PasswordEncoder passwordEncoder,
       long refreshExpiration) {
     this.userRepository = userRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.jwtTokenProvider = jwtTokenProvider;
+    this.tokenBlacklistService = tokenBlacklistService;
     this.passwordEncoder = passwordEncoder;
     this.refreshExpiration = refreshExpiration;
   }
@@ -43,10 +47,11 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     User user =
         userRepository
             .findByUsername(username)
-            .orElseThrow(() -> {
-              log.warn("Login falhou - usuário não encontrado: {}", username);
-              return new BusinessException("Credenciais inválidas.");
-            });
+            .orElseThrow(
+                () -> {
+                  log.warn("Login falhou - usuário não encontrado: {}", username);
+                  return new BusinessException("Credenciais inválidas.");
+                });
 
     if (!passwordEncoder.matches(password, user.getPassword())) {
       log.warn("Login falhou - senha inválida para o usuário: {}", username);
@@ -60,7 +65,11 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     refreshTokenRepository.deleteByUserId(user.getId());
     RefreshToken refreshToken = createRefreshToken(user.getId());
 
-    log.info("Login realizado com sucesso: userId={} username={} role={}", user.getId(), user.getUsername(), user.getRole());
+    log.info(
+        "Login realizado com sucesso: userId={} username={} role={}",
+        user.getId(),
+        user.getUsername(),
+        user.getRole());
     return new AuthResult(
         accessToken, refreshToken.getToken(), user.getUsername(), user.getRole().name());
   }
@@ -85,7 +94,11 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     RefreshToken refreshToken = createRefreshToken(saved.getId());
 
-    log.info("Usuário registrado com sucesso: userId={} username={} role={}", saved.getId(), saved.getUsername(), saved.getRole());
+    log.info(
+        "Usuário registrado com sucesso: userId={} username={} role={}",
+        saved.getId(),
+        saved.getUsername(),
+        saved.getRole());
     return new AuthResult(
         accessToken, refreshToken.getToken(), saved.getUsername(), saved.getRole().name());
   }
@@ -96,10 +109,11 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByToken(refreshTokenStr)
-            .orElseThrow(() -> {
-              log.warn("Refresh token inválido fornecido");
-              return new BusinessException("Refresh token inválido.");
-            });
+            .orElseThrow(
+                () -> {
+                  log.warn("Refresh token inválido fornecido");
+                  return new BusinessException("Refresh token inválido.");
+                });
 
     if (refreshToken.isExpired()) {
       log.warn("Refresh token expirado para userId={}", refreshToken.getUserId());
@@ -110,10 +124,13 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     User user =
         userRepository
             .findById(refreshToken.getUserId())
-            .orElseThrow(() -> {
-              log.error("Usuário não encontrado durante refresh de token: userId={}", refreshToken.getUserId());
-              return new BusinessException("Usuário não encontrado.");
-            });
+            .orElseThrow(
+                () -> {
+                  log.error(
+                      "Usuário não encontrado durante refresh de token: userId={}",
+                      refreshToken.getUserId());
+                  return new BusinessException("Usuário não encontrado.");
+                });
 
     String accessToken =
         jwtTokenProvider.generateAccessToken(
@@ -122,9 +139,21 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     refreshTokenRepository.deleteByUserId(user.getId());
     RefreshToken newRefreshToken = createRefreshToken(user.getId());
 
-    log.info("Token renovado com sucesso para userId={} username={}", user.getId(), user.getUsername());
+    log.info(
+        "Token renovado com sucesso para userId={} username={}", user.getId(), user.getUsername());
     return new AuthResult(
         accessToken, newRefreshToken.getToken(), user.getUsername(), user.getRole().name());
+  }
+
+  @Override
+  public void logout(String accessToken) {
+    log.info("Realizando logout e invalidando token");
+    tokenBlacklistService.blacklist(accessToken);
+    if (jwtTokenProvider.validateToken(accessToken)) {
+      String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
+      refreshTokenRepository.deleteByUserId(userId);
+      log.info("Logout realizado com sucesso para userId={}", userId);
+    }
   }
 
   private RefreshToken createRefreshToken(String userId) {

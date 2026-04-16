@@ -10,13 +10,13 @@ import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Configuration
 public class BeanConfig {
@@ -35,6 +35,7 @@ public class BeanConfig {
       UserRepositoryPort userRepositoryPort,
       RefreshTokenRepositoryPort refreshTokenRepositoryPort,
       JwtTokenProvider jwtTokenProvider,
+      TokenBlacklistService tokenBlacklistService,
       PasswordEncoder passwordEncoder,
       @Value("${jwt.refresh-expiration}") long refreshExpiration) {
     log.info("Configurando AuthUseCasePort com refresh expiration: {}ms", refreshExpiration);
@@ -42,6 +43,7 @@ public class BeanConfig {
         userRepositoryPort,
         refreshTokenRepositoryPort,
         jwtTokenProvider,
+        tokenBlacklistService,
         passwordEncoder,
         refreshExpiration);
   }

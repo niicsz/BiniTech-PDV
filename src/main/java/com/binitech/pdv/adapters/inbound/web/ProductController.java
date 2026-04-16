@@ -39,7 +39,10 @@ public class ProductController implements ProductsApi {
 
   @Override
   public ResponseEntity<ProductDTO> createProduct(CreateProductDTO createProductDTO) {
-    log.info("Criando produto: barcode={} description={}", createProductDTO.getBarcode(), createProductDTO.getDescription());
+    log.info(
+        "Criando produto: barcode={} description={}",
+        createProductDTO.getBarcode(),
+        createProductDTO.getDescription());
     Product product = webMapper.toDomain(createProductDTO);
     Product created = productUseCase.createProduct(product, getUserId());
     log.info("Produto criado com sucesso: id={} barcode={}", created.getId(), created.getBarcode());
@@ -77,7 +80,10 @@ public class ProductController implements ProductsApi {
   public ResponseEntity<ProductDTO> getProductByBarcode(String barcode) {
     log.info("Buscando produto por barcode={}", barcode);
     Product product = productUseCase.findByBarcode(barcode, getUserId());
-    log.info("Produto encontrado por barcode: id={} description={}", product.getId(), product.getDescription());
+    log.info(
+        "Produto encontrado por barcode: id={} description={}",
+        product.getId(),
+        product.getDescription());
     return ResponseEntity.ok(webMapper.toDto(product));
   }
 
