@@ -50,6 +50,12 @@ export class AuthService {
 
   logout(): void {
     console.info('[AuthService] Realizando logout do usuário:', this.getUsername());
+    const token = this.getToken();
+    if (token) {
+      this.http.post(`${this.authUrl}/logout`, {}).subscribe({
+        error: () => console.warn('[AuthService] Erro ao invalidar token no servidor')
+      });
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');

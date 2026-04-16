@@ -32,14 +32,15 @@ public class JwtTokenProvider {
     Date now = new Date();
     Date expiry = new Date(now.getTime() + accessExpiration);
 
-    String token = Jwts.builder()
-        .subject(userId)
-        .claim("username", username)
-        .claim("role", role)
-        .issuedAt(now)
-        .expiration(expiry)
-        .signWith(key)
-        .compact();
+    String token =
+        Jwts.builder()
+            .subject(userId)
+            .claim("username", username)
+            .claim("role", role)
+            .issuedAt(now)
+            .expiration(expiry)
+            .signWith(key)
+            .compact();
 
     log.debug("Access token gerado para userId={} username={} role={}", userId, username, role);
     return token;

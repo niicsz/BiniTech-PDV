@@ -8,6 +8,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
+import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -30,6 +31,7 @@ class AuthUseCaseImplTest {
   @Mock private UserRepositoryPort userRepository;
   @Mock private RefreshTokenRepositoryPort refreshTokenRepository;
   @Mock private JwtTokenProvider jwtTokenProvider;
+  @Mock private TokenBlacklistService tokenBlacklistService;
   @Mock private PasswordEncoder passwordEncoder;
 
   private AuthUseCaseImpl authUseCase;
@@ -38,7 +40,12 @@ class AuthUseCaseImplTest {
   void setUp() {
     authUseCase =
         new AuthUseCaseImpl(
-            userRepository, refreshTokenRepository, jwtTokenProvider, passwordEncoder, 86400000L);
+            userRepository,
+            refreshTokenRepository,
+            jwtTokenProvider,
+            tokenBlacklistService,
+            passwordEncoder,
+            86400000L);
   }
 
   @Nested

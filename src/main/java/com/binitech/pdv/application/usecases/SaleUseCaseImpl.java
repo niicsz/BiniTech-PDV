@@ -38,23 +38,35 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
               .findById(item.getProductId())
               .orElseThrow(
                   () -> {
-                    log.error("Produto não encontrado ao criar venda: productId={}", item.getProductId());
+                    log.error(
+                        "Produto não encontrado ao criar venda: productId={}", item.getProductId());
                     return new ResourceNotFoundException("Produto", "id", item.getProductId());
                   });
 
       if (!product.getUserId().equals(userId)) {
-        log.warn("Produto não pertence ao usuário: productId={} productUserId={} requestUserId={}", product.getId(), product.getUserId(), userId);
+        log.warn(
+            "Produto não pertence ao usuário: productId={} productUserId={} requestUserId={}",
+            product.getId(),
+            product.getUserId(),
+            userId);
         throw new BusinessException(
             "Produto não pertence ao seu catálogo: " + product.getDescription());
       }
 
       if (!product.isActive()) {
-        log.warn("Tentativa de venda de produto inativo: productId={} description={}", product.getId(), product.getDescription());
+        log.warn(
+            "Tentativa de venda de produto inativo: productId={} description={}",
+            product.getId(),
+            product.getDescription());
         throw new BusinessException("Produto inativo: " + product.getDescription());
       }
 
       if (!sale.isSkipStockValidation() && product.getStockQuantity() < item.getQuantity()) {
-        log.warn("Estoque insuficiente: productId={} disponível={} solicitado={}", product.getId(), product.getStockQuantity(), item.getQuantity());
+        log.warn(
+            "Estoque insuficiente: productId={} disponível={} solicitado={}",
+            product.getId(),
+            product.getStockQuantity(),
+            item.getQuantity());
         throw new BusinessException(
             String.format(
                 "Estoque insuficiente para '%s'. Disponível: %d, Solicitado: %d",
@@ -80,11 +92,19 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
         int toDecrease = Math.min(available, item.getQuantity());
         if (toDecrease > 0) {
           product.decreaseStock(toDecrease);
-          log.info("Estoque decrementado (skip validation): productId={} decrementado={} restante={}", product.getId(), toDecrease, product.getStockQuantity());
+          log.info(
+              "Estoque decrementado (skip validation): productId={} decrementado={} restante={}",
+              product.getId(),
+              toDecrease,
+              product.getStockQuantity());
         }
       } else {
         product.decreaseStock(item.getQuantity());
-        log.info("Estoque decrementado: productId={} quantidade={} restante={}", product.getId(), item.getQuantity(), product.getStockQuantity());
+        log.info(
+            "Estoque decrementado: productId={} quantidade={} restante={}",
+            product.getId(),
+            item.getQuantity(),
+            product.getStockQuantity());
       }
       productRepository.save(product);
     }
@@ -93,7 +113,11 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.setTimestamp(LocalDateTime.now());
 
     Sale saved = saleRepository.save(sale);
-    log.info("Venda criada com sucesso: id={} total={} userId={}", saved.getId(), saved.getTotalAmount(), userId);
+    log.info(
+        "Venda criada com sucesso: id={} total={} userId={}",
+        saved.getId(),
+        saved.getTotalAmount(),
+        userId);
     return saved;
   }
 
@@ -103,13 +127,18 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     Sale sale =
         saleRepository
             .findById(id)
-            .orElseThrow(() -> {
-              log.warn("Venda não encontrada: id={}", id);
-              return new ResourceNotFoundException("Venda", "id", id);
-            });
+            .orElseThrow(
+                () -> {
+                  log.warn("Venda não encontrada: id={}", id);
+                  return new ResourceNotFoundException("Venda", "id", id);
+                });
 
     if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
-      log.warn("Acesso negado à venda: id={} ownerUserId={} requestUserId={}", id, sale.getUserId(), userId);
+      log.warn(
+          "Acesso negado à venda: id={} ownerUserId={} requestUserId={}",
+          id,
+          sale.getUserId(),
+          userId);
       throw new ResourceNotFoundException("Venda", "id", id);
     }
 
@@ -134,7 +163,8 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   @Override
   public List<Sale> listSalesByPeriod(
       LocalDate startDate, LocalDate endDate, String userId, Role role) {
-    log.debug("Listando vendas por período: {} a {} userId={} role={}", startDate, endDate, userId, role);
+    log.debug(
+        "Listando vendas por período: {} a {} userId={} role={}", startDate, endDate, userId, role);
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.atTime(LocalTime.MAX);
     if (role == Role.ADMIN) {
@@ -179,13 +209,18 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     Sale sale =
         saleRepository
             .findById(id)
-            .orElseThrow(() -> {
-              log.warn("Venda não encontrada para marcar como paga: id={}", id);
-              return new ResourceNotFoundException("Venda", "id", id);
-            });
+            .orElseThrow(
+                () -> {
+                  log.warn("Venda não encontrada para marcar como paga: id={}", id);
+                  return new ResourceNotFoundException("Venda", "id", id);
+                });
 
     if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
-      log.warn("Sem permissão para marcar venda como paga: id={} ownerUserId={} requestUserId={}", id, sale.getUserId(), userId);
+      log.warn(
+          "Sem permissão para marcar venda como paga: id={} ownerUserId={} requestUserId={}",
+          id,
+          sale.getUserId(),
+          userId);
       throw new ResourceNotFoundException("Venda", "id", id);
     }
 
