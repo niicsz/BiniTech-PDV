@@ -14,8 +14,7 @@ public class TokenBlacklistService {
   private final long accessExpiration;
 
   public TokenBlacklistService(
-      StringRedisTemplate redisTemplate,
-      @Value("${jwt.access-expiration}") long accessExpiration) {
+      StringRedisTemplate redisTemplate, @Value("${jwt.access-expiration}") long accessExpiration) {
     this.redisTemplate = redisTemplate;
     this.accessExpiration = accessExpiration;
   }
