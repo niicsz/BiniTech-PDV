@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { filter } from 'rxjs/operators';
 import { AuthService } from './auth/services/auth.service';
 import { ThemeService } from './shared/services/theme.service';
 import { SettingsModalComponent } from './shared/components/settings-modal.component';
@@ -406,7 +407,9 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDebtorsCount();
-    this.router.events.subscribe(() => {
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
       if (this.authService.isLoggedIn()) {
         this.loadDebtorsCount();
       }

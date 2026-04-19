@@ -7,6 +7,9 @@ import com.binitech.pdv.domain.Product;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,6 +25,13 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
+  @Caching(
+      evict = {
+        @CacheEvict(value = "product_by_id", key = "#product.id", condition = "#product.id != null"),
+        @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_all", allEntries = true)
+      })
   public Product save(Product product) {
     var document = mapper.toDocument(product);
     var saved = repository.save(document);
@@ -29,6 +39,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
+  @Cacheable(value = "product_by_id", key = "#id")
   public Optional<Product> findById(String id) {
     return repository.findById(id).map(mapper::toDomain);
   }
@@ -39,11 +50,19 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
+  @Cacheable(value = "products_all")
   public List<Product> findAll() {
     return repository.findAll().stream().map(mapper::toDomain).collect(Collectors.toList());
   }
 
   @Override
+  @Caching(
+      evict = {
+        @CacheEvict(value = "product_by_id", key = "#id"),
+        @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_all", allEntries = true)
+      })
   public void deleteById(String id) {
     repository.deleteById(id);
   }
@@ -54,6 +73,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
+  @Cacheable(value = "products_by_user", key = "#userId")
   public List<Product> findAllByUserId(String userId) {
     return repository.findAllByUserId(userId).stream()
         .map(mapper::toDomain)
@@ -61,6 +81,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
+  @Cacheable(value = "product_by_barcode", key = "#barcode + ':' + #userId")
   public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
     return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
   }
