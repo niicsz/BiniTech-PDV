@@ -5,6 +5,8 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: binitech_pdv
+    redis:
+      url: ${REDIS_URL}
 
 de:
   flapdoodle:
