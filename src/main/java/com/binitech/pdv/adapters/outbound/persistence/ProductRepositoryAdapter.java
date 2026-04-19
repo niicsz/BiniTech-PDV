@@ -27,7 +27,10 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Override
   @Caching(
       evict = {
-        @CacheEvict(value = "product_by_id", key = "#product.id", condition = "#product.id != null"),
+        @CacheEvict(
+            value = "product_by_id",
+            key = "#product.id",
+            condition = "#product.id != null"),
         @CacheEvict(value = "product_by_barcode", allEntries = true),
         @CacheEvict(value = "products_by_user", allEntries = true),
         @CacheEvict(value = "products_all", allEntries = true)

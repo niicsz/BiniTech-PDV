@@ -30,19 +30,11 @@ public class RedisCacheConfig {
 
     return RedisCacheManager.builder(connectionFactory)
         .cacheDefaults(defaultConfig)
+        .withCacheConfiguration("products_by_user", defaultConfig.entryTtl(Duration.ofMinutes(5)))
+        .withCacheConfiguration("product_by_id", defaultConfig.entryTtl(Duration.ofMinutes(10)))
         .withCacheConfiguration(
-            "products_by_user",
-            defaultConfig.entryTtl(Duration.ofMinutes(5)))
-        .withCacheConfiguration(
-            "product_by_id",
-            defaultConfig.entryTtl(Duration.ofMinutes(10)))
-        .withCacheConfiguration(
-            "product_by_barcode",
-            defaultConfig.entryTtl(Duration.ofMinutes(10)))
-        .withCacheConfiguration(
-            "products_all",
-            defaultConfig.entryTtl(Duration.ofMinutes(5)))
+            "product_by_barcode", defaultConfig.entryTtl(Duration.ofMinutes(10)))
+        .withCacheConfiguration("products_all", defaultConfig.entryTtl(Duration.ofMinutes(5)))
         .build();
   }
 }
-
