@@ -17,6 +17,8 @@ public interface SaleUseCasePort {
 
   List<Sale> listAll(String userId, Role role);
 
+  List<Sale> listAll(String userId, Role role, int page, int size);
+
   List<Sale> listDebtors(String userId, Role role);
 
   Sale markAsPaid(String id, String userId, Role role);

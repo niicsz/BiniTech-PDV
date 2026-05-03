@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,7 +44,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "product_by_id", key = "#id")
+  @Cacheable(value = "product_by_id", key = "#id", unless = "#result == null")
   public Optional<Product> findById(String id) {
     return repository.findById(id).map(mapper::toDomain);
   }
@@ -53,9 +55,13 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "products_all")
-  public List<Product> findAll() {
-    return repository.findAll().stream().map(mapper::toDomain).collect(Collectors.toList());
+  @Cacheable(value = "products_all", key = "#page + ':' + #size")
+  public List<Product> findAll(int page, int size) {
+    return repository
+        .findAll(PageRequest.of(page, size, Sort.by("description").ascending()))
+        .stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -76,15 +82,17 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "products_by_user", key = "#userId")
-  public List<Product> findAllByUserId(String userId) {
-    return repository.findAllByUserId(userId).stream()
+  @Cacheable(value = "products_by_user", key = "#userId + ':' + #page + ':' + #size")
+  public List<Product> findAllByUserId(String userId, int page, int size) {
+    return repository
+        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("description").ascending()))
+        .stream()
         .map(mapper::toDomain)
         .collect(Collectors.toList());
   }
 
   @Override
-  @Cacheable(value = "product_by_barcode", key = "#barcode + ':' + #userId")
+  @Cacheable(value = "product_by_barcode", key = "#barcode + ':' + #userId", unless = "#result == null")
   public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
     return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
   }

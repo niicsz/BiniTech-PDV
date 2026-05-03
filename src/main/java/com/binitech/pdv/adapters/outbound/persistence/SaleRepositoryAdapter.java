@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -41,13 +43,19 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   }
 
   @Override
-  public List<Sale> findAll() {
-    return repository.findAll().stream().map(mapper::toDomain).collect(Collectors.toList());
+  public List<Sale> findAll(int page, int size) {
+    return repository
+        .findAll(PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .stream()
+        .map(mapper::toDomain)
+        .collect(Collectors.toList());
   }
 
   @Override
-  public List<Sale> findAllByUserId(String userId) {
-    return repository.findAllByUserId(userId).stream()
+  public List<Sale> findAllByUserId(String userId, int page, int size) {
+    return repository
+        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .stream()
         .map(mapper::toDomain)
         .collect(Collectors.toList());
   }

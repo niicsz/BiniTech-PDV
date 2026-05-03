@@ -8,7 +8,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build -- --configuration=production
 
-FROM eclipse-temurin:17-jdk AS backend-build
+FROM eclipse-temurin:21-jdk AS backend-build
 
 WORKDIR /app
 
@@ -24,14 +24,14 @@ COPY --from=frontend-build /app/frontend/dist/binitech-pdv-frontend/browser/ src
 
 RUN ./mvnw package -DskipTests -B
 
-FROM eclipse-temurin:17-jre AS runtime
+FROM eclipse-temurin:21-jre AS runtime
 
 WORKDIR /app
 
 RUN rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
     apt-get update -o Acquire::CompressionTypes::Order::=gz && \
-    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
@@ -45,6 +45,9 @@ USER appuser
 ENV PORT=8080
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:${PORT}/actuator/health || exit 1
 
 ENTRYPOINT ["java", \
   "-Djavax.net.ssl.trustStore=/opt/java/openjdk/lib/security/cacerts", \

@@ -12,13 +12,13 @@ public interface ProductRepositoryPort {
 
   Optional<Product> findByBarcode(String barcode);
 
-  List<Product> findAll();
+  List<Product> findAll(int page, int size);
 
   void deleteById(String id);
 
   boolean existsByBarcode(String barcode);
 
-  List<Product> findAllByUserId(String userId);
+  List<Product> findAllByUserId(String userId, int page, int size);
 
   Optional<Product> findByBarcodeAndUserId(String barcode, String userId);
 

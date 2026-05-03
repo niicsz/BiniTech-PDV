@@ -6,6 +6,7 @@ import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.LogSanitizer;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,9 @@ import org.slf4j.LoggerFactory;
 public class ProductUseCaseImpl implements ProductUseCasePort {
 
   private static final Logger log = LoggerFactory.getLogger(ProductUseCaseImpl.class);
+  private static final int DEFAULT_PAGE = 0;
+  private static final int DEFAULT_PAGE_SIZE = 100;
+  private static final int MAX_PAGE_SIZE = 200;
 
   private final ProductRepositoryPort productRepository;
 
@@ -22,24 +26,34 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
 
   @Override
   public Product createProduct(Product product, String userId) {
-    log.info("Criando produto: barcode={} userId={}", product.getBarcode(), userId);
+    log.info(
+        "Criando produto: barcode={} userId={}", product.getBarcode(), LogSanitizer.maskId(userId));
     if (productRepository.existsByBarcodeAndUserId(product.getBarcode(), userId)) {
       log.warn(
-          "Produto duplicado - barcode={} já existe para userId={}", product.getBarcode(), userId);
+          "Produto duplicado - barcode={} já existe para userId={}",
+          product.getBarcode(),
+          LogSanitizer.maskId(userId));
       throw new BusinessException(
           "Já existe um produto cadastrado com o código de barras: " + product.getBarcode());
     }
     product.setActive(true);
     product.setUserId(userId);
     Product saved = productRepository.save(product);
-    log.info("Produto criado com sucesso: id={} barcode={}", saved.getId(), saved.getBarcode());
+    log.info(
+        "Produto criado com sucesso: id={} barcode={}",
+        LogSanitizer.maskId(saved.getId()),
+        saved.getBarcode());
     return saved;
   }
 
   @Override
   public Product updateProduct(
       String id, Product product, String userId, Role role, Boolean activeOverride) {
-    log.info("Atualizando produto: id={} userId={} role={}", id, userId, role);
+    log.info(
+        "Atualizando produto: id={} userId={} role={}",
+        LogSanitizer.maskId(id),
+        LogSanitizer.maskId(userId),
+        role);
     Product existing =
         productRepository
             .findById(id)
@@ -52,9 +66,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     if (role != Role.ADMIN && !existing.getUserId().equals(userId)) {
       log.warn(
           "Sem permissão para alterar produto: id={} ownerUserId={} requestUserId={}",
-          id,
-          existing.getUserId(),
-          userId);
+          LogSanitizer.maskId(id),
+          LogSanitizer.maskId(existing.getUserId()),
+          LogSanitizer.maskId(userId));
       throw new BusinessException("Você não tem permissão para alterar este produto.");
     }
 
@@ -63,7 +77,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
       log.warn(
           "Barcode duplicado na atualização: barcode={} userId={}",
           product.getBarcode(),
-          existing.getUserId());
+          LogSanitizer.maskId(existing.getUserId()));
       throw new BusinessException(
           "Já existe um produto cadastrado com o código de barras: " + product.getBarcode());
     }
@@ -85,29 +99,26 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   }
 
   @Override
-  public void deleteProduct(String id, String userId, Role role) {
-    log.info("Desativando produto: id={} userId={} role={}", id, userId, role);
+  public void deactivateProduct(String id, String userId, Role role) {
+    log.info("Desativando produto: id={} role={}", LogSanitizer.maskId(id), role);
     Product existing =
         productRepository
             .findById(id)
             .orElseThrow(
                 () -> {
-                  log.warn("Produto não encontrado para exclusão: id={}", id);
+                  log.warn(
+                      "Produto não encontrado para desativação: id={}", LogSanitizer.maskId(id));
                   return new ResourceNotFoundException("Produto", "id", id);
                 });
 
     if (role != Role.ADMIN && !existing.getUserId().equals(userId)) {
-      log.warn(
-          "Sem permissão para remover produto: id={} ownerUserId={} requestUserId={}",
-          id,
-          existing.getUserId(),
-          userId);
+      log.warn("Sem permissão para desativar produto: id={}", LogSanitizer.maskId(id));
       throw new BusinessException("Você não tem permissão para remover este produto.");
     }
 
     existing.setActive(false);
     productRepository.save(existing);
-    log.info("Produto desativado com sucesso: id={} barcode={}", id, existing.getBarcode());
+    log.info("Produto desativado com sucesso: id={}", LogSanitizer.maskId(id));
   }
 
   @Override
@@ -150,14 +161,42 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
 
   @Override
   public List<Product> listAll(String userId, Role role) {
-    log.debug("Listando todos os produtos: userId={} role={}", userId, role);
+    log.debug("Listando todos os produtos: userId={} role={}", LogSanitizer.maskId(userId), role);
+    return listAll(userId, role, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
+  }
+
+  @Override
+  public List<Product> listAll(String userId, Role role, int page, int size) {
+    int sanitizedPage = sanitizePage(page);
+    int sanitizedSize = sanitizeSize(size);
+    log.debug(
+        "Listando produtos paginados: userId={} role={} page={} size={}",
+        LogSanitizer.maskId(userId),
+        role,
+        sanitizedPage,
+        sanitizedSize);
     if (role == Role.ADMIN) {
-      List<Product> all = productRepository.findAll();
-      log.debug("Total de produtos (ADMIN): {}", all.size());
+      List<Product> all = productRepository.findAll(sanitizedPage, sanitizedSize);
+      log.debug("Total de produtos retornados (ADMIN): {}", all.size());
       return all;
     }
-    List<Product> userProducts = productRepository.findAllByUserId(userId);
-    log.debug("Total de produtos para userId={}: {}", userId, userProducts.size());
+    List<Product> userProducts =
+        productRepository.findAllByUserId(userId, sanitizedPage, sanitizedSize);
+    log.debug(
+        "Total de produtos retornados para userId={}: {}",
+        LogSanitizer.maskId(userId),
+        userProducts.size());
     return userProducts;
+  }
+
+  private int sanitizePage(Integer page) {
+    return page == null || page < 0 ? DEFAULT_PAGE : page;
+  }
+
+  private int sanitizeSize(Integer size) {
+    if (size == null || size <= 0) {
+      return DEFAULT_PAGE_SIZE;
+    }
+    return Math.min(size, MAX_PAGE_SIZE);
   }
 }

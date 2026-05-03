@@ -87,7 +87,7 @@ class SaleUseCaseImplTest {
       assertNotNull(result.getId());
       assertEquals("user1", result.getUserId());
       assertEquals(8, product.getStockQuantity());
-      verify(productRepository, times(2)).findById("p1");
+      verify(productRepository, times(1)).findById("p1");
       verify(productRepository).save(product);
       verify(saleRepository).save(sale);
     }

@@ -177,17 +177,17 @@ class ProductUseCaseImplTest {
   }
 
   @Nested
-  @DisplayName("deleteProduct")
-  class DeleteProductTests {
+  @DisplayName("deactivateProduct")
+  class DeactivateProductTests {
 
     @Test
     @DisplayName("Owner deve desativar produto com sucesso")
-    void deleteProduct_byOwner_shouldSetInactive() {
+    void deactivateProduct_byOwner_shouldSetInactive() {
       Product existing = createProduct("p1", "111", "user1");
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
       when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
-      productUseCase.deleteProduct("p1", "user1", Role.OPERATOR);
+      productUseCase.deactivateProduct("p1", "user1", Role.OPERATOR);
 
       assertFalse(existing.isActive());
       verify(productRepository).save(existing);
@@ -195,23 +195,23 @@ class ProductUseCaseImplTest {
 
     @Test
     @DisplayName("Não-owner não-admin deve lançar BusinessException")
-    void deleteProduct_byNonOwnerNonAdmin_shouldThrow() {
+    void deactivateProduct_byNonOwnerNonAdmin_shouldThrow() {
       Product existing = createProduct("p1", "111", "user1");
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
 
       assertThrows(
           BusinessException.class,
-          () -> productUseCase.deleteProduct("p1", "user2", Role.OPERATOR));
+          () -> productUseCase.deactivateProduct("p1", "user2", Role.OPERATOR));
     }
 
     @Test
     @DisplayName("Produto inexistente deve lançar ResourceNotFoundException")
-    void deleteProduct_nonExistent_shouldThrow() {
+    void deactivateProduct_nonExistent_shouldThrow() {
       when(productRepository.findById("p999")).thenReturn(Optional.empty());
 
       assertThrows(
           ResourceNotFoundException.class,
-          () -> productUseCase.deleteProduct("p999", "user1", Role.OPERATOR));
+          () -> productUseCase.deactivateProduct("p999", "user1", Role.OPERATOR));
     }
   }
 
@@ -298,26 +298,26 @@ class ProductUseCaseImplTest {
     void listAll_asAdmin_shouldReturnAll() {
       List<Product> allProducts =
           List.of(createProduct("p1", "111", "user1"), createProduct("p2", "222", "user2"));
-      when(productRepository.findAll()).thenReturn(allProducts);
+      when(productRepository.findAll(0, 100)).thenReturn(allProducts);
 
       List<Product> result = productUseCase.listAll("admin1", Role.ADMIN);
 
       assertEquals(2, result.size());
-      verify(productRepository).findAll();
-      verify(productRepository, never()).findAllByUserId(any());
+      verify(productRepository).findAll(0, 100);
+      verify(productRepository, never()).findAllByUserId(any(), anyInt(), anyInt());
     }
 
     @Test
     @DisplayName("OPERATOR deve receber apenas seus produtos")
     void listAll_asOperator_shouldReturnOwn() {
       List<Product> ownProducts = List.of(createProduct("p1", "111", "user1"));
-      when(productRepository.findAllByUserId("user1")).thenReturn(ownProducts);
+      when(productRepository.findAllByUserId("user1", 0, 100)).thenReturn(ownProducts);
 
       List<Product> result = productUseCase.listAll("user1", Role.OPERATOR);
 
       assertEquals(1, result.size());
-      verify(productRepository).findAllByUserId("user1");
-      verify(productRepository, never()).findAll();
+      verify(productRepository).findAllByUserId("user1", 0, 100);
+      verify(productRepository, never()).findAll(anyInt(), anyInt());
     }
   }
 }

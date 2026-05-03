@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -31,13 +32,16 @@ class AuthControllerIT {
   @Autowired private UserRepositoryPort userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtTokenProvider jwtTokenProvider;
+  @Autowired private MongoTemplate mongoTemplate;
 
   private String adminToken;
   private User adminUser;
 
   @BeforeEach
   void setUp() {
-    // Ensure the admin user exists (DataInitializer creates it on startup)
+    mongoTemplate.getDb().getCollection("users").drop();
+    mongoTemplate.getDb().getCollection("refresh_tokens").drop();
+
     adminUser =
         userRepository
             .findByUsername("admin")
