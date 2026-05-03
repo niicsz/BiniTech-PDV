@@ -1,5 +1,6 @@
 package com.binitech.pdv.domain;
 
+import com.binitech.pdv.domain.exception.BusinessException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,6 @@ public class Sale {
   public Sale() {
     this.items = new ArrayList<>();
     this.payments = new ArrayList<>();
-    this.timestamp = LocalDateTime.now();
   }
 
   public void addItem(SaleItem item) {
@@ -48,17 +48,20 @@ public class Sale {
     this.change = Math.max(0, this.totalPaid - this.totalAmount);
   }
 
-  public void validate() {
-    if (items == null || items.isEmpty()) {
-      throw new IllegalArgumentException("A venda deve ter ao menos um item.");
-    }
-    if (payments == null || payments.isEmpty()) {
-      throw new IllegalArgumentException("A venda deve ter ao menos uma forma de pagamento.");
-    }
+  public void recalculate() {
     recalculateTotal();
     calculatePayment();
+  }
+
+  public void validate() {
+    if (items == null || items.isEmpty()) {
+      throw new BusinessException("A venda deve ter ao menos um item.");
+    }
+    if (payments == null || payments.isEmpty()) {
+      throw new BusinessException("A venda deve ter ao menos uma forma de pagamento.");
+    }
     if (this.totalPaid < this.totalAmount) {
-      throw new IllegalArgumentException(
+      throw new BusinessException(
           String.format("Pagamento insuficiente. Total: %.2f, Pago: %.2f", totalAmount, totalPaid));
     }
   }

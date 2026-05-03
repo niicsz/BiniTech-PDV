@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -14,6 +17,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "sales")
+@CompoundIndexes({
+  @CompoundIndex(name = "idx_userId_timestamp", def = "{'userId': 1, 'timestamp': -1}"),
+  @CompoundIndex(name = "idx_userId_paid", def = "{'userId': 1, 'paid': 1}"),
+  @CompoundIndex(name = "idx_paid_method", def = "{'paid': 1, 'payments.method': 1}")
+})
 public class SaleDocument {
 
   @Id private String id;
@@ -24,7 +32,9 @@ public class SaleDocument {
   private double totalCost;
   private double totalPaid;
   private double change;
-  private LocalDateTime timestamp;
+
+  @Indexed private LocalDateTime timestamp;
+
   private String userId;
   private String customerName;
   private String customerPhone;

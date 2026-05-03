@@ -2,6 +2,7 @@ package com.binitech.pdv.domain;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.Enum.PaymentMethod;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -10,15 +11,15 @@ import org.junit.jupiter.api.Test;
 class SaleTest {
 
   @Test
-  @DisplayName("Construtor padrão deve inicializar listas vazias e timestamp")
+  @DisplayName("Construtor padrão deve inicializar listas vazias")
   void defaultConstructor_shouldInitializeFields() {
     Sale sale = new Sale();
 
     assertNotNull(sale.getItems());
     assertNotNull(sale.getPayments());
-    assertNotNull(sale.getTimestamp());
     assertTrue(sale.getItems().isEmpty());
     assertTrue(sale.getPayments().isEmpty());
+    assertNull(sale.getTimestamp());
   }
 
   @Test
@@ -91,6 +92,7 @@ class SaleTest {
     Sale sale = new Sale();
     sale.addItem(new SaleItem("p1", "Produto 1", 2, 10.0, 5.0));
     sale.setPayments(List.of(new Payment(PaymentMethod.CASH, 20.0)));
+    sale.recalculate();
 
     assertDoesNotThrow(() -> sale.validate());
     assertEquals(20.0, sale.getTotalPaid(), 0.01);
@@ -103,8 +105,7 @@ class SaleTest {
     Sale sale = new Sale();
     sale.setPayments(List.of(new Payment(PaymentMethod.CASH, 10.0)));
 
-    IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> sale.validate());
+    BusinessException exception = assertThrows(BusinessException.class, () -> sale.validate());
 
     assertTrue(exception.getMessage().contains("ao menos um item"));
   }
@@ -115,8 +116,7 @@ class SaleTest {
     Sale sale = new Sale();
     sale.addItem(new SaleItem("p1", "Produto 1", 1, 10.0, 5.0));
 
-    IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> sale.validate());
+    BusinessException exception = assertThrows(BusinessException.class, () -> sale.validate());
 
     assertTrue(exception.getMessage().contains("ao menos uma forma de pagamento"));
   }
@@ -127,9 +127,9 @@ class SaleTest {
     Sale sale = new Sale();
     sale.addItem(new SaleItem("p1", "Produto 1", 2, 10.0, 5.0));
     sale.setPayments(List.of(new Payment(PaymentMethod.CASH, 5.0)));
+    sale.recalculate();
 
-    IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> sale.validate());
+    BusinessException exception = assertThrows(BusinessException.class, () -> sale.validate());
 
     assertTrue(exception.getMessage().contains("Pagamento insuficiente"));
   }

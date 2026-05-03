@@ -11,11 +11,13 @@ public interface ProductUseCasePort {
   Product updateProduct(
       String id, Product product, String userId, Role role, Boolean activeOverride);
 
-  void deleteProduct(String id, String userId, Role role);
+  void deactivateProduct(String id, String userId, Role role);
 
   Product findById(String id, String userId, Role role);
 
   Product findByBarcode(String barcode, String userId);
 
   List<Product> listAll(String userId, Role role);
+
+  List<Product> listAll(String userId, Role role, int page, int size);
 }

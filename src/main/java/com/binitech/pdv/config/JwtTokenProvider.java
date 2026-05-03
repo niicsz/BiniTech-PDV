@@ -23,7 +23,20 @@ public class JwtTokenProvider {
   public JwtTokenProvider(
       @Value("${jwt.secret}") String secret,
       @Value("${jwt.access-expiration}") long accessExpiration) {
-    this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    if (secret == null || secret.isBlank()) {
+      throw new IllegalStateException(
+          "Configuração inválida: jwt.secret não pode estar vazio. "
+              + "Defina a variável de ambiente JWT_SECRET com pelo menos 32 caracteres.");
+    }
+    byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+    if (secretBytes.length < 32) {
+      throw new IllegalStateException(
+          "Configuração inválida: jwt.secret deve ter pelo menos 32 bytes "
+              + "(256 bits) para HS256. Atual: "
+              + secretBytes.length
+              + " bytes.");
+    }
+    this.key = Keys.hmacShaKeyFor(secretBytes);
     this.accessExpiration = accessExpiration;
     log.info("JwtTokenProvider inicializado com expiração de access token: {}ms", accessExpiration);
   }

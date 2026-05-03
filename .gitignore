@@ -1,6 +1,5 @@
 HELP.md
 
-### Java / Maven ###
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -11,7 +10,6 @@ target/
 *.ear
 *.log
 
-### STS ###
 .apt_generated
 .classpath
 .factorypath
@@ -20,14 +18,12 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
 .idea/
 *.iws
 *.iml
 *.ipr
 out/
 
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -37,24 +33,20 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
 .vscode/
 
-### Node / Angular ###
 node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/
 frontend/.cache/
 
-### OS Files ###
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 *~
 
-### Environment ###
 .env
 .env.local
 .env.*.local
