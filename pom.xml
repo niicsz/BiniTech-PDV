@@ -276,8 +276,9 @@
 					</formats>
 					<skipProvidedScope>true</skipProvidedScope>
 					<skipTestScope>true</skipTestScope>
-					<nvdMaxRetryCount>3</nvdMaxRetryCount>
-					<nvdApiDelay>2000</nvdApiDelay>
+					<nvdMaxRetryCount>10</nvdMaxRetryCount>
+					<nvdApiDelay>4000</nvdApiDelay>
+					<nvdValidForHours>24</nvdValidForHours>
 				</configuration>
 			</plugin>
 		</plugins>
