@@ -46,8 +46,31 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
           LogSanitizer.maskId(userId));
     }
 
+    Map<String, Product> productsById = loadProductsForSale(sale.getItems());
+    validateAndEnrichItems(sale, productsById, userId);
+
+    sale.recalculate();
+    sale.validate();
+
+    decreaseStockForItems(sale, productsById);
+    productsById.values().forEach(productRepository::save);
+
+    sale.setUserId(userId);
+    sale.setTimestamp(LocalDateTime.now());
+
+    Sale saved = saleRepository.save(sale);
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Venda criada com sucesso: id={} total={}",
+          LogSanitizer.maskId(saved.getId()),
+          saved.getTotalAmount());
+    }
+    return saved;
+  }
+
+  private Map<String, Product> loadProductsForSale(List<SaleItem> items) {
     Map<String, Product> productsById = new HashMap<>();
-    for (SaleItem item : sale.getItems()) {
+    for (SaleItem item : items) {
       if (productsById.containsKey(item.getProductId())) {
         continue;
       }
@@ -65,69 +88,65 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
                   });
       productsById.put(product.getId(), product);
     }
+    return productsById;
+  }
 
+  private void validateAndEnrichItems(
+      Sale sale, Map<String, Product> productsById, String userId) {
     for (SaleItem item : sale.getItems()) {
       Product product = productsById.get(item.getProductId());
-
-      if (!product.getUserId().equals(userId)) {
-        if (log.isWarnEnabled()) {
-          log.warn(
-              "Produto não pertence ao usuário: productId={}", LogSanitizer.maskId(product.getId()));
-        }
-        throw new BusinessException(
-            "Produto não pertence ao seu catálogo: " + product.getDescription());
-      }
-
-      if (!product.isActive()) {
-        if (log.isWarnEnabled()) {
-          log.warn(
-              "Tentativa de venda de produto inativo: productId={}",
-              LogSanitizer.maskId(product.getId()));
-        }
-        throw new BusinessException("Produto inativo: " + product.getDescription());
-      }
-
-      if (!sale.isSkipStockValidation() && product.getStockQuantity() < item.getQuantity()) {
-        if (log.isWarnEnabled()) {
-          log.warn(
-              "Estoque insuficiente: productId={} disponível={} solicitado={}",
-              LogSanitizer.maskId(product.getId()),
-              product.getStockQuantity(),
-              item.getQuantity());
-        }
-        throw new BusinessException(
-            String.format(
-                "Estoque insuficiente para '%s'. Disponível: %d, Solicitado: %d",
-                product.getDescription(), product.getStockQuantity(), item.getQuantity()));
-      }
-
-      item.setProductDescription(product.getDescription());
-      item.setUnitPrice(product.getPrice());
-      item.setCostPrice(product.getCostPrice());
-      item.recalculateSubtotal();
+      validateProductOwnership(product, userId);
+      validateProductActive(product);
+      validateStock(sale, item, product);
+      enrichItem(item, product);
     }
-
-    sale.recalculate();
-    sale.validate();
-
-    decreaseStockForItems(sale, productsById);
-
-    for (Product product : productsById.values()) {
-      productRepository.save(product);
-    }
-
-    sale.setUserId(userId);
-    sale.setTimestamp(LocalDateTime.now());
-
-    Sale saved = saleRepository.save(sale);
-    if (log.isInfoEnabled()) {
-      log.info(
-          "Venda criada com sucesso: id={} total={}",
-          LogSanitizer.maskId(saved.getId()),
-          saved.getTotalAmount());
-    }
-    return saved;
   }
+
+  private void validateProductOwnership(Product product, String userId) {
+    if (!product.getUserId().equals(userId)) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Produto não pertence ao usuário: productId={}", LogSanitizer.maskId(product.getId()));
+      }
+      throw new BusinessException(
+          "Produto não pertence ao seu catálogo: " + product.getDescription());
+    }
+  }
+
+  private void validateProductActive(Product product) {
+    if (!product.isActive()) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Tentativa de venda de produto inativo: productId={}",
+            LogSanitizer.maskId(product.getId()));
+      }
+      throw new BusinessException("Produto inativo: " + product.getDescription());
+    }
+  }
+
+  private void validateStock(Sale sale, SaleItem item, Product product) {
+    if (!sale.isSkipStockValidation() && product.getStockQuantity() < item.getQuantity()) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Estoque insuficiente: productId={} disponível={} solicitado={}",
+            LogSanitizer.maskId(product.getId()),
+            product.getStockQuantity(),
+            item.getQuantity());
+      }
+      throw new BusinessException(
+          String.format(
+              "Estoque insuficiente para '%s'. Disponível: %d, Solicitado: %d",
+              product.getDescription(), product.getStockQuantity(), item.getQuantity()));
+    }
+  }
+
+  private void enrichItem(SaleItem item, Product product) {
+    item.setProductDescription(product.getDescription());
+    item.setUnitPrice(product.getPrice());
+    item.setCostPrice(product.getCostPrice());
+    item.recalculateSubtotal();
+  }
+
 
   @Override
   public Sale findById(String id, String userId, Role role) {
