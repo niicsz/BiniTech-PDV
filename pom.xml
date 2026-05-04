@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.binitech</groupId>
 	<artifactId>pdv</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.53</version>
 	<name>BiniTech PDV</name>
 	<description>Sistema Frente de Caixa (PDV) da BiniTech desenvolvido com Arquitetura Hexagonal.</description>
 	<url/>
