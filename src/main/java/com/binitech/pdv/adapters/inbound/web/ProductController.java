@@ -34,37 +34,51 @@ public class ProductController implements ProductsApi {
 
   @Override
   public ResponseEntity<List<ProductDTO>> listProducts(Integer page, Integer size) {
-    log.debug("Listando produtos para role={}", userProvider.getUserRole());
+    if (log.isDebugEnabled()) {
+      log.debug("Listando produtos para role={}", userProvider.getUserRole());
+    }
     List<Product> products =
         productUseCase.listAll(userProvider.getUserId(), userProvider.getUserRole(), page, size);
-    log.info("Retornando {} produto(s)", products.size());
+    if (log.isInfoEnabled()) {
+      log.info("Retornando {} produto(s)", products.size());
+    }
     return ResponseEntity.ok(webMapper.toProductDtoList(products));
   }
 
   @Override
   public ResponseEntity<ProductDTO> createProduct(CreateProductDTO createProductDTO) {
-    log.info("Criando produto: barcode={}", createProductDTO.getBarcode());
+    if (log.isInfoEnabled()) {
+      log.info("Criando produto: barcode={}", createProductDTO.getBarcode());
+    }
     Product product = webMapper.toDomain(createProductDTO);
     Product created = productUseCase.createProduct(product, userProvider.getUserId());
-    log.info(
-        "Produto criado com sucesso: id={} barcode={}",
-        LogSanitizer.maskId(created.getId()),
-        created.getBarcode());
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Produto criado com sucesso: id={} barcode={}",
+          LogSanitizer.maskId(created.getId()),
+          created.getBarcode());
+    }
     return ResponseEntity.status(HttpStatus.CREATED).body(webMapper.toDto(created));
   }
 
   @Override
   public ResponseEntity<ProductDTO> getProductById(String id) {
-    log.debug("Buscando produto por id={}", LogSanitizer.maskId(id));
+    if (log.isDebugEnabled()) {
+      log.debug("Buscando produto por id={}", LogSanitizer.maskId(id));
+    }
     Product product =
         productUseCase.findById(id, userProvider.getUserId(), userProvider.getUserRole());
-    log.debug("Produto encontrado: id={}", LogSanitizer.maskId(product.getId()));
+    if (log.isDebugEnabled()) {
+      log.debug("Produto encontrado: id={}", LogSanitizer.maskId(product.getId()));
+    }
     return ResponseEntity.ok(webMapper.toDto(product));
   }
 
   @Override
   public ResponseEntity<ProductDTO> updateProduct(String id, CreateProductDTO createProductDTO) {
-    log.info("Atualizando produto id={}", LogSanitizer.maskId(id));
+    if (log.isInfoEnabled()) {
+      log.info("Atualizando produto id={}", LogSanitizer.maskId(id));
+    }
     Product product = webMapper.toDomain(createProductDTO);
     Product updated =
         productUseCase.updateProduct(
@@ -73,15 +87,21 @@ public class ProductController implements ProductsApi {
             userProvider.getUserId(),
             userProvider.getUserRole(),
             createProductDTO.getActive());
-    log.info("Produto atualizado com sucesso: id={}", LogSanitizer.maskId(updated.getId()));
+    if (log.isInfoEnabled()) {
+      log.info("Produto atualizado com sucesso: id={}", LogSanitizer.maskId(updated.getId()));
+    }
     return ResponseEntity.ok(webMapper.toDto(updated));
   }
 
   @Override
   public ResponseEntity<Void> deactivateProduct(String id) {
-    log.info("Desativando produto id={}", LogSanitizer.maskId(id));
+    if (log.isInfoEnabled()) {
+      log.info("Desativando produto id={}", LogSanitizer.maskId(id));
+    }
     productUseCase.deactivateProduct(id, userProvider.getUserId(), userProvider.getUserRole());
-    log.info("Produto desativado com sucesso: id={}", LogSanitizer.maskId(id));
+    if (log.isInfoEnabled()) {
+      log.info("Produto desativado com sucesso: id={}", LogSanitizer.maskId(id));
+    }
     return ResponseEntity.noContent().build();
   }
 
@@ -89,7 +109,9 @@ public class ProductController implements ProductsApi {
   public ResponseEntity<ProductDTO> getProductByBarcode(String barcode) {
     log.debug("Buscando produto por barcode={}", barcode);
     Product product = productUseCase.findByBarcode(barcode, userProvider.getUserId());
-    log.debug("Produto encontrado por barcode: id={}", LogSanitizer.maskId(product.getId()));
+    if (log.isDebugEnabled()) {
+      log.debug("Produto encontrado por barcode: id={}", LogSanitizer.maskId(product.getId()));
+    }
     return ResponseEntity.ok(webMapper.toDto(product));
   }
 }

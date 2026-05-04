@@ -64,7 +64,9 @@ public class JwtTokenProvider {
       Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
       return true;
     } catch (JwtException | IllegalArgumentException e) {
-      log.warn("Validação de token JWT falhou: {}", e.getMessage());
+      if (log.isWarnEnabled()) {
+        log.warn("Validação de token JWT falhou: {}", e.getMessage());
+      }
       return false;
     }
   }

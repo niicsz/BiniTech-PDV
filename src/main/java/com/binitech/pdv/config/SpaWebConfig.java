@@ -19,51 +19,52 @@ public class SpaWebConfig implements WebMvcConfigurer {
         .addResourceHandler("/**")
         .addResourceLocations("classpath:/static/")
         .resourceChain(true)
-        .addResolver(
-            new PathResourceResolver() {
-              @Override
-              protected Resource getResource(String resourcePath, Resource location)
-                  throws IOException {
-                if (isInvalidPath(resourcePath)) {
-                  return null;
-                }
-                Resource requestedResource = location.createRelative(resourcePath);
+        .addResolver(new SpaPathResourceResolver());
+  }
 
-                if (requestedResource.exists() && requestedResource.isReadable()) {
-                  return requestedResource;
-                }
+  private static class SpaPathResourceResolver extends PathResourceResolver {
 
-                if (!resourcePath.startsWith("api/")
-                    && !resourcePath.startsWith("swagger-ui")
-                    && !resourcePath.startsWith("api-docs")
-                    && !resourcePath.startsWith("v3/api-docs")
-                    && !resourcePath.startsWith("actuator")) {
-                  return new ClassPathResource("/static/index.html");
-                }
+    @Override
+    protected Resource getResource(String resourcePath, Resource location) throws IOException {
+      if (isInvalidPath(resourcePath)) {
+        return null;
+      }
+      Resource requestedResource = location.createRelative(resourcePath);
 
-                return null;
-              }
+      if (requestedResource.exists() && requestedResource.isReadable()) {
+        return requestedResource;
+      }
 
-              private boolean isInvalidPath(String path) {
-                if (path == null || path.isEmpty()) {
-                  return false;
-                }
-                String decoded;
-                try {
-                  decoded = URLDecoder.decode(path, StandardCharsets.UTF_8);
-                } catch (IllegalArgumentException ex) {
-                  return true;
-                }
-                String normalized = decoded.replace('\\', '/');
-                if (normalized.contains("../")
-                    || normalized.contains("..\\")
-                    || normalized.startsWith("/")
-                    || normalized.contains(":/")
-                    || normalized.contains("\0")) {
-                  return true;
-                }
-                return false;
-              }
-            });
+      if (!resourcePath.startsWith("api/")
+          && !resourcePath.startsWith("swagger-ui")
+          && !resourcePath.startsWith("api-docs")
+          && !resourcePath.startsWith("v3/api-docs")
+          && !resourcePath.startsWith("actuator")) {
+        return new ClassPathResource("/static/index.html");
+      }
+
+      return null;
+    }
+
+    private boolean isInvalidPath(String path) {
+      if (path == null || path.isEmpty()) {
+        return false;
+      }
+      String decoded;
+      try {
+        decoded = URLDecoder.decode(path, StandardCharsets.UTF_8);
+      } catch (IllegalArgumentException ex) {
+        return true;
+      }
+      String normalized = decoded.replace('\\', '/');
+      if (normalized.contains("../")
+          || normalized.contains("..\\")
+          || normalized.startsWith("/")
+          || normalized.contains(":/")
+          || normalized.contains("\0")) {
+        return true;
+      }
+      return false;
+    }
   }
 }

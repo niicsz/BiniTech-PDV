@@ -39,10 +39,12 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   @Override
   @Transactional
   public Sale createSale(Sale sale, String userId) {
-    log.info(
-        "Criando venda com {} item(ns) para userId={}",
-        sale.getItems().size(),
-        LogSanitizer.maskId(userId));
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Criando venda com {} item(ns) para userId={}",
+          sale.getItems().size(),
+          LogSanitizer.maskId(userId));
+    }
 
     Map<String, Product> productsById = new HashMap<>();
     for (SaleItem item : sale.getItems()) {
@@ -54,9 +56,11 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
               .findById(item.getProductId())
               .orElseThrow(
                   () -> {
-                    log.error(
-                        "Produto não encontrado ao criar venda: productId={}",
-                        LogSanitizer.maskId(item.getProductId()));
+                    if (log.isErrorEnabled()) {
+                      log.error(
+                          "Produto não encontrado ao criar venda: productId={}",
+                          LogSanitizer.maskId(item.getProductId()));
+                    }
                     return new ResourceNotFoundException("Produto", "id", item.getProductId());
                   });
       productsById.put(product.getId(), product);
@@ -66,25 +70,31 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       Product product = productsById.get(item.getProductId());
 
       if (!product.getUserId().equals(userId)) {
-        log.warn(
-            "Produto não pertence ao usuário: productId={}", LogSanitizer.maskId(product.getId()));
+        if (log.isWarnEnabled()) {
+          log.warn(
+              "Produto não pertence ao usuário: productId={}", LogSanitizer.maskId(product.getId()));
+        }
         throw new BusinessException(
             "Produto não pertence ao seu catálogo: " + product.getDescription());
       }
 
       if (!product.isActive()) {
-        log.warn(
-            "Tentativa de venda de produto inativo: productId={}",
-            LogSanitizer.maskId(product.getId()));
+        if (log.isWarnEnabled()) {
+          log.warn(
+              "Tentativa de venda de produto inativo: productId={}",
+              LogSanitizer.maskId(product.getId()));
+        }
         throw new BusinessException("Produto inativo: " + product.getDescription());
       }
 
       if (!sale.isSkipStockValidation() && product.getStockQuantity() < item.getQuantity()) {
-        log.warn(
-            "Estoque insuficiente: productId={} disponível={} solicitado={}",
-            LogSanitizer.maskId(product.getId()),
-            product.getStockQuantity(),
-            item.getQuantity());
+        if (log.isWarnEnabled()) {
+          log.warn(
+              "Estoque insuficiente: productId={} disponível={} solicitado={}",
+              LogSanitizer.maskId(product.getId()),
+              product.getStockQuantity(),
+              item.getQuantity());
+        }
         throw new BusinessException(
             String.format(
                 "Estoque insuficiente para '%s'. Disponível: %d, Solicitado: %d",
@@ -100,28 +110,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.recalculate();
     sale.validate();
 
-    for (SaleItem item : sale.getItems()) {
-      Product product = productsById.get(item.getProductId());
-      if (sale.isSkipStockValidation()) {
-        int available = product.getStockQuantity();
-        int toDecrease = Math.min(available, item.getQuantity());
-        if (toDecrease > 0) {
-          product.decreaseStock(toDecrease);
-          log.info(
-              "Estoque decrementado (skip validation): productId={} decrementado={} restante={}",
-              LogSanitizer.maskId(product.getId()),
-              toDecrease,
-              product.getStockQuantity());
-        }
-      } else {
-        product.decreaseStock(item.getQuantity());
-        log.info(
-            "Estoque decrementado: productId={} quantidade={} restante={}",
-            LogSanitizer.maskId(product.getId()),
-            item.getQuantity(),
-            product.getStockQuantity());
-      }
-    }
+    decreaseStockForItems(sale, productsById);
 
     for (Product product : productsById.values()) {
       productRepository.save(product);
@@ -131,10 +120,12 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.setTimestamp(LocalDateTime.now());
 
     Sale saved = saleRepository.save(sale);
-    log.info(
-        "Venda criada com sucesso: id={} total={}",
-        LogSanitizer.maskId(saved.getId()),
-        saved.getTotalAmount());
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Venda criada com sucesso: id={} total={}",
+          LogSanitizer.maskId(saved.getId()),
+          saved.getTotalAmount());
+    }
     return saved;
   }
 
@@ -169,11 +160,15 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     LocalDateTime end = date.atTime(LocalTime.MAX);
     if (role == Role.ADMIN) {
       List<Sale> sales = saleRepository.findByTimestampBetween(start, end);
-      log.debug("Vendas encontradas (ADMIN) por dia: {}", sales.size());
+      if (log.isDebugEnabled()) {
+        log.debug("Vendas encontradas (ADMIN) por dia: {}", sales.size());
+      }
       return sales;
     }
     List<Sale> sales = saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
-    log.debug("Vendas encontradas por dia para userId={}: {}", userId, sales.size());
+    if (log.isDebugEnabled()) {
+      log.debug("Vendas encontradas por dia para userId={}: {}", userId, sales.size());
+    }
     return sales;
   }
 
@@ -186,17 +181,23 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     LocalDateTime end = endDate.atTime(LocalTime.MAX);
     if (role == Role.ADMIN) {
       List<Sale> sales = saleRepository.findByTimestampBetween(start, end);
-      log.debug("Vendas encontradas (ADMIN) por período: {}", sales.size());
+      if (log.isDebugEnabled()) {
+        log.debug("Vendas encontradas (ADMIN) por período: {}", sales.size());
+      }
       return sales;
     }
     List<Sale> sales = saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
-    log.debug("Vendas encontradas por período para userId={}: {}", userId, sales.size());
+    if (log.isDebugEnabled()) {
+      log.debug("Vendas encontradas por período para userId={}: {}", userId, sales.size());
+    }
     return sales;
   }
 
   @Override
   public List<Sale> listAll(String userId, Role role) {
-    log.debug("Listando todas as vendas: userId={} role={}", LogSanitizer.maskId(userId), role);
+    if (log.isDebugEnabled()) {
+      log.debug("Listando todas as vendas: userId={} role={}", LogSanitizer.maskId(userId), role);
+    }
     return listAll(userId, role, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
   }
 
@@ -204,21 +205,56 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   public List<Sale> listAll(String userId, Role role, int page, int size) {
     int sanitizedPage = sanitizePage(page);
     int sanitizedSize = sanitizeSize(size);
-    log.debug(
-        "Listando vendas paginadas: userId={} role={} page={} size={}",
-        LogSanitizer.maskId(userId),
-        role,
-        sanitizedPage,
-        sanitizedSize);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Listando vendas paginadas: userId={} role={} page={} size={}",
+          LogSanitizer.maskId(userId),
+          role,
+          sanitizedPage,
+          sanitizedSize);
+    }
     if (role == Role.ADMIN) {
       List<Sale> sales = saleRepository.findAll(sanitizedPage, sanitizedSize);
-      log.debug("Total de vendas retornadas (ADMIN): {}", sales.size());
+      if (log.isDebugEnabled()) {
+        log.debug("Total de vendas retornadas (ADMIN): {}", sales.size());
+      }
       return sales;
     }
     List<Sale> sales = saleRepository.findAllByUserId(userId, sanitizedPage, sanitizedSize);
-    log.debug(
-        "Total de vendas retornadas para userId={}: {}", LogSanitizer.maskId(userId), sales.size());
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Total de vendas retornadas para userId={}: {}", LogSanitizer.maskId(userId), sales.size());
+    }
     return sales;
+  }
+
+  private void decreaseStockForItems(Sale sale, Map<String, Product> productsById) {
+    for (SaleItem item : sale.getItems()) {
+      Product product = productsById.get(item.getProductId());
+      if (sale.isSkipStockValidation()) {
+        int available = product.getStockQuantity();
+        int toDecrease = Math.min(available, item.getQuantity());
+        if (toDecrease > 0) {
+          product.decreaseStock(toDecrease);
+          if (log.isInfoEnabled()) {
+            log.info(
+                "Estoque decrementado (skip validation): productId={} decrementado={} restante={}",
+                LogSanitizer.maskId(product.getId()),
+                toDecrease,
+                product.getStockQuantity());
+          }
+        }
+      } else {
+        product.decreaseStock(item.getQuantity());
+        if (log.isInfoEnabled()) {
+          log.info(
+              "Estoque decrementado: productId={} quantidade={} restante={}",
+              LogSanitizer.maskId(product.getId()),
+              item.getQuantity(),
+              product.getStockQuantity());
+        }
+      }
+    }
   }
 
   private int sanitizePage(Integer page) {
@@ -237,21 +273,27 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     log.debug("Listando devedores: userId={} role={}", userId, role);
     if (role == Role.ADMIN) {
       List<Sale> debtors = saleRepository.findDebtors();
-      log.debug("Total de débitos (ADMIN): {}", debtors.size());
+      if (log.isDebugEnabled()) {
+        log.debug("Total de débitos (ADMIN): {}", debtors.size());
+      }
       return debtors;
     }
     List<Sale> debtors = saleRepository.findDebtorsByUserId(userId);
-    log.debug("Total de débitos para userId={}: {}", userId, debtors.size());
+    if (log.isDebugEnabled()) {
+      log.debug("Total de débitos para userId={}: {}", userId, debtors.size());
+    }
     return debtors;
   }
 
   @Override
   public Sale markAsPaid(String id, String userId, Role role) {
-    log.info(
-        "Marcando venda como paga: id={} userId={} role={}",
-        LogSanitizer.maskId(id),
-        LogSanitizer.maskId(userId),
-        role);
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Marcando venda como paga: id={} userId={} role={}",
+          LogSanitizer.maskId(id),
+          LogSanitizer.maskId(userId),
+          role);
+    }
     Sale sale =
         saleRepository
             .findById(id)
@@ -272,7 +314,9 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
     sale.setPaid(true);
     Sale saved = saleRepository.save(sale);
-    log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(saved.getId()));
+    if (log.isInfoEnabled()) {
+      log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(saved.getId()));
+    }
     return saved;
   }
 }
