@@ -6,7 +6,6 @@ import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.domain.Product;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -61,7 +60,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         .findAll(PageRequest.of(page, size, Sort.by("description").ascending()))
         .stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -88,7 +87,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("description").ascending()))
         .stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override

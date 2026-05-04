@@ -7,7 +7,6 @@ import com.binitech.pdv.domain.Sale;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -39,7 +38,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   public List<Sale> findByTimestampBetween(LocalDateTime start, LocalDateTime end) {
     return repository.findByTimestampBetween(start, end).stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -48,7 +47,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
         .findAll(PageRequest.of(page, size, Sort.by("timestamp").descending()))
         .stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -57,7 +56,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
         .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("timestamp").descending()))
         .stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -65,18 +64,18 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
       LocalDateTime start, LocalDateTime end, String userId) {
     return repository.findByTimestampBetweenAndUserId(start, end, userId).stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
   public List<Sale> findDebtors() {
-    return repository.findDebtors().stream().map(mapper::toDomain).collect(Collectors.toList());
+    return repository.findDebtors().stream().map(mapper::toDomain).toList();
   }
 
   @Override
   public List<Sale> findDebtorsByUserId(String userId) {
     return repository.findDebtorsByUserId(userId).stream()
         .map(mapper::toDomain)
-        .collect(Collectors.toList());
+        .toList();
   }
 }

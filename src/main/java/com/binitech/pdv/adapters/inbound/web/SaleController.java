@@ -84,15 +84,21 @@ public class SaleController implements SalesApi {
     Role role = userProvider.getUserRole();
     log.debug("Listando devedores: role={}", role);
     List<Sale> debtors = saleUseCase.listDebtors(userProvider.getUserId(), role);
-    log.info("Retornando {} venda(s) em débito", debtors.size());
+    if (log.isInfoEnabled()) {
+      log.info("Retornando {} venda(s) em débito", debtors.size());
+    }
     return ResponseEntity.ok(webMapper.toSaleDtoList(debtors));
   }
 
   @Override
   public ResponseEntity<SaleDTO> markSaleAsPaid(String id) {
-    log.info("Marcando venda como paga: id={}", LogSanitizer.maskId(id));
+    if (log.isInfoEnabled()) {
+      log.info("Marcando venda como paga: id={}", LogSanitizer.maskId(id));
+    }
     Sale updated = saleUseCase.markAsPaid(id, userProvider.getUserId(), userProvider.getUserRole());
-    log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(updated.getId()));
+    if (log.isInfoEnabled()) {
+      log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(updated.getId()));
+    }
     return ResponseEntity.ok(webMapper.toDto(updated));
   }
 }

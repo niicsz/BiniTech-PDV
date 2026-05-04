@@ -45,7 +45,8 @@ class AuthUseCaseImplTest {
             jwtTokenProvider,
             tokenBlacklistService,
             passwordEncoder,
-            86400000L);
+            86400000L,
+            "test-dummy-hash");
   }
 
   @Nested

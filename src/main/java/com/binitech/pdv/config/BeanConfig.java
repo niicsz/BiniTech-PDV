@@ -37,7 +37,8 @@ public class BeanConfig {
       JwtTokenProvider jwtTokenProvider,
       TokenBlacklistService tokenBlacklistService,
       PasswordEncoder passwordEncoder,
-      @Value("${jwt.refresh-expiration}") long refreshExpiration) {
+      @Value("${jwt.refresh-expiration}") long refreshExpiration,
+      @Value("${security.dummy-password-hash}") String dummyPasswordHash) {
     log.info("Configurando AuthUseCasePort com refresh expiration: {}ms", refreshExpiration);
     return new AuthUseCaseImpl(
         userRepositoryPort,
@@ -45,7 +46,8 @@ public class BeanConfig {
         jwtTokenProvider,
         tokenBlacklistService,
         passwordEncoder,
-        refreshExpiration);
+        refreshExpiration,
+        dummyPasswordHash);
   }
 
   @Bean

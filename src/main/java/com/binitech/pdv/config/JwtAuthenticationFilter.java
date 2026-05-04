@@ -49,14 +49,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      log.debug(
-          "Autenticação JWT configurada: userId={} username={} role={} path={}",
-          Encode.forJava(userId),
-          Encode.forJava(username),
-          Encode.forJava(role),
-          Encode.forJava(request.getRequestURI()));
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Autenticação JWT configurada: userId={} username={} role={} path={}",
+            Encode.forJava(userId),
+            Encode.forJava(username),
+            Encode.forJava(role),
+            Encode.forJava(request.getRequestURI()));
+      }
     } else if (StringUtils.hasText(token)) {
-      log.warn("Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
+      }
     }
 
     filterChain.doFilter(request, response);

@@ -22,6 +22,7 @@ admin:
 
 security:
   pepper: test-pepper-value
+  dummy-password-hash: test-dummy-hash
 
 cors:
   allowed-origins: http://localhost:4200
