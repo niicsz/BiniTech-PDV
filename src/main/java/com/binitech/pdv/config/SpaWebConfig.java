@@ -57,14 +57,11 @@ public class SpaWebConfig implements WebMvcConfigurer {
         return true;
       }
       String normalized = decoded.replace('\\', '/');
-      if (normalized.contains("../")
+      return normalized.contains("../")
           || normalized.contains("..\\")
           || normalized.startsWith("/")
           || normalized.contains(":/")
-          || normalized.contains("\0")) {
-        return true;
-      }
-      return false;
+          || normalized.contains("\0");
     }
   }
 }
