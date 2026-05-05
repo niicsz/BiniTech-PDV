@@ -138,6 +138,7 @@
         class="search-input"
         placeholder="Buscar por nome ou código de barras..."
         [(ngModel)]="searchTerm"
+        (ngModelChange)="onFilterChange()"
         autocomplete="off"
       />
       <button class="search-clear" *ngIf="searchTerm" (click)="searchTerm = ''">
@@ -147,7 +148,7 @@
     <div class="toolbar-divider"></div>
     <mat-form-field appearance="outline" class="filter-select">
       <mat-label>Categoria</mat-label>
-      <mat-select [(ngModel)]="selectedCategory">
+      <mat-select [(ngModel)]="selectedCategory" (ngModelChange)="onFilterChange()">
         <mat-option value="">Todas as Categorias</mat-option>
         <mat-option *ngFor="let cat of categories" [value]="cat">{{ cat }}</mat-option>
       </mat-select>
@@ -184,7 +185,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let product of filteredProducts" class="product-row">
+          <tr *ngFor="let product of paginatedProducts" class="product-row">
             <td>
               <code class="barcode-badge">{{ product.barcode }}</code>
             </td>
@@ -233,5 +234,35 @@
         <mat-icon>add</mat-icon> Adicionar Produto
       </button>
     </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(1)" matTooltip="Primeira página">
+        <mat-icon>first_page</mat-icon>
+      </button>
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)" matTooltip="Anterior">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <ng-container *ngIf="pageNumbers[0] > 1">
+        <span class="page-ellipsis">…</span>
+      </ng-container>
+      <button
+        *ngFor="let p of pageNumbers"
+        class="page-btn"
+        [class.page-active]="p === currentPage"
+        (click)="goToPage(p)">
+        {{ p }}
+      </button>
+      <ng-container *ngIf="pageNumbers[pageNumbers.length - 1] < totalPages">
+        <span class="page-ellipsis">…</span>
+      </ng-container>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)" matTooltip="Próxima">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)" matTooltip="Última página">
+        <mat-icon>last_page</mat-icon>
+      </button>
+      <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+    </div>
+
   </div>
 </div>
