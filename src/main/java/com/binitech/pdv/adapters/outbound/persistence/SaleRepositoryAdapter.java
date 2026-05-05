@@ -36,9 +36,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   @Override
   public List<Sale> findByTimestampBetween(LocalDateTime start, LocalDateTime end) {
-    return repository.findByTimestampBetween(start, end).stream()
-        .map(mapper::toDomain)
-        .toList();
+    return repository.findByTimestampBetween(start, end).stream().map(mapper::toDomain).toList();
   }
 
   @Override
@@ -74,8 +72,6 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   @Override
   public List<Sale> findDebtorsByUserId(String userId) {
-    return repository.findDebtorsByUserId(userId).stream()
-        .map(mapper::toDomain)
-        .toList();
+    return repository.findDebtorsByUserId(userId).stream().map(mapper::toDomain).toList();
   }
 }

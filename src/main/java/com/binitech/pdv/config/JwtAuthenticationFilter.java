@@ -58,8 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Encode.forJava(request.getRequestURI()));
       }
     } else if (StringUtils.hasText(token) && log.isWarnEnabled()) {
-      log.warn(
-          "Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
+      log.warn("Token JWT inválido recebido para path={}", Encode.forJava(request.getRequestURI()));
     }
 
     filterChain.doFilter(request, response);

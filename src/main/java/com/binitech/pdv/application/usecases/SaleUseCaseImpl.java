@@ -91,8 +91,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     return productsById;
   }
 
-  private void validateAndEnrichItems(
-      Sale sale, Map<String, Product> productsById, String userId) {
+  private void validateAndEnrichItems(Sale sale, Map<String, Product> productsById, String userId) {
     for (SaleItem item : sale.getItems()) {
       Product product = productsById.get(item.getProductId());
       validateProductOwnership(product, userId);
@@ -146,7 +145,6 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     item.setCostPrice(product.getCostPrice());
     item.recalculateSubtotal();
   }
-
 
   @Override
   public Sale findById(String id, String userId, Role role) {
@@ -242,7 +240,9 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     List<Sale> sales = saleRepository.findAllByUserId(userId, sanitizedPage, sanitizedSize);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Total de vendas retornadas para userId={}: {}", LogSanitizer.maskId(userId), sales.size());
+          "Total de vendas retornadas para userId={}: {}",
+          LogSanitizer.maskId(userId),
+          sales.size());
     }
     return sales;
   }
