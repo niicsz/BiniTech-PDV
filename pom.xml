@@ -281,6 +281,7 @@
 					<nvdMaxRetryCount>10</nvdMaxRetryCount>
 					<nvdApiDelay>4000</nvdApiDelay>
 					<nvdValidForHours>24</nvdValidForHours>
+					<ossindexAnalyzerEnabled>true</ossindexAnalyzerEnabled>
 				</configuration>
 			</plugin>
 		</plugins>

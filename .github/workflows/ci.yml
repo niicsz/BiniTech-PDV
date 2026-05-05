@@ -82,9 +82,15 @@ jobs:
       - name: Run OWASP Dependency Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          OSSINDEX_USERNAME: ${{ secrets.OSSINDEX_USERNAME }}
+          OSSINDEX_TOKEN: ${{ secrets.OSSINDEX_TOKEN }}
         run: |
           chmod +x mvnw
-          ./mvnw -B -DnvdApiKey="$NVD_API_KEY" org.owasp:dependency-check-maven:check
+          ./mvnw -B \
+            -DnvdApiKey="$NVD_API_KEY" \
+            -Dossindex.username="$OSSINDEX_USERNAME" \
+            -Dossindex.apiToken="$OSSINDEX_TOKEN" \
+            org.owasp:dependency-check-maven:check
 
       - name: Upload dependency-check report
         if: always()
