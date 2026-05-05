@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, switchMap, map, tap } from 'rxjs';
 import { ProductDTO, CreateProductDTO } from '../../shared/models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -10,11 +10,27 @@ export class ProductService {
 
   constructor(private http: HttpClient) {}
 
-  listAll(): Observable<ProductDTO[]> {
-    console.info('[ProductService] Listando todos os produtos');
-    return this.http.get<ProductDTO[]>(this.baseUrl).pipe(
-      tap(products => console.info('[ProductService] Produtos carregados:', products.length))
+  listAll(page = 0, size = 200): Observable<ProductDTO[]> {
+    console.info('[ProductService] Listando produtos página:', page);
+    return this.http.get<ProductDTO[]>(this.baseUrl, { params: { page, size } }).pipe(
+      tap(products => console.info('[ProductService] Produtos carregados página', page, ':', products.length))
     );
+  }
+
+  listAllPages(): Observable<ProductDTO[]> {
+    const pageSize = 200;
+    const fetchPage = (page: number): Observable<ProductDTO[]> =>
+      this.listAll(page, pageSize).pipe(
+        switchMap(products => {
+          if (products.length < pageSize) {
+            return of(products);
+          }
+          return fetchPage(page + 1).pipe(
+            map(next => [...products, ...next])
+          );
+        })
+      );
+    return fetchPage(0);
   }
 
   getById(id: string): Observable<ProductDTO> {

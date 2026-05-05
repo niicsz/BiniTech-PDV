@@ -30,6 +30,9 @@ export class ProductListComponent implements OnInit {
   selectedCategory = '';
   searchTerm = '';
 
+  currentPage = 1;
+  pageSize = 50;
+
   form: CreateProductDTO = {
     barcode: '',
     description: '',
@@ -92,10 +95,41 @@ export class ProductListComponent implements OnInit {
     return result;
   }
 
+  get totalPages(): number {
+    return Math.ceil(this.filteredProducts.length / this.pageSize);
+  }
+
+  get paginatedProducts(): ProductDTO[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredProducts.slice(start, start + this.pageSize);
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    const current = this.currentPage;
+    const pages: number[] = [];
+    const range = 2;
+    for (let i = Math.max(1, current - range); i <= Math.min(total, current + range); i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  onFilterChange(): void {
+    this.currentPage = 1;
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
   loadProducts(): void {
-    this.productService.listAll().subscribe({
+    this.productService.listAllPages().subscribe({
       next: (products) => {
         this.products = products;
+        this.currentPage = 1;
         console.info('[ProductList] Produtos carregados:', products.length);
       },
       error: () => {
