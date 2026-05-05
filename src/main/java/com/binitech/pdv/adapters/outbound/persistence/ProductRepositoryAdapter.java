@@ -91,7 +91,10 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "product_by_barcode", key = "#barcode + ':' + #userId", unless = "#result == null")
+  @Cacheable(
+      value = "product_by_barcode",
+      key = "#barcode + ':' + #userId",
+      unless = "#result == null")
   public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
     return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
   }

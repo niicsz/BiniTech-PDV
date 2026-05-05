@@ -28,7 +28,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   public Product createProduct(Product product, String userId) {
     if (log.isInfoEnabled()) {
       log.info(
-          "Criando produto: barcode={} userId={}", product.getBarcode(), LogSanitizer.maskId(userId));
+          "Criando produto: barcode={} userId={}",
+          product.getBarcode(),
+          LogSanitizer.maskId(userId));
     }
     if (productRepository.existsByBarcodeAndUserId(product.getBarcode(), userId)) {
       if (log.isWarnEnabled()) {
@@ -107,7 +109,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     Product updated = productRepository.save(existing);
     if (log.isInfoEnabled()) {
       log.info(
-          "Produto atualizado com sucesso: id={} barcode={}", updated.getId(), updated.getBarcode());
+          "Produto atualizado com sucesso: id={} barcode={}",
+          updated.getId(),
+          updated.getBarcode());
     }
     return updated;
   }
@@ -186,8 +190,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   @Override
   public List<Product> listAll(String userId, Role role) {
     if (log.isDebugEnabled()) {
-      log.debug(
-          "Listando todos os produtos: userId={} role={}", LogSanitizer.maskId(userId), role);
+      log.debug("Listando todos os produtos: userId={} role={}", LogSanitizer.maskId(userId), role);
     }
     return listAll(userId, role, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
   }
