@@ -82,7 +82,7 @@ export class PosScreenComponent implements OnInit, OnDestroy {
   }
 
   loadProducts(): void {
-    this.productService.listAll().subscribe({
+    this.productService.listAllPages().subscribe({
       next: (products) => {
         this.allProducts = products;
         console.info('[PosScreen] Produtos carregados para busca offline:', products.length);
