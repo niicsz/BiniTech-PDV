@@ -33,16 +33,23 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepositoryPort
     repository.deleteByUserId(userId);
   }
 
+  @Override
+  public void deleteByUserIdAndTenantId(String userId, String tenantId) {
+    repository.deleteByUserIdAndTenantId(userId, tenantId);
+  }
+
   private RefreshTokenDocument toDocument(RefreshToken rt) {
     return RefreshTokenDocument.builder()
         .id(rt.getId())
         .token(rt.getToken())
         .userId(rt.getUserId())
+        .tenantId(rt.getTenantId())
         .expiryDate(rt.getExpiryDate())
         .build();
   }
 
   private RefreshToken toDomain(RefreshTokenDocument doc) {
-    return new RefreshToken(doc.getId(), doc.getToken(), doc.getUserId(), doc.getExpiryDate());
+    return new RefreshToken(
+        doc.getId(), doc.getToken(), doc.getUserId(), doc.getTenantId(), doc.getExpiryDate());
   }
 }

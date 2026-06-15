@@ -22,5 +22,6 @@ public class RefreshTokenDocument {
   private String token;
 
   private String userId;
+  private String tenantId;
   private Instant expiryDate;
 }

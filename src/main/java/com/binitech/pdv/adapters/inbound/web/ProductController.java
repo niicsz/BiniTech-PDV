@@ -37,8 +37,7 @@ public class ProductController implements ProductsApi {
     if (log.isDebugEnabled()) {
       log.debug("Listando produtos para role={}", userProvider.getUserRole());
     }
-    List<Product> products =
-        productUseCase.listAll(userProvider.getUserId(), userProvider.getUserRole(), page, size);
+    List<Product> products = productUseCase.listAll(userProvider.getTenantId(), page, size);
     if (log.isInfoEnabled()) {
       log.info("Retornando {} produto(s)", products.size());
     }
@@ -51,7 +50,8 @@ public class ProductController implements ProductsApi {
       log.info("Criando produto: barcode={}", createProductDTO.getBarcode());
     }
     Product product = webMapper.toDomain(createProductDTO);
-    Product created = productUseCase.createProduct(product, userProvider.getUserId());
+    Product created =
+        productUseCase.createProduct(product, userProvider.getUserId(), userProvider.getTenantId());
     if (log.isInfoEnabled()) {
       log.info(
           "Produto criado com sucesso: id={} barcode={}",
@@ -66,8 +66,7 @@ public class ProductController implements ProductsApi {
     if (log.isDebugEnabled()) {
       log.debug("Buscando produto por id={}", LogSanitizer.maskId(id));
     }
-    Product product =
-        productUseCase.findById(id, userProvider.getUserId(), userProvider.getUserRole());
+    Product product = productUseCase.findById(id, userProvider.getTenantId());
     if (log.isDebugEnabled()) {
       log.debug("Produto encontrado: id={}", LogSanitizer.maskId(product.getId()));
     }
@@ -85,6 +84,7 @@ public class ProductController implements ProductsApi {
             id,
             product,
             userProvider.getUserId(),
+            userProvider.getTenantId(),
             userProvider.getUserRole(),
             createProductDTO.getActive());
     if (log.isInfoEnabled()) {
@@ -98,7 +98,8 @@ public class ProductController implements ProductsApi {
     if (log.isInfoEnabled()) {
       log.info("Desativando produto id={}", LogSanitizer.maskId(id));
     }
-    productUseCase.deactivateProduct(id, userProvider.getUserId(), userProvider.getUserRole());
+    productUseCase.deactivateProduct(
+        id, userProvider.getUserId(), userProvider.getTenantId(), userProvider.getUserRole());
     if (log.isInfoEnabled()) {
       log.info("Produto desativado com sucesso: id={}", LogSanitizer.maskId(id));
     }
@@ -108,7 +109,7 @@ public class ProductController implements ProductsApi {
   @Override
   public ResponseEntity<ProductDTO> getProductByBarcode(String barcode) {
     log.debug("Buscando produto por barcode={}", barcode);
-    Product product = productUseCase.findByBarcode(barcode, userProvider.getUserId());
+    Product product = productUseCase.findByBarcode(barcode, userProvider.getTenantId());
     if (log.isDebugEnabled()) {
       log.debug("Produto encontrado por barcode: id={}", LogSanitizer.maskId(product.getId()));
     }

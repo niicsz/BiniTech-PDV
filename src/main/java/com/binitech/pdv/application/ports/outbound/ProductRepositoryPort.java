@@ -23,4 +23,12 @@ public interface ProductRepositoryPort {
   Optional<Product> findByBarcodeAndUserId(String barcode, String userId);
 
   boolean existsByBarcodeAndUserId(String barcode, String userId);
+
+  List<Product> findAllByTenantId(String tenantId, int page, int size);
+
+  Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId);
+
+  boolean existsByBarcodeAndTenantId(String barcode, String tenantId);
+
+  long countActiveByTenantId(String tenantId);
 }

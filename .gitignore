@@ -51,3 +51,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Claude Code tooling (não faz parte do app)
+.claude/
+.agents/
+skills-lock.json
+

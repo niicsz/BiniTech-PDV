@@ -1,5 +1,6 @@
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
@@ -7,6 +8,7 @@ let isRefreshing = false;
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
   const authService = inject(AuthService);
+  const router = inject(Router);
 
   if (req.url.includes('/api/auth/login') || req.url.includes('/api/auth/refresh')) {
     return next(req);
@@ -44,6 +46,12 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
             return throwError(() => refreshError);
           })
         );
+      }
+      if (error.status === 402) {
+        // Tenant bloqueado/suspenso por pagamento: leva o usuário para a tela de billing.
+        console.warn('[AuthInterceptor] Recebido 402 (pagamento pendente), redirecionando para /billing');
+        router.navigate(['/billing']);
+        return throwError(() => error);
       }
       if (error.status >= 500) {
         console.error('[AuthInterceptor] Erro do servidor:', error.status, req.url, error.message);

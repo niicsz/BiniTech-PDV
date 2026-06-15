@@ -20,15 +20,19 @@ public class SecurityConfig {
   private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final TenantValidationFilter tenantValidationFilter;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+  public SecurityConfig(
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      TenantValidationFilter tenantValidationFilter) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.tenantValidationFilter = tenantValidationFilter;
   }
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     log.info("Configurando SecurityFilterChain com JWT stateless");
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/webhooks/**"))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .headers(
@@ -62,22 +66,34 @@ public class SecurityConfig {
                                     + "form-action 'self'")))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh")
+                auth.requestMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/login",
+                        "/api/auth/refresh",
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password")
+                    .permitAll()
+                    .requestMatchers("/webhooks/**")
                     .permitAll()
                     .requestMatchers(
                         "/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**")
                     .permitAll()
                     .requestMatchers("/actuator/health/**", "/actuator/info")
                     .permitAll()
+                    .requestMatchers("/api/public/**")
+                    .permitAll()
+                    .requestMatchers("/api/admin/**")
+                    .hasRole("SUPER_ADMIN")
                     .requestMatchers("/actuator/**")
-                    .hasRole("ADMIN")
+                    .hasAnyRole("SUPER_ADMIN", "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/auth/register")
-                    .hasRole("ADMIN")
+                    .hasAnyRole("SUPER_ADMIN", "ADMIN", "TENANT_ADMIN")
                     .requestMatchers("/api/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(tenantValidationFilter, JwtAuthenticationFilter.class);
 
     return http.build();
   }

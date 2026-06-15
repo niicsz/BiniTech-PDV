@@ -33,7 +33,9 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
             key = "#product.id",
             condition = "#product.id != null"),
         @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "product_by_barcode_tenant", allEntries = true),
         @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_by_tenant", allEntries = true),
         @CacheEvict(value = "products_all", allEntries = true)
       })
   public Product save(Product product) {
@@ -68,7 +70,9 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
       evict = {
         @CacheEvict(value = "product_by_id", key = "#id"),
         @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "product_by_barcode_tenant", allEntries = true),
         @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_by_tenant", allEntries = true),
         @CacheEvict(value = "products_all", allEntries = true)
       })
   public void deleteById(String id) {
@@ -102,5 +106,34 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Override
   public boolean existsByBarcodeAndUserId(String barcode, String userId) {
     return repository.existsByBarcodeAndUserId(barcode, userId);
+  }
+
+  @Override
+  @Cacheable(value = "products_by_tenant", key = "#tenantId + ':' + #page + ':' + #size")
+  public List<Product> findAllByTenantId(String tenantId, int page, int size) {
+    return repository
+        .findAllByTenantId(tenantId, PageRequest.of(page, size, Sort.by("description").ascending()))
+        .stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
+
+  @Override
+  @Cacheable(
+      value = "product_by_barcode_tenant",
+      key = "#barcode + ':' + #tenantId",
+      unless = "#result == null")
+  public Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId) {
+    return repository.findByBarcodeAndTenantId(barcode, tenantId).map(mapper::toDomain);
+  }
+
+  @Override
+  public boolean existsByBarcodeAndTenantId(String barcode, String tenantId) {
+    return repository.existsByBarcodeAndTenantId(barcode, tenantId);
+  }
+
+  @Override
+  public long countActiveByTenantId(String tenantId) {
+    return repository.countByTenantIdAndActiveTrue(tenantId);
   }
 }

@@ -407,6 +407,8 @@ components:
         password:
           type: string
           minLength: 1
+        tenantId:
+          type: string
 
     RegisterRequestDTO:
       type: object
@@ -421,10 +423,14 @@ components:
         password:
           type: string
           minLength: 6
+        tenantId:
+          type: string
         role:
           type: string
           enum:
+            - SUPER_ADMIN
             - ADMIN
+            - TENANT_ADMIN
             - OPERATOR
 
     RefreshTokenRequestDTO:
@@ -445,6 +451,8 @@ components:
         username:
           type: string
         role:
+          type: string
+        tenantId:
           type: string
 
     ProductDTO:

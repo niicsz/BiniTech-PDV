@@ -5,7 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -13,13 +14,18 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "users")
+@CompoundIndexes({
+  @CompoundIndex(
+      name = "idx_username_tenantId",
+      def = "{'username': 1, 'tenantId': 1}",
+      unique = true)
+})
 public class UserDocument {
 
   @Id private String id;
 
-  @Indexed(unique = true)
   private String username;
-
   private String password;
   private String role;
+  private String tenantId;
 }

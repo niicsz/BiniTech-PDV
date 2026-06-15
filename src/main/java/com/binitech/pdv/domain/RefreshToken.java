@@ -7,14 +7,20 @@ public class RefreshToken {
   private String id;
   private String token;
   private String userId;
+  private String tenantId;
   private Instant expiryDate;
 
   public RefreshToken() {}
 
   public RefreshToken(String id, String token, String userId, Instant expiryDate) {
+    this(id, token, userId, null, expiryDate);
+  }
+
+  public RefreshToken(String id, String token, String userId, String tenantId, Instant expiryDate) {
     this.id = id;
     this.token = token;
     this.userId = userId;
+    this.tenantId = tenantId;
     this.expiryDate = expiryDate;
   }
 
@@ -44,6 +50,14 @@ public class RefreshToken {
 
   public void setUserId(String userId) {
     this.userId = userId;
+  }
+
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
   }
 
   public Instant getExpiryDate() {

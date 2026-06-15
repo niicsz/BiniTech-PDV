@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.User;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepositoryPort {
@@ -9,7 +10,17 @@ public interface UserRepositoryPort {
 
   Optional<User> findById(String id);
 
+  List<User> findAllByTenantId(String tenantId);
+
   Optional<User> findByUsername(String username);
 
   boolean existsByUsername(String username);
+
+  Optional<User> findByUsernameAndTenantId(String username, String tenantId);
+
+  Optional<User> findByUsernameAndTenantIdIsNull(String username);
+
+  boolean existsByUsernameAndTenantId(String username, String tenantId);
+
+  long countByTenantId(String tenantId);
 }

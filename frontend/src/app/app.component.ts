@@ -24,7 +24,7 @@ import { SaleService } from './pos/services/sale.service';
     SettingsModalComponent
   ],
   template: `
-    @if (authService.isLoggedIn() && !isLoginRoute()) {
+    @if (authService.isLoggedIn() && !isPublicRoute()) {
       <header class="app-header">
         <div class="header-inner">
           <div class="toolbar-brand" routerLink="/pdv">
@@ -55,10 +55,22 @@ import { SaleService } from './pos/services/sale.service';
               <mat-icon>account_balance_wallet</mat-icon>
               <span>Devedores</span>
             </a>
-            @if (authService.isAdmin()) {
+            @if (authService.canManageUsers()) {
               <a routerLink="/register" routerLinkActive="active-link" class="nav-item">
                 <mat-icon>group_add</mat-icon>
                 <span>Usuários</span>
+              </a>
+            }
+            @if (!authService.isSuperAdmin()) {
+              <a routerLink="/billing" routerLinkActive="active-link" class="nav-item">
+                <mat-icon>credit_card</mat-icon>
+                <span>Assinatura</span>
+              </a>
+            }
+            @if (authService.isSuperAdmin()) {
+              <a routerLink="/admin" class="nav-item nav-item-admin">
+                <mat-icon>admin_panel_settings</mat-icon>
+                <span>Admin</span>
               </a>
             }
           </nav>
@@ -69,6 +81,11 @@ import { SaleService } from './pos/services/sale.service';
             <button mat-icon-button matTooltip="Alternar Tema" (click)="themeService.toggleTheme()" class="action-btn">
               <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
             </button>
+            @if (!authService.isSuperAdmin()) {
+              <button mat-icon-button matTooltip="Alterar senha" routerLink="/change-password" class="action-btn">
+                <mat-icon>vpn_key</mat-icon>
+              </button>
+            }
             <button mat-icon-button matTooltip="Configurações" (click)="showSettings = true" class="action-btn">
               <mat-icon>settings</mat-icon>
             </button>
@@ -91,7 +108,7 @@ import { SaleService } from './pos/services/sale.service';
       </header>
     }
 
-    <main [class.app-main]="authService.isLoggedIn() && !isLoginRoute()">
+    <main [class.app-main]="authService.isLoggedIn() && !isPublicRoute()">
       <router-outlet></router-outlet>
     </main>
 
@@ -218,6 +235,11 @@ import { SaleService } from './pos/services/sale.service';
     .nav-item.active-link mat-icon {
       color: var(--primary-light);
     }
+    .nav-item-admin {
+      color: #a78bfa !important;
+    }
+    .nav-item-admin mat-icon { color: #a78bfa !important; }
+    .nav-item-admin:hover { background: rgba(124,58,237,0.12) !important; }
 
     .spacer {
       flex: 1;
@@ -445,8 +467,15 @@ export class AppComponent implements OnInit {
     }
   }
 
+  isPublicRoute(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/login' || url === '/' || url.startsWith('/signup')
+      || url === '/forgot-password' || url === '/reset-password'
+      || url === '/termos' || url === '/privacidade' || url === '/sobre-nos' || url === '/admin';
+  }
+
   isLoginRoute(): boolean {
-    return this.router.url === '/login';
+    return this.isPublicRoute();
   }
 
   onLogout(): void {

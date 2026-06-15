@@ -19,16 +19,24 @@ class JwtTokenProviderTest {
   @Test
   @DisplayName("Deve gerar token válido")
   void generateAccessToken_shouldBeValid() {
-    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertNotNull(token);
     assertTrue(jwtTokenProvider.validateToken(token));
   }
 
   @Test
+  @DisplayName("Deve extrair tenantId do token")
+  void getTenantIdFromToken_shouldReturnCorrectTenantId() {
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
+
+    assertEquals("tenant1", jwtTokenProvider.getTenantIdFromToken(token));
+  }
+
+  @Test
   @DisplayName("Deve extrair userId do token")
   void getUserIdFromToken_shouldReturnCorrectUserId() {
-    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertEquals("user1", jwtTokenProvider.getUserIdFromToken(token));
   }
@@ -36,7 +44,7 @@ class JwtTokenProviderTest {
   @Test
   @DisplayName("Deve extrair username do token")
   void getUsernameFromToken_shouldReturnCorrectUsername() {
-    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertEquals("admin", jwtTokenProvider.getUsernameFromToken(token));
   }
@@ -44,7 +52,7 @@ class JwtTokenProviderTest {
   @Test
   @DisplayName("Deve extrair role do token")
   void getRoleFromToken_shouldReturnCorrectRole() {
-    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertEquals("ADMIN", jwtTokenProvider.getRoleFromToken(token));
   }
@@ -52,7 +60,7 @@ class JwtTokenProviderTest {
   @Test
   @DisplayName("Token adulterado deve ser inválido")
   void validateToken_withTamperedToken_shouldReturnFalse() {
-    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
     String tamperedToken = token + "tampered";
 
     assertFalse(jwtTokenProvider.validateToken(tamperedToken));
@@ -75,7 +83,7 @@ class JwtTokenProviderTest {
   void validateToken_withExpiredToken_shouldReturnFalse() {
     JwtTokenProvider expiredProvider =
         new JwtTokenProvider("test-secret-key-that-is-at-least-32-characters-long-for-hmac", 0L);
-    String token = expiredProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = expiredProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertFalse(expiredProvider.validateToken(token));
   }
@@ -86,7 +94,7 @@ class JwtTokenProviderTest {
     JwtTokenProvider otherProvider =
         new JwtTokenProvider(
             "another-secret-key-that-is-at-least-32-characters-long-here", 3600000L);
-    String token = otherProvider.generateAccessToken("user1", "admin", "ADMIN");
+    String token = otherProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");
 
     assertFalse(jwtTokenProvider.validateToken(token));
   }
