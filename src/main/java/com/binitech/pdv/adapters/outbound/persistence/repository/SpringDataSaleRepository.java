@@ -23,4 +23,14 @@ public interface SpringDataSaleRepository extends MongoRepository<SaleDocument, 
 
   @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'userId': ?0 }")
   List<SaleDocument> findDebtorsByUserId(String userId);
+
+  List<SaleDocument> findAllByTenantId(String tenantId, Pageable pageable);
+
+  List<SaleDocument> findByTimestampBetweenAndTenantId(
+      LocalDateTime start, LocalDateTime end, String tenantId);
+
+  @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'tenantId': ?0 }")
+  List<SaleDocument> findDebtorsByTenantId(String tenantId);
+
+  long countByTenantIdAndTimestampBetween(String tenantId, LocalDateTime start, LocalDateTime end);
 }

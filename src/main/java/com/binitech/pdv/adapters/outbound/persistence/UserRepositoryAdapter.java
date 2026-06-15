@@ -39,16 +39,47 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     return repository.existsByUsername(username);
   }
 
+  @Override
+  public Optional<User> findByUsernameAndTenantId(String username, String tenantId) {
+    return repository.findByUsernameAndTenantId(username, tenantId).map(this::toDomain);
+  }
+
+  @Override
+  public Optional<User> findByUsernameAndTenantIdIsNull(String username) {
+    return repository.findByUsernameAndTenantIdIsNull(username).map(this::toDomain);
+  }
+
+  @Override
+  public boolean existsByUsernameAndTenantId(String username, String tenantId) {
+    return repository.existsByUsernameAndTenantId(username, tenantId);
+  }
+
+  @Override
+  public long countByTenantId(String tenantId) {
+    return repository.countByTenantId(tenantId);
+  }
+
+  @Override
+  public java.util.List<User> findAllByTenantId(String tenantId) {
+    return repository.findAllByTenantId(tenantId).stream().map(this::toDomain).toList();
+  }
+
   private UserDocument toDocument(User user) {
     return UserDocument.builder()
         .id(user.getId())
         .username(user.getUsername())
         .password(user.getPassword())
         .role(user.getRole().name())
+        .tenantId(user.getTenantId())
         .build();
   }
 
   private User toDomain(UserDocument doc) {
-    return new User(doc.getId(), doc.getUsername(), doc.getPassword(), Role.valueOf(doc.getRole()));
+    return new User(
+        doc.getId(),
+        doc.getUsername(),
+        doc.getPassword(),
+        Role.valueOf(doc.getRole()),
+        doc.getTenantId());
   }
 }

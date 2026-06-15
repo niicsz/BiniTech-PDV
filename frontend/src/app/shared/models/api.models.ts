@@ -73,6 +73,7 @@ export interface ErrorDTO {
 export interface LoginRequest {
   username: string;
   password: string;
+  tenantId?: string;
 }
 
 export interface RegisterRequest {
@@ -90,4 +91,5 @@ export interface AuthResponse {
   refreshToken: string;
   username: string;
   role: string;
+  tenantId?: string;
 }

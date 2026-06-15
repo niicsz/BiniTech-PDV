@@ -9,14 +9,20 @@ public class User {
   private String username;
   private String password;
   private Role role;
+  private String tenantId;
 
   public User() {}
 
   public User(String id, String username, String password, Role role) {
+    this(id, username, password, role, null);
+  }
+
+  public User(String id, String username, String password, Role role, String tenantId) {
     this.id = id;
     this.username = username;
     this.password = password;
     this.role = role;
+    this.tenantId = tenantId;
   }
 
   public String getId() {
@@ -51,6 +57,14 @@ public class User {
     this.role = role;
   }
 
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -66,6 +80,14 @@ public class User {
 
   @Override
   public String toString() {
-    return "User{id='" + id + "', username='" + username + "', role=" + role + "}";
+    return "User{id='"
+        + id
+        + "', username='"
+        + username
+        + "', role="
+        + role
+        + ", tenantId='"
+        + tenantId
+        + "'}";
   }
 }

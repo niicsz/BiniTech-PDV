@@ -56,7 +56,10 @@ class AuthControllerIT {
 
     adminToken =
         jwtTokenProvider.generateAccessToken(
-            adminUser.getId(), adminUser.getUsername(), adminUser.getRole().name());
+            adminUser.getId(),
+            adminUser.getUsername(),
+            adminUser.getRole().name(),
+            adminUser.getTenantId());
   }
 
   @Nested

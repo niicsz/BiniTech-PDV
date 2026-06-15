@@ -12,9 +12,9 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  login(username: string, password: string): Observable<AuthResponse> {
+  login(username: string, password: string, tenantId?: string): Observable<AuthResponse> {
     console.info('[AuthService] Realizando login para o usuário:', username);
-    const body: LoginRequest = { username, password };
+    const body: LoginRequest = { username, password, ...(tenantId ? { tenantId } : {}) };
     return this.http.post<AuthResponse>(`${this.authUrl}/login`, body).pipe(
       tap(res => {
         this.storeAuth(res);
@@ -29,6 +29,19 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.authUrl}/register`, body).pipe(
       tap(res => console.info('[AuthService] Usuário registrado com sucesso:', res.username))
     );
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    console.info('[AuthService] Alterando senha do usuário:', this.getUsername());
+    return this.http.post<void>(`${this.authUrl}/change-password`, { currentPassword, newPassword });
+  }
+
+  forgotPassword(tenantSlug: string, username: string): Observable<void> {
+    return this.http.post<void>(`${this.authUrl}/forgot-password`, { tenantSlug, username });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.authUrl}/reset-password`, { token, newPassword });
   }
 
   refreshToken(): Observable<AuthResponse> {
@@ -60,6 +73,7 @@ export class AuthService {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    localStorage.removeItem('tenantId');
     this.loggedIn$.next(false);
     this.router.navigate(['/login']);
   }
@@ -88,11 +102,31 @@ export class AuthService {
     return this.getRole() === 'ADMIN';
   }
 
+  isSuperAdmin(): boolean {
+    return this.getRole() === 'SUPER_ADMIN';
+  }
+
+  isTenantAdmin(): boolean {
+    return this.getRole() === 'TENANT_ADMIN';
+  }
+
+  canManageUsers(): boolean {
+    const role = this.getRole();
+    return role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'TENANT_ADMIN';
+  }
+
+  getTenantId(): string | null {
+    return localStorage.getItem('tenantId');
+  }
+
   private storeAuth(res: AuthResponse): void {
     localStorage.setItem('accessToken', res.accessToken);
     localStorage.setItem('refreshToken', res.refreshToken);
     localStorage.setItem('username', res.username);
     localStorage.setItem('role', res.role);
+    if (res.tenantId) {
+      localStorage.setItem('tenantId', res.tenantId);
+    }
     this.loggedIn$.next(true);
     console.debug('[AuthService] Dados de autenticação armazenados para:', res.username);
   }

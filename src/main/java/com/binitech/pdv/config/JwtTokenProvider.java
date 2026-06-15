@@ -41,7 +41,7 @@ public class JwtTokenProvider {
     log.info("JwtTokenProvider inicializado com expiração de access token: {}ms", accessExpiration);
   }
 
-  public String generateAccessToken(String userId, String username, String role) {
+  public String generateAccessToken(String userId, String username, String role, String tenantId) {
     Date now = new Date();
     Date expiry = new Date(now.getTime() + accessExpiration);
 
@@ -50,12 +50,18 @@ public class JwtTokenProvider {
             .subject(userId)
             .claim("username", username)
             .claim("role", role)
+            .claim("tenantId", tenantId)
             .issuedAt(now)
             .expiration(expiry)
             .signWith(key)
             .compact();
 
-    log.debug("Access token gerado para userId={} username={} role={}", userId, username, role);
+    log.debug(
+        "Access token gerado para userId={} username={} role={} tenantId={}",
+        userId,
+        username,
+        role,
+        tenantId);
     return token;
   }
 
@@ -81,6 +87,10 @@ public class JwtTokenProvider {
 
   public String getRoleFromToken(String token) {
     return getClaims(token).get("role", String.class);
+  }
+
+  public String getTenantIdFromToken(String token) {
+    return getClaims(token).get("tenantId", String.class);
   }
 
   private Claims getClaims(String token) {

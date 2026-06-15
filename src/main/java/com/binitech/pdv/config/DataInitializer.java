@@ -31,22 +31,32 @@ public class DataInitializer implements CommandLineRunner {
 
   @Override
   public void run(String... args) {
-    var existing = userRepository.findByUsername(adminUsername);
+    var existing = userRepository.findByUsernameAndTenantIdIsNull(adminUsername);
     if (existing.isEmpty()) {
       User admin = new User();
       admin.setUsername(adminUsername);
       admin.setPassword(passwordEncoder.encode(adminPassword));
-      admin.setRole(Role.ADMIN);
+      admin.setRole(Role.SUPER_ADMIN);
+      admin.setTenantId(null);
       userRepository.save(admin);
-      log.info("Usuário admin padrão criado com sucesso.");
+      log.info("Usuário super admin padrão criado com sucesso.");
     } else {
       User admin = existing.get();
+      boolean updated = false;
       if (!passwordEncoder.matches(adminPassword, admin.getPassword())) {
         admin.setPassword(passwordEncoder.encode(adminPassword));
+        updated = true;
+      }
+      if (admin.getRole() != Role.SUPER_ADMIN) {
+        admin.setRole(Role.SUPER_ADMIN);
+        updated = true;
+      }
+      admin.setTenantId(null);
+      if (updated) {
         userRepository.save(admin);
-        log.info("Senha do admin atualizada conforme variável de ambiente.");
+        log.info("Super admin padrão atualizado conforme configuração.");
       } else {
-        log.info("Usuário admin já existe e senha está atualizada.");
+        log.info("Super admin padrão já existe e está atualizado.");
       }
     }
   }

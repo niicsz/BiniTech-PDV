@@ -20,7 +20,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @CompoundIndexes({
   @CompoundIndex(name = "idx_userId_timestamp", def = "{'userId': 1, 'timestamp': -1}"),
   @CompoundIndex(name = "idx_userId_paid", def = "{'userId': 1, 'paid': 1}"),
-  @CompoundIndex(name = "idx_paid_method", def = "{'paid': 1, 'payments.method': 1}")
+  @CompoundIndex(name = "idx_paid_method", def = "{'paid': 1, 'payments.method': 1}"),
+  @CompoundIndex(name = "idx_tenantId_timestamp", def = "{'tenantId': 1, 'timestamp': -1}"),
+  @CompoundIndex(name = "idx_tenantId_paid", def = "{'tenantId': 1, 'paid': 1}")
 })
 public class SaleDocument {
 
@@ -36,6 +38,7 @@ public class SaleDocument {
   @Indexed private LocalDateTime timestamp;
 
   private String userId;
+  private String tenantId;
   private String customerName;
   private String customerPhone;
   private boolean paid;

@@ -12,4 +12,6 @@ public interface SpringDataRefreshTokenRepository
   Optional<RefreshTokenDocument> findByToken(String token);
 
   void deleteByUserId(String userId);
+
+  void deleteByUserIdAndTenantId(String userId, String tenantId);
 }

@@ -17,7 +17,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "products")
 @CompoundIndexes({
   @CompoundIndex(name = "idx_barcode_userId", def = "{'barcode': 1, 'userId': 1}"),
-  @CompoundIndex(name = "idx_userId_active", def = "{'userId': 1, 'active': 1}")
+  @CompoundIndex(name = "idx_userId_active", def = "{'userId': 1, 'active': 1}"),
+  @CompoundIndex(name = "idx_tenantId_active", def = "{'tenantId': 1, 'active': 1}"),
+  @CompoundIndex(name = "idx_barcode_tenantId", def = "{'barcode': 1, 'tenantId': 1}")
 })
 public class ProductDocument {
 
@@ -32,5 +34,6 @@ public class ProductDocument {
   private int stockQuantity;
   private boolean active;
   private String userId;
+  private String tenantId;
   private String category;
 }

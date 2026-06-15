@@ -17,6 +17,7 @@ public class Sale {
   private double change;
   private LocalDateTime timestamp;
   private String userId;
+  private String tenantId;
   private String customerName;
   private String customerPhone;
   private boolean skipStockValidation;
@@ -136,6 +137,14 @@ public class Sale {
 
   public void setUserId(String userId) {
     this.userId = userId;
+  }
+
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
   }
 
   public String getCustomerName() {

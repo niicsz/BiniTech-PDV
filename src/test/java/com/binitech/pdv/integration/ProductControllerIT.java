@@ -71,10 +71,14 @@ class ProductControllerIT {
                 });
 
     adminToken =
-        jwtTokenProvider.generateAccessToken(adminUser.getId(), adminUser.getUsername(), "ADMIN");
+        jwtTokenProvider.generateAccessToken(
+            adminUser.getId(), adminUser.getUsername(), "ADMIN", adminUser.getTenantId());
     operatorToken =
         jwtTokenProvider.generateAccessToken(
-            operatorUser.getId(), operatorUser.getUsername(), "OPERATOR");
+            operatorUser.getId(),
+            operatorUser.getUsername(),
+            "OPERATOR",
+            operatorUser.getTenantId());
   }
 
   private Product createAndSaveProduct(String barcode, String userId) {

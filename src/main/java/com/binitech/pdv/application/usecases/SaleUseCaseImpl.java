@@ -16,6 +16,7 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,16 +39,16 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
   @Override
   @Transactional
-  public Sale createSale(Sale sale, String userId) {
+  public Sale createSale(Sale sale, String userId, String tenantId) {
     if (log.isInfoEnabled()) {
       log.info(
-          "Criando venda com {} item(ns) para userId={}",
+          "Criando venda com {} item(ns) para tenantId={}",
           sale.getItems().size(),
-          LogSanitizer.maskId(userId));
+          LogSanitizer.maskId(tenantId));
     }
 
     Map<String, Product> productsById = loadProductsForSale(sale.getItems());
-    validateAndEnrichItems(sale, productsById, userId);
+    validateAndEnrichItems(sale, productsById, tenantId);
 
     sale.recalculate();
     sale.validate();
@@ -56,6 +57,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     productsById.values().forEach(productRepository::save);
 
     sale.setUserId(userId);
+    sale.setTenantId(tenantId);
     sale.setTimestamp(LocalDateTime.now());
 
     Sale saved = saleRepository.save(sale);
@@ -91,21 +93,22 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     return productsById;
   }
 
-  private void validateAndEnrichItems(Sale sale, Map<String, Product> productsById, String userId) {
+  private void validateAndEnrichItems(
+      Sale sale, Map<String, Product> productsById, String tenantId) {
     for (SaleItem item : sale.getItems()) {
       Product product = productsById.get(item.getProductId());
-      validateProductOwnership(product, userId);
+      validateProductTenant(product, tenantId);
       validateProductActive(product);
       validateStock(sale, item, product);
       enrichItem(item, product);
     }
   }
 
-  private void validateProductOwnership(Product product, String userId) {
-    if (!product.getUserId().equals(userId)) {
+  private void validateProductTenant(Product product, String tenantId) {
+    if (!Objects.equals(product.getTenantId(), tenantId)) {
       if (log.isWarnEnabled()) {
         log.warn(
-            "Produto não pertence ao usuário: productId={}", LogSanitizer.maskId(product.getId()));
+            "Produto não pertence ao tenant: productId={}", LogSanitizer.maskId(product.getId()));
       }
       throw new BusinessException(
           "Produto não pertence ao seu catálogo: " + product.getDescription());
@@ -147,104 +150,51 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   }
 
   @Override
-  public Sale findById(String id, String userId, Role role) {
-    log.debug("Buscando venda por id={} userId={} role={}", id, userId, role);
-    Sale sale =
-        saleRepository
-            .findById(id)
-            .orElseThrow(
-                () -> {
-                  log.warn("Venda não encontrada: id={}", id);
-                  return new ResourceNotFoundException("Venda", "id", id);
-                });
-
-    if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
-      log.warn(
-          "Acesso negado à venda: id={} ownerUserId={} requestUserId={}",
-          id,
-          sale.getUserId(),
-          userId);
-      throw new ResourceNotFoundException("Venda", "id", id);
-    }
-
-    return sale;
+  public Sale findById(String id, String tenantId) {
+    log.debug("Buscando venda por id={} tenantId={}", id, LogSanitizer.maskId(tenantId));
+    return findOwnedSale(id, tenantId);
   }
 
   @Override
-  public List<Sale> listSalesByDay(LocalDate date, String userId, Role role) {
-    log.debug("Listando vendas por dia: date={} userId={} role={}", date, userId, role);
+  public List<Sale> listSalesByDay(LocalDate date, String tenantId) {
+    log.debug("Listando vendas por dia: date={} tenantId={}", date, LogSanitizer.maskId(tenantId));
     LocalDateTime start = date.atStartOfDay();
     LocalDateTime end = date.atTime(LocalTime.MAX);
-    if (role == Role.ADMIN) {
-      List<Sale> sales = saleRepository.findByTimestampBetween(start, end);
-      if (log.isDebugEnabled()) {
-        log.debug("Vendas encontradas (ADMIN) por dia: {}", sales.size());
-      }
-      return sales;
-    }
-    List<Sale> sales = saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
-    if (log.isDebugEnabled()) {
-      log.debug("Vendas encontradas por dia para userId={}: {}", userId, sales.size());
-    }
-    return sales;
+    return saleRepository.findByTimestampBetweenAndTenantId(start, end, tenantId);
   }
 
   @Override
-  public List<Sale> listSalesByPeriod(
-      LocalDate startDate, LocalDate endDate, String userId, Role role) {
+  public List<Sale> listSalesByPeriod(LocalDate startDate, LocalDate endDate, String tenantId) {
     log.debug(
-        "Listando vendas por período: {} a {} userId={} role={}", startDate, endDate, userId, role);
+        "Listando vendas por período: {} a {} tenantId={}",
+        startDate,
+        endDate,
+        LogSanitizer.maskId(tenantId));
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.atTime(LocalTime.MAX);
-    if (role == Role.ADMIN) {
-      List<Sale> sales = saleRepository.findByTimestampBetween(start, end);
-      if (log.isDebugEnabled()) {
-        log.debug("Vendas encontradas (ADMIN) por período: {}", sales.size());
-      }
-      return sales;
-    }
-    List<Sale> sales = saleRepository.findByTimestampBetweenAndUserId(start, end, userId);
-    if (log.isDebugEnabled()) {
-      log.debug("Vendas encontradas por período para userId={}: {}", userId, sales.size());
-    }
-    return sales;
+    return saleRepository.findByTimestampBetweenAndTenantId(start, end, tenantId);
   }
 
   @Override
-  public List<Sale> listAll(String userId, Role role) {
+  public List<Sale> listAll(String tenantId) {
     if (log.isDebugEnabled()) {
-      log.debug("Listando todas as vendas: userId={} role={}", LogSanitizer.maskId(userId), role);
+      log.debug("Listando todas as vendas: tenantId={}", LogSanitizer.maskId(tenantId));
     }
-    return listAll(userId, role, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
+    return listAll(tenantId, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
   }
 
   @Override
-  public List<Sale> listAll(String userId, Role role, int page, int size) {
+  public List<Sale> listAll(String tenantId, int page, int size) {
     int sanitizedPage = sanitizePage(page);
     int sanitizedSize = sanitizeSize(size);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Listando vendas paginadas: userId={} role={} page={} size={}",
-          LogSanitizer.maskId(userId),
-          role,
+          "Listando vendas paginadas: tenantId={} page={} size={}",
+          LogSanitizer.maskId(tenantId),
           sanitizedPage,
           sanitizedSize);
     }
-    if (role == Role.ADMIN) {
-      List<Sale> sales = saleRepository.findAll(sanitizedPage, sanitizedSize);
-      if (log.isDebugEnabled()) {
-        log.debug("Total de vendas retornadas (ADMIN): {}", sales.size());
-      }
-      return sales;
-    }
-    List<Sale> sales = saleRepository.findAllByUserId(userId, sanitizedPage, sanitizedSize);
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Total de vendas retornadas para userId={}: {}",
-          LogSanitizer.maskId(userId),
-          sales.size());
-    }
-    return sales;
+    return saleRepository.findAllByTenantId(tenantId, sanitizedPage, sanitizedSize);
   }
 
   private void decreaseStockForItems(Sale sale, Map<String, Product> productsById) {
@@ -288,46 +238,24 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   }
 
   @Override
-  public List<Sale> listDebtors(String userId, Role role) {
-    log.debug("Listando devedores: userId={} role={}", userId, role);
-    if (role == Role.ADMIN) {
-      List<Sale> debtors = saleRepository.findDebtors();
-      if (log.isDebugEnabled()) {
-        log.debug("Total de débitos (ADMIN): {}", debtors.size());
-      }
-      return debtors;
-    }
-    List<Sale> debtors = saleRepository.findDebtorsByUserId(userId);
-    if (log.isDebugEnabled()) {
-      log.debug("Total de débitos para userId={}: {}", userId, debtors.size());
-    }
-    return debtors;
+  public List<Sale> listDebtors(String tenantId) {
+    log.debug("Listando devedores: tenantId={}", LogSanitizer.maskId(tenantId));
+    return saleRepository.findDebtorsByTenantId(tenantId);
   }
 
   @Override
-  public Sale markAsPaid(String id, String userId, Role role) {
+  public Sale markAsPaid(String id, String userId, String tenantId, Role role) {
     if (log.isInfoEnabled()) {
       log.info(
-          "Marcando venda como paga: id={} userId={} role={}",
+          "Marcando venda como paga: id={} tenantId={} role={}",
           LogSanitizer.maskId(id),
-          LogSanitizer.maskId(userId),
+          LogSanitizer.maskId(tenantId),
           role);
     }
-    Sale sale =
-        saleRepository
-            .findById(id)
-            .orElseThrow(
-                () -> {
-                  log.warn("Venda não encontrada para marcar como paga: id={}", id);
-                  return new ResourceNotFoundException("Venda", "id", id);
-                });
+    Sale sale = findOwnedSale(id, tenantId);
 
-    if (role != Role.ADMIN && !sale.getUserId().equals(userId)) {
-      log.warn(
-          "Sem permissão para marcar venda como paga: id={} ownerUserId={} requestUserId={}",
-          id,
-          sale.getUserId(),
-          userId);
+    if (!isPrivileged(role) && !Objects.equals(sale.getUserId(), userId)) {
+      log.warn("Sem permissão para marcar venda como paga: id={}", LogSanitizer.maskId(id));
       throw new ResourceNotFoundException("Venda", "id", id);
     }
 
@@ -337,5 +265,28 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(saved.getId()));
     }
     return saved;
+  }
+
+  private Sale findOwnedSale(String id, String tenantId) {
+    Sale sale =
+        saleRepository
+            .findById(id)
+            .orElseThrow(
+                () -> {
+                  log.warn("Venda não encontrada: id={}", LogSanitizer.maskId(id));
+                  return new ResourceNotFoundException("Venda", "id", id);
+                });
+    if (!Objects.equals(sale.getTenantId(), tenantId)) {
+      log.warn(
+          "Acesso negado à venda de outro tenant: id={} tenantId={}",
+          LogSanitizer.maskId(id),
+          LogSanitizer.maskId(tenantId));
+      throw new ResourceNotFoundException("Venda", "id", id);
+    }
+    return sale;
+  }
+
+  private boolean isPrivileged(Role role) {
+    return role == Role.ADMIN || role == Role.TENANT_ADMIN || role == Role.SUPER_ADMIN;
   }
 }

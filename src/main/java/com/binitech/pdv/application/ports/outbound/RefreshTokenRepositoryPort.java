@@ -10,4 +10,6 @@ public interface RefreshTokenRepositoryPort {
   Optional<RefreshToken> findByToken(String token);
 
   void deleteByUserId(String userId);
+
+  void deleteByUserIdAndTenantId(String userId, String tenantId);
 }

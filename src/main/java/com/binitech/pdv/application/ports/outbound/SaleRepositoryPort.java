@@ -22,4 +22,13 @@ public interface SaleRepositoryPort {
   List<Sale> findDebtors();
 
   List<Sale> findDebtorsByUserId(String userId);
+
+  List<Sale> findAllByTenantId(String tenantId, int page, int size);
+
+  List<Sale> findByTimestampBetweenAndTenantId(
+      LocalDateTime start, LocalDateTime end, String tenantId);
+
+  List<Sale> findDebtorsByTenantId(String tenantId);
+
+  long countByTenantIdAndTimestampBetween(String tenantId, LocalDateTime start, LocalDateTime end);
 }

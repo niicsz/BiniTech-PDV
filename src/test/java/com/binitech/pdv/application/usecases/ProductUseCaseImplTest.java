@@ -2,6 +2,7 @@ package com.binitech.pdv.application.usecases;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -31,7 +32,7 @@ class ProductUseCaseImplTest {
     productUseCase = new ProductUseCaseImpl(productRepository);
   }
 
-  private Product createProduct(String id, String barcode, String userId) {
+  private Product createProduct(String id, String barcode, String userId, String tenantId) {
     Product p = new Product();
     p.setId(id);
     p.setBarcode(barcode);
@@ -40,6 +41,7 @@ class ProductUseCaseImplTest {
     p.setCostPrice(5.0);
     p.setStockQuantity(100);
     p.setUserId(userId);
+    p.setTenantId(tenantId);
     p.setActive(true);
     p.setCategory("GERAL");
     return p;
@@ -52,8 +54,8 @@ class ProductUseCaseImplTest {
     @Test
     @DisplayName("Deve criar produto com sucesso")
     void createProduct_withValidData_shouldSave() {
-      Product product = createProduct(null, "123456", null);
-      when(productRepository.existsByBarcodeAndUserId("123456", "user1")).thenReturn(false);
+      Product product = createProduct(null, "123456", null, null);
+      when(productRepository.existsByBarcodeAndTenantId("123456", "tenant1")).thenReturn(false);
       when(productRepository.save(any(Product.class)))
           .thenAnswer(
               inv -> {
@@ -62,23 +64,25 @@ class ProductUseCaseImplTest {
                 return p;
               });
 
-      Product result = productUseCase.createProduct(product, "user1");
+      Product result = productUseCase.createProduct(product, "user1", "tenant1");
 
       assertNotNull(result.getId());
       assertTrue(result.isActive());
       assertEquals("user1", result.getUserId());
+      assertEquals("tenant1", result.getTenantId());
       verify(productRepository).save(product);
     }
 
     @Test
-    @DisplayName("Deve lançar BusinessException para barcode duplicado")
+    @DisplayName("Deve lançar BusinessException para barcode duplicado no tenant")
     void createProduct_withDuplicateBarcode_shouldThrow() {
-      Product product = createProduct(null, "123456", null);
-      when(productRepository.existsByBarcodeAndUserId("123456", "user1")).thenReturn(true);
+      Product product = createProduct(null, "123456", null, null);
+      when(productRepository.existsByBarcodeAndTenantId("123456", "tenant1")).thenReturn(true);
 
       BusinessException ex =
           assertThrows(
-              BusinessException.class, () -> productUseCase.createProduct(product, "user1"));
+              BusinessException.class,
+              () -> productUseCase.createProduct(product, "user1", "tenant1"));
 
       assertTrue(ex.getMessage().contains("código de barras"));
       verify(productRepository, never()).save(any());
@@ -92,60 +96,80 @@ class ProductUseCaseImplTest {
     @Test
     @DisplayName("Owner deve atualizar produto com sucesso")
     void updateProduct_byOwner_shouldSucceed() {
-      Product existing = createProduct("p1", "111", "user1");
-      Product updated = createProduct(null, "111", null);
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
+      Product updated = createProduct(null, "111", null, null);
       updated.setDescription("Atualizado");
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
       when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
-      Product result = productUseCase.updateProduct("p1", updated, "user1", Role.OPERATOR, null);
+      Product result =
+          productUseCase.updateProduct("p1", updated, "user1", "tenant1", Role.OPERATOR, null);
 
       assertEquals("Atualizado", result.getDescription());
     }
 
     @Test
-    @DisplayName("ADMIN deve atualizar produto de outro usuário")
-    void updateProduct_byAdmin_shouldSucceed() {
-      Product existing = createProduct("p1", "111", "user2");
-      Product updated = createProduct(null, "111", null);
+    @DisplayName("TENANT_ADMIN deve atualizar produto de outro usuário do mesmo tenant")
+    void updateProduct_byTenantAdmin_shouldSucceed() {
+      Product existing = createProduct("p1", "111", "user2", "tenant1");
+      Product updated = createProduct(null, "111", null, null);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
       when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
       assertDoesNotThrow(
-          () -> productUseCase.updateProduct("p1", updated, "admin1", Role.ADMIN, null));
+          () ->
+              productUseCase.updateProduct(
+                  "p1", updated, "admin1", "tenant1", Role.TENANT_ADMIN, null));
     }
 
     @Test
-    @DisplayName("Não-owner não-admin deve lançar BusinessException")
-    void updateProduct_byNonOwnerNonAdmin_shouldThrow() {
-      Product existing = createProduct("p1", "111", "user1");
-      Product updated = createProduct(null, "111", null);
+    @DisplayName("Não-owner não-privilegiado deve lançar BusinessException")
+    void updateProduct_byNonOwner_shouldThrow() {
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
+      Product updated = createProduct(null, "111", null, null);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
 
       BusinessException ex =
           assertThrows(
               BusinessException.class,
-              () -> productUseCase.updateProduct("p1", updated, "user2", Role.OPERATOR, null));
+              () ->
+                  productUseCase.updateProduct(
+                      "p1", updated, "user2", "tenant1", Role.OPERATOR, null));
 
       assertTrue(ex.getMessage().contains("permissão"));
     }
 
     @Test
-    @DisplayName("Deve lançar exceção ao trocar barcode para um duplicado")
-    void updateProduct_withDuplicateBarcode_shouldThrow() {
-      Product existing = createProduct("p1", "111", "user1");
-      Product updated = createProduct(null, "222", null);
+    @DisplayName("Produto de outro tenant deve lançar ResourceNotFoundException")
+    void updateProduct_crossTenant_shouldThrow() {
+      Product existing = createProduct("p1", "111", "user1", "tenant2");
+      Product updated = createProduct(null, "111", null, null);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
-      when(productRepository.existsByBarcodeAndUserId("222", "user1")).thenReturn(true);
+
+      assertThrows(
+          ResourceNotFoundException.class,
+          () -> productUseCase.updateProduct("p1", updated, "user1", "tenant1", Role.ADMIN, null));
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção ao trocar barcode para um duplicado no tenant")
+    void updateProduct_withDuplicateBarcode_shouldThrow() {
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
+      Product updated = createProduct(null, "222", null, null);
+
+      when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
+      when(productRepository.existsByBarcodeAndTenantId("222", "tenant1")).thenReturn(true);
 
       BusinessException ex =
           assertThrows(
               BusinessException.class,
-              () -> productUseCase.updateProduct("p1", updated, "user1", Role.OPERATOR, null));
+              () ->
+                  productUseCase.updateProduct(
+                      "p1", updated, "user1", "tenant1", Role.OPERATOR, null));
 
       assertTrue(ex.getMessage().contains("código de barras"));
     }
@@ -157,20 +181,23 @@ class ProductUseCaseImplTest {
 
       assertThrows(
           ResourceNotFoundException.class,
-          () -> productUseCase.updateProduct("p999", new Product(), "user1", Role.OPERATOR, null));
+          () ->
+              productUseCase.updateProduct(
+                  "p999", new Product(), "user1", "tenant1", Role.OPERATOR, null));
     }
 
     @Test
     @DisplayName("activeOverride deve alterar status active")
     void updateProduct_withActiveOverride_shouldChangeActive() {
-      Product existing = createProduct("p1", "111", "user1");
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
       existing.setActive(true);
-      Product updated = createProduct(null, "111", null);
+      Product updated = createProduct(null, "111", null, null);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
       when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
-      Product result = productUseCase.updateProduct("p1", updated, "user1", Role.OPERATOR, false);
+      Product result =
+          productUseCase.updateProduct("p1", updated, "user1", "tenant1", Role.OPERATOR, false);
 
       assertFalse(result.isActive());
     }
@@ -183,25 +210,25 @@ class ProductUseCaseImplTest {
     @Test
     @DisplayName("Owner deve desativar produto com sucesso")
     void deactivateProduct_byOwner_shouldSetInactive() {
-      Product existing = createProduct("p1", "111", "user1");
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
       when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
-      productUseCase.deactivateProduct("p1", "user1", Role.OPERATOR);
+      productUseCase.deactivateProduct("p1", "user1", "tenant1", Role.OPERATOR);
 
       assertFalse(existing.isActive());
       verify(productRepository).save(existing);
     }
 
     @Test
-    @DisplayName("Não-owner não-admin deve lançar BusinessException")
-    void deactivateProduct_byNonOwnerNonAdmin_shouldThrow() {
-      Product existing = createProduct("p1", "111", "user1");
+    @DisplayName("Não-owner não-privilegiado deve lançar BusinessException")
+    void deactivateProduct_byNonOwner_shouldThrow() {
+      Product existing = createProduct("p1", "111", "user1", "tenant1");
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
 
       assertThrows(
           BusinessException.class,
-          () -> productUseCase.deactivateProduct("p1", "user2", Role.OPERATOR));
+          () -> productUseCase.deactivateProduct("p1", "user2", "tenant1", Role.OPERATOR));
     }
 
     @Test
@@ -211,7 +238,7 @@ class ProductUseCaseImplTest {
 
       assertThrows(
           ResourceNotFoundException.class,
-          () -> productUseCase.deactivateProduct("p999", "user1", Role.OPERATOR));
+          () -> productUseCase.deactivateProduct("p999", "user1", "tenant1", Role.OPERATOR));
     }
   }
 
@@ -220,36 +247,23 @@ class ProductUseCaseImplTest {
   class FindByIdTests {
 
     @Test
-    @DisplayName("Owner deve encontrar produto")
-    void findById_byOwner_shouldReturn() {
-      Product product = createProduct("p1", "111", "user1");
+    @DisplayName("Deve encontrar produto do tenant")
+    void findById_sameTenant_shouldReturn() {
+      Product product = createProduct("p1", "111", "user1", "tenant1");
       when(productRepository.findById("p1")).thenReturn(Optional.of(product));
 
-      Product result = productUseCase.findById("p1", "user1", Role.OPERATOR);
+      Product result = productUseCase.findById("p1", "tenant1");
 
       assertEquals("p1", result.getId());
     }
 
     @Test
-    @DisplayName("ADMIN deve encontrar produto de outro usuário")
-    void findById_byAdmin_shouldReturn() {
-      Product product = createProduct("p1", "111", "user2");
+    @DisplayName("Produto de outro tenant deve lançar ResourceNotFoundException")
+    void findById_crossTenant_shouldThrow() {
+      Product product = createProduct("p1", "111", "user1", "tenant2");
       when(productRepository.findById("p1")).thenReturn(Optional.of(product));
 
-      Product result = productUseCase.findById("p1", "admin1", Role.ADMIN);
-
-      assertEquals("p1", result.getId());
-    }
-
-    @Test
-    @DisplayName("Não-owner não-admin deve lançar ResourceNotFoundException")
-    void findById_byNonOwnerNonAdmin_shouldThrow() {
-      Product product = createProduct("p1", "111", "user1");
-      when(productRepository.findById("p1")).thenReturn(Optional.of(product));
-
-      assertThrows(
-          ResourceNotFoundException.class,
-          () -> productUseCase.findById("p1", "user2", Role.OPERATOR));
+      assertThrows(ResourceNotFoundException.class, () -> productUseCase.findById("p1", "tenant1"));
     }
 
     @Test
@@ -258,8 +272,7 @@ class ProductUseCaseImplTest {
       when(productRepository.findById("p999")).thenReturn(Optional.empty());
 
       assertThrows(
-          ResourceNotFoundException.class,
-          () -> productUseCase.findById("p999", "user1", Role.OPERATOR));
+          ResourceNotFoundException.class, () -> productUseCase.findById("p999", "tenant1"));
     }
   }
 
@@ -268,13 +281,13 @@ class ProductUseCaseImplTest {
   class FindByBarcodeTests {
 
     @Test
-    @DisplayName("Deve encontrar produto pelo barcode")
+    @DisplayName("Deve encontrar produto pelo barcode no tenant")
     void findByBarcode_shouldReturn() {
-      Product product = createProduct("p1", "111", "user1");
-      when(productRepository.findByBarcodeAndUserId("111", "user1"))
+      Product product = createProduct("p1", "111", "user1", "tenant1");
+      when(productRepository.findByBarcodeAndTenantId("111", "tenant1"))
           .thenReturn(Optional.of(product));
 
-      Product result = productUseCase.findByBarcode("111", "user1");
+      Product result = productUseCase.findByBarcode("111", "tenant1");
 
       assertEquals("p1", result.getId());
     }
@@ -282,10 +295,11 @@ class ProductUseCaseImplTest {
     @Test
     @DisplayName("Barcode inexistente deve lançar ResourceNotFoundException")
     void findByBarcode_nonExistent_shouldThrow() {
-      when(productRepository.findByBarcodeAndUserId("999", "user1")).thenReturn(Optional.empty());
+      when(productRepository.findByBarcodeAndTenantId("999", "tenant1"))
+          .thenReturn(Optional.empty());
 
       assertThrows(
-          ResourceNotFoundException.class, () -> productUseCase.findByBarcode("999", "user1"));
+          ResourceNotFoundException.class, () -> productUseCase.findByBarcode("999", "tenant1"));
     }
   }
 
@@ -294,29 +308,18 @@ class ProductUseCaseImplTest {
   class ListAllTests {
 
     @Test
-    @DisplayName("ADMIN deve receber todos os produtos")
-    void listAll_asAdmin_shouldReturnAll() {
-      List<Product> allProducts =
-          List.of(createProduct("p1", "111", "user1"), createProduct("p2", "222", "user2"));
-      when(productRepository.findAll(0, 100)).thenReturn(allProducts);
+    @DisplayName("Deve listar produtos do tenant")
+    void listAll_shouldReturnTenantProducts() {
+      List<Product> tenantProducts =
+          List.of(
+              createProduct("p1", "111", "user1", "tenant1"),
+              createProduct("p2", "222", "user2", "tenant1"));
+      when(productRepository.findAllByTenantId("tenant1", 0, 100)).thenReturn(tenantProducts);
 
-      List<Product> result = productUseCase.listAll("admin1", Role.ADMIN);
+      List<Product> result = productUseCase.listAll("tenant1");
 
       assertEquals(2, result.size());
-      verify(productRepository).findAll(0, 100);
-      verify(productRepository, never()).findAllByUserId(any(), anyInt(), anyInt());
-    }
-
-    @Test
-    @DisplayName("OPERATOR deve receber apenas seus produtos")
-    void listAll_asOperator_shouldReturnOwn() {
-      List<Product> ownProducts = List.of(createProduct("p1", "111", "user1"));
-      when(productRepository.findAllByUserId("user1", 0, 100)).thenReturn(ownProducts);
-
-      List<Product> result = productUseCase.listAll("user1", Role.OPERATOR);
-
-      assertEquals(1, result.size());
-      verify(productRepository).findAllByUserId("user1", 0, 100);
+      verify(productRepository).findAllByTenantId("tenant1", 0, 100);
       verify(productRepository, never()).findAll(anyInt(), anyInt());
     }
   }

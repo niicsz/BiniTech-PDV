@@ -54,12 +54,13 @@ class AuthUseCaseImplTest {
   class LoginTests {
 
     @Test
-    @DisplayName("Login com credenciais válidas deve retornar tokens")
+    @DisplayName("Login com credenciais válidas (tenant) deve retornar tokens")
     void login_withValidCredentials_shouldReturnTokens() {
-      User user = new User("user1", "admin", "encodedPass", Role.ADMIN);
-      when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
+      when(userRepository.findByUsernameAndTenantId("admin", "tenant1"))
+          .thenReturn(Optional.of(user));
       when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN"))
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -69,23 +70,44 @@ class AuthUseCaseImplTest {
                 return rt;
               });
 
-      AuthResult result = authUseCase.login("admin", "password");
+      AuthResult result = authUseCase.login("admin", "password", "tenant1");
 
       assertNotNull(result);
       assertEquals("access-token", result.accessToken());
       assertNotNull(result.refreshToken());
       assertEquals("admin", result.username());
-      assertEquals("ADMIN", result.role());
-      verify(refreshTokenRepository).deleteByUserId("user1");
+      assertEquals("TENANT_ADMIN", result.role());
+      assertEquals("tenant1", result.tenantId());
+      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
+    }
+
+    @Test
+    @DisplayName("Login do super admin (sem tenant) deve usar lookup com tenantId nulo")
+    void login_superAdmin_shouldUseTenantIdIsNull() {
+      User user = new User("sa1", "root", "encodedPass", Role.SUPER_ADMIN, null);
+      when(userRepository.findByUsernameAndTenantIdIsNull("root")).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
+      when(jwtTokenProvider.generateAccessToken("sa1", "root", "SUPER_ADMIN", null))
+          .thenReturn("access-token");
+      when(refreshTokenRepository.save(any(RefreshToken.class)))
+          .thenAnswer(inv -> inv.getArgument(0));
+
+      AuthResult result = authUseCase.login("root", "password", null);
+
+      assertEquals("access-token", result.accessToken());
+      assertEquals("SUPER_ADMIN", result.role());
+      assertNull(result.tenantId());
     }
 
     @Test
     @DisplayName("Login com usuário inexistente deve lançar BusinessException")
     void login_withUnknownUser_shouldThrowException() {
-      when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+      when(userRepository.findByUsernameAndTenantId("unknown", "tenant1"))
+          .thenReturn(Optional.empty());
 
       BusinessException exception =
-          assertThrows(BusinessException.class, () -> authUseCase.login("unknown", "pass"));
+          assertThrows(
+              BusinessException.class, () -> authUseCase.login("unknown", "pass", "tenant1"));
 
       assertTrue(exception.getMessage().contains("Credenciais inválidas"));
     }
@@ -93,12 +115,14 @@ class AuthUseCaseImplTest {
     @Test
     @DisplayName("Login com senha incorreta deve lançar BusinessException")
     void login_withWrongPassword_shouldThrowException() {
-      User user = new User("user1", "admin", "encodedPass", Role.ADMIN);
-      when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
+      when(userRepository.findByUsernameAndTenantId("admin", "tenant1"))
+          .thenReturn(Optional.of(user));
       when(passwordEncoder.matches("wrongpass", "encodedPass")).thenReturn(false);
 
       BusinessException exception =
-          assertThrows(BusinessException.class, () -> authUseCase.login("admin", "wrongpass"));
+          assertThrows(
+              BusinessException.class, () -> authUseCase.login("admin", "wrongpass", "tenant1"));
 
       assertTrue(exception.getMessage().contains("Credenciais inválidas"));
     }
@@ -111,7 +135,7 @@ class AuthUseCaseImplTest {
     @Test
     @DisplayName("Registro com dados válidos deve criar usuário e retornar tokens")
     void register_withValidData_shouldCreateUserAndReturnTokens() {
-      when(userRepository.existsByUsername("newuser")).thenReturn(false);
+      when(userRepository.existsByUsernameAndTenantId("newuser", "tenant1")).thenReturn(false);
       when(passwordEncoder.encode("password")).thenReturn("encodedPass");
       when(userRepository.save(any(User.class)))
           .thenAnswer(
@@ -120,7 +144,7 @@ class AuthUseCaseImplTest {
                 u.setId("new-id");
                 return u;
               });
-      when(jwtTokenProvider.generateAccessToken("new-id", "newuser", "OPERATOR"))
+      when(jwtTokenProvider.generateAccessToken("new-id", "newuser", "OPERATOR", "tenant1"))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -130,23 +154,35 @@ class AuthUseCaseImplTest {
                 return rt;
               });
 
-      AuthResult result = authUseCase.register("newuser", "password", Role.OPERATOR);
+      AuthResult result = authUseCase.register("newuser", "password", Role.OPERATOR, "tenant1");
 
       assertNotNull(result);
       assertEquals("access-token", result.accessToken());
       assertEquals("newuser", result.username());
       assertEquals("OPERATOR", result.role());
+      assertEquals("tenant1", result.tenantId());
+    }
+
+    @Test
+    @DisplayName("Registro de usuário do tenant sem tenantId deve lançar BusinessException")
+    void register_withoutTenantId_shouldThrow() {
+      BusinessException exception =
+          assertThrows(
+              BusinessException.class,
+              () -> authUseCase.register("newuser", "pass", Role.OPERATOR, null));
+
+      assertTrue(exception.getMessage().contains("tenantId"));
     }
 
     @Test
     @DisplayName("Registro com username duplicado deve lançar BusinessException")
     void register_withDuplicateUsername_shouldThrowException() {
-      when(userRepository.existsByUsername("existinguser")).thenReturn(true);
+      when(userRepository.existsByUsernameAndTenantId("existinguser", "tenant1")).thenReturn(true);
 
       BusinessException exception =
           assertThrows(
               BusinessException.class,
-              () -> authUseCase.register("existinguser", "pass", Role.OPERATOR));
+              () -> authUseCase.register("existinguser", "pass", Role.OPERATOR, "tenant1"));
 
       assertTrue(exception.getMessage().contains("Usuário já existe"));
     }
@@ -160,12 +196,13 @@ class AuthUseCaseImplTest {
     @DisplayName("Refresh token válido deve rotacionar tokens")
     void refreshToken_withValidToken_shouldRotateTokens() {
       RefreshToken rt =
-          new RefreshToken("rt1", "valid-token", "user1", Instant.now().plus(1, ChronoUnit.HOURS));
-      User user = new User("user1", "admin", "pass", Role.ADMIN);
+          new RefreshToken(
+              "rt1", "valid-token", "user1", "tenant1", Instant.now().plus(1, ChronoUnit.HOURS));
+      User user = new User("user1", "admin", "pass", Role.TENANT_ADMIN, "tenant1");
 
       when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN"))
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
           .thenReturn("new-access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -180,7 +217,7 @@ class AuthUseCaseImplTest {
       assertNotNull(result);
       assertEquals("new-access-token", result.accessToken());
       assertEquals("admin", result.username());
-      verify(refreshTokenRepository).deleteByUserId("user1");
+      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
     }
 
     @Test
@@ -199,14 +236,56 @@ class AuthUseCaseImplTest {
     void refreshToken_withExpiredToken_shouldDeleteAndThrowException() {
       RefreshToken rt =
           new RefreshToken(
-              "rt1", "expired-token", "user1", Instant.now().minus(1, ChronoUnit.HOURS));
+              "rt1", "expired-token", "user1", "tenant1", Instant.now().minus(1, ChronoUnit.HOURS));
       when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(rt));
 
       BusinessException exception =
           assertThrows(BusinessException.class, () -> authUseCase.refreshToken("expired-token"));
 
       assertTrue(exception.getMessage().contains("expirado"));
-      verify(refreshTokenRepository).deleteByUserId("user1");
+      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
+    }
+  }
+
+  @Nested
+  @DisplayName("Change Password")
+  class ChangePasswordTests {
+
+    @Test
+    @DisplayName("Deve alterar senha com senha atual correta")
+    void changePassword_withValidCurrent_shouldUpdate() {
+      User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
+      when(userRepository.findById("user1")).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("oldPass", "oldHash")).thenReturn(true);
+      when(passwordEncoder.encode("newPass")).thenReturn("newHash");
+
+      authUseCase.changePassword("user1", "oldPass", "newPass");
+
+      assertEquals("newHash", user.getPassword());
+      verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("Senha atual incorreta deve lançar BusinessException")
+    void changePassword_withWrongCurrent_shouldThrow() {
+      User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
+      when(userRepository.findById("user1")).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
+
+      assertThrows(
+          BusinessException.class, () -> authUseCase.changePassword("user1", "wrong", "newPass"));
+      verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Super admin não pode alterar senha por aqui")
+    void changePassword_superAdmin_shouldThrow() {
+      User user = new User("sa1", "root", "hash", Role.SUPER_ADMIN, null);
+      when(userRepository.findById("sa1")).thenReturn(Optional.of(user));
+
+      assertThrows(
+          BusinessException.class, () -> authUseCase.changePassword("sa1", "x", "newPass"));
+      verify(userRepository, never()).save(any());
     }
   }
 }

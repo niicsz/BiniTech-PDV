@@ -8,6 +8,7 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.Enum.Role;
 import com.binitech.pdv.utils.LogSanitizer;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,25 +26,26 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   }
 
   @Override
-  public Product createProduct(Product product, String userId) {
+  public Product createProduct(Product product, String userId, String tenantId) {
     if (log.isInfoEnabled()) {
       log.info(
-          "Criando produto: barcode={} userId={}",
+          "Criando produto: barcode={} tenantId={}",
           product.getBarcode(),
-          LogSanitizer.maskId(userId));
+          LogSanitizer.maskId(tenantId));
     }
-    if (productRepository.existsByBarcodeAndUserId(product.getBarcode(), userId)) {
+    if (productRepository.existsByBarcodeAndTenantId(product.getBarcode(), tenantId)) {
       if (log.isWarnEnabled()) {
         log.warn(
-            "Produto duplicado - barcode={} já existe para userId={}",
+            "Produto duplicado - barcode={} já existe para tenantId={}",
             product.getBarcode(),
-            LogSanitizer.maskId(userId));
+            LogSanitizer.maskId(tenantId));
       }
       throw new BusinessException(
           "Já existe um produto cadastrado com o código de barras: " + product.getBarcode());
     }
     product.setActive(true);
     product.setUserId(userId);
+    product.setTenantId(tenantId);
     Product saved = productRepository.save(product);
     if (log.isInfoEnabled()) {
       log.info(
@@ -56,41 +58,35 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
 
   @Override
   public Product updateProduct(
-      String id, Product product, String userId, Role role, Boolean activeOverride) {
+      String id,
+      Product product,
+      String userId,
+      String tenantId,
+      Role role,
+      Boolean activeOverride) {
     if (log.isInfoEnabled()) {
       log.info(
-          "Atualizando produto: id={} userId={} role={}",
+          "Atualizando produto: id={} tenantId={} role={}",
           LogSanitizer.maskId(id),
-          LogSanitizer.maskId(userId),
+          LogSanitizer.maskId(tenantId),
           role);
     }
-    Product existing =
-        productRepository
-            .findById(id)
-            .orElseThrow(
-                () -> {
-                  log.warn("Produto não encontrado para atualização: id={}", id);
-                  return new ResourceNotFoundException("Produto", "id", id);
-                });
+    Product existing = findOwnedProduct(id, tenantId);
 
-    if (role != Role.ADMIN && !existing.getUserId().equals(userId)) {
+    if (!isPrivileged(role) && !Objects.equals(existing.getUserId(), userId)) {
       if (log.isWarnEnabled()) {
-        log.warn(
-            "Sem permissão para alterar produto: id={} ownerUserId={} requestUserId={}",
-            LogSanitizer.maskId(id),
-            LogSanitizer.maskId(existing.getUserId()),
-            LogSanitizer.maskId(userId));
+        log.warn("Sem permissão para alterar produto: id={}", LogSanitizer.maskId(id));
       }
       throw new BusinessException("Você não tem permissão para alterar este produto.");
     }
 
     if (!existing.getBarcode().equals(product.getBarcode())
-        && productRepository.existsByBarcodeAndUserId(product.getBarcode(), existing.getUserId())) {
+        && productRepository.existsByBarcodeAndTenantId(product.getBarcode(), tenantId)) {
       if (log.isWarnEnabled()) {
         log.warn(
-            "Barcode duplicado na atualização: barcode={} userId={}",
+            "Barcode duplicado na atualização: barcode={} tenantId={}",
             product.getBarcode(),
-            LogSanitizer.maskId(existing.getUserId()));
+            LogSanitizer.maskId(tenantId));
       }
       throw new BusinessException(
           "Já existe um produto cadastrado com o código de barras: " + product.getBarcode());
@@ -110,30 +106,20 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     if (log.isInfoEnabled()) {
       log.info(
           "Produto atualizado com sucesso: id={} barcode={}",
-          updated.getId(),
+          LogSanitizer.maskId(updated.getId()),
           updated.getBarcode());
     }
     return updated;
   }
 
   @Override
-  public void deactivateProduct(String id, String userId, Role role) {
+  public void deactivateProduct(String id, String userId, String tenantId, Role role) {
     if (log.isInfoEnabled()) {
       log.info("Desativando produto: id={} role={}", LogSanitizer.maskId(id), role);
     }
-    Product existing =
-        productRepository
-            .findById(id)
-            .orElseThrow(
-                () -> {
-                  if (log.isWarnEnabled()) {
-                    log.warn(
-                        "Produto não encontrado para desativação: id={}", LogSanitizer.maskId(id));
-                  }
-                  return new ResourceNotFoundException("Produto", "id", id);
-                });
+    Product existing = findOwnedProduct(id, tenantId);
 
-    if (role != Role.ADMIN && !existing.getUserId().equals(userId)) {
+    if (!isPrivileged(role) && !Objects.equals(existing.getUserId(), userId)) {
       if (log.isWarnEnabled()) {
         log.warn("Sem permissão para desativar produto: id={}", LogSanitizer.maskId(id));
       }
@@ -148,81 +134,75 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   }
 
   @Override
-  public Product findById(String id, String userId, Role role) {
-    log.debug("Buscando produto por id={} userId={} role={}", id, userId, role);
-    Product product =
-        productRepository
-            .findById(id)
-            .orElseThrow(
-                () -> {
-                  log.warn("Produto não encontrado: id={}", id);
-                  return new ResourceNotFoundException("Produto", "id", id);
-                });
-
-    if (role != Role.ADMIN && !product.getUserId().equals(userId)) {
-      log.warn(
-          "Acesso negado ao produto: id={} ownerUserId={} requestUserId={}",
-          id,
-          product.getUserId(),
-          userId);
-      throw new ResourceNotFoundException("Produto", "id", id);
-    }
-
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Produto encontrado: id={} description={}", product.getId(), product.getDescription());
-    }
-    return product;
+  public Product findById(String id, String tenantId) {
+    log.debug("Buscando produto por id={} tenantId={}", id, LogSanitizer.maskId(tenantId));
+    return findOwnedProduct(id, tenantId);
   }
 
   @Override
-  public Product findByBarcode(String barcode, String userId) {
-    log.debug("Buscando produto por barcode={} userId={}", barcode, userId);
+  public Product findByBarcode(String barcode, String tenantId) {
+    log.debug(
+        "Buscando produto por barcode={} tenantId={}", barcode, LogSanitizer.maskId(tenantId));
     return productRepository
-        .findByBarcodeAndUserId(barcode, userId)
+        .findByBarcodeAndTenantId(barcode, tenantId)
         .orElseThrow(
             () -> {
-              log.warn("Produto não encontrado por barcode={} userId={}", barcode, userId);
+              log.warn("Produto não encontrado por barcode={}", barcode);
               return new ResourceNotFoundException("Produto", "código de barras", barcode);
             });
   }
 
   @Override
-  public List<Product> listAll(String userId, Role role) {
+  public List<Product> listAll(String tenantId) {
     if (log.isDebugEnabled()) {
-      log.debug("Listando todos os produtos: userId={} role={}", LogSanitizer.maskId(userId), role);
+      log.debug("Listando todos os produtos: tenantId={}", LogSanitizer.maskId(tenantId));
     }
-    return listAll(userId, role, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
+    return listAll(tenantId, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
   }
 
   @Override
-  public List<Product> listAll(String userId, Role role, int page, int size) {
+  public List<Product> listAll(String tenantId, int page, int size) {
     int sanitizedPage = sanitizePage(page);
     int sanitizedSize = sanitizeSize(size);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Listando produtos paginados: userId={} role={} page={} size={}",
-          LogSanitizer.maskId(userId),
-          role,
+          "Listando produtos paginados: tenantId={} page={} size={}",
+          LogSanitizer.maskId(tenantId),
           sanitizedPage,
           sanitizedSize);
     }
-    if (role == Role.ADMIN) {
-      List<Product> all = productRepository.findAll(sanitizedPage, sanitizedSize);
-      if (log.isDebugEnabled()) {
-        log.debug("Total de produtos retornados (ADMIN): {}", all.size());
-      }
-      return all;
-    }
-    List<Product> userProducts =
-        productRepository.findAllByUserId(userId, sanitizedPage, sanitizedSize);
+    List<Product> products =
+        productRepository.findAllByTenantId(tenantId, sanitizedPage, sanitizedSize);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Total de produtos retornados para userId={}: {}",
-          LogSanitizer.maskId(userId),
-          userProducts.size());
+          "Total de produtos retornados para tenantId={}: {}",
+          LogSanitizer.maskId(tenantId),
+          products.size());
     }
-    return userProducts;
+    return products;
+  }
+
+  private Product findOwnedProduct(String id, String tenantId) {
+    Product product =
+        productRepository
+            .findById(id)
+            .orElseThrow(
+                () -> {
+                  log.warn("Produto não encontrado: id={}", LogSanitizer.maskId(id));
+                  return new ResourceNotFoundException("Produto", "id", id);
+                });
+    if (!Objects.equals(product.getTenantId(), tenantId)) {
+      log.warn(
+          "Acesso negado ao produto de outro tenant: id={} tenantId={}",
+          LogSanitizer.maskId(id),
+          LogSanitizer.maskId(tenantId));
+      throw new ResourceNotFoundException("Produto", "id", id);
+    }
+    return product;
+  }
+
+  private boolean isPrivileged(Role role) {
+    return role == Role.ADMIN || role == Role.TENANT_ADMIN || role == Role.SUPER_ADMIN;
   }
 
   private int sanitizePage(Integer page) {

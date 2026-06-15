@@ -16,6 +16,7 @@ public interface WebMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "active", ignore = true)
   @Mapping(target = "userId", ignore = true)
+  @Mapping(target = "tenantId", ignore = true)
   Product toDomain(CreateProductDTO dto);
 
   ProductDTO toDto(Product product);
@@ -28,6 +29,7 @@ public interface WebMapper {
   @Mapping(target = "change", ignore = true)
   @Mapping(target = "timestamp", ignore = true)
   @Mapping(target = "userId", ignore = true)
+  @Mapping(target = "tenantId", ignore = true)
   @Mapping(target = "totalCost", ignore = true)
   @Mapping(target = "paid", ignore = true)
   Sale toDomain(CreateSaleDTO dto);

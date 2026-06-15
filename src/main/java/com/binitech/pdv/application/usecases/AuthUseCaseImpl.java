@@ -47,18 +47,33 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
   }
 
   @Override
-  public AuthResult login(String username, String password) {
+  public AuthResult login(String username, String password, String tenantId) {
     if (log.isInfoEnabled()) {
       log.info("Tentativa de login para usuário: {}", LogSanitizer.maskUsername(username));
     }
-    Optional<User> userOpt = userRepository.findByUsername(username);
+    Optional<User> userOpt =
+        tenantId != null && !tenantId.isBlank()
+            ? userRepository.findByUsernameAndTenantId(username, tenantId)
+            : userRepository.findByUsernameAndTenantIdIsNull(username);
 
     boolean passwordMatches;
     if (userOpt.isEmpty()) {
-      passwordEncoder.matches(password, dummyPasswordHash);
+      if (dummyPasswordHash != null && !dummyPasswordHash.isBlank()) {
+        try {
+          passwordEncoder.matches(password, dummyPasswordHash);
+        } catch (Exception ignored) {
+        }
+      }
       passwordMatches = false;
     } else {
-      passwordMatches = passwordEncoder.matches(password, userOpt.get().getPassword());
+      try {
+        passwordMatches = passwordEncoder.matches(password, userOpt.get().getPassword());
+      } catch (IllegalArgumentException e) {
+        log.error(
+            "Hash de senha inválido para usuário: {} — o usuário deve ser recriado.",
+            LogSanitizer.maskUsername(username));
+        passwordMatches = false;
+      }
     }
 
     if (userOpt.isEmpty() || !passwordMatches) {
@@ -72,30 +87,43 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     String accessToken =
         jwtTokenProvider.generateAccessToken(
-            user.getId(), user.getUsername(), user.getRole().name());
+            user.getId(), user.getUsername(), user.getRole().name(), user.getTenantId());
 
-    refreshTokenRepository.deleteByUserId(user.getId());
-    RefreshToken refreshToken = createRefreshToken(user.getId());
+    refreshTokenRepository.deleteByUserIdAndTenantId(user.getId(), user.getTenantId());
+    RefreshToken refreshToken = createRefreshToken(user.getId(), user.getTenantId());
 
     if (log.isInfoEnabled()) {
       log.info(
-          "Login realizado com sucesso: userId={} role={}",
+          "Login realizado com sucesso: userId={} role={} tenantId={}",
           LogSanitizer.maskId(user.getId()),
-          user.getRole());
+          user.getRole(),
+          LogSanitizer.maskId(user.getTenantId()));
     }
     return new AuthResult(
-        accessToken, refreshToken.getToken(), user.getUsername(), user.getRole().name());
+        accessToken,
+        refreshToken.getToken(),
+        user.getUsername(),
+        user.getRole().name(),
+        user.getTenantId());
   }
 
   @Override
-  public AuthResult register(String username, String password, Role role) {
+  public AuthResult register(String username, String password, Role role, String tenantId) {
     if (log.isInfoEnabled()) {
       log.info(
           "Tentativa de registro de novo usuário: {} role={}",
           LogSanitizer.maskUsername(username),
           role);
     }
-    if (userRepository.existsByUsername(username)) {
+
+    String resolvedTenantId = normalizeTenantId(tenantId);
+    validateTenantAssociation(role, resolvedTenantId);
+
+    boolean userExists =
+        resolvedTenantId != null
+            ? userRepository.existsByUsernameAndTenantId(username, resolvedTenantId)
+            : userRepository.existsByUsername(username);
+    if (userExists) {
       if (log.isWarnEnabled()) {
         log.warn("Registro falhou - usuário já existe: {}", LogSanitizer.maskUsername(username));
       }
@@ -106,22 +134,28 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     user.setUsername(username);
     user.setPassword(passwordEncoder.encode(password));
     user.setRole(role);
+    user.setTenantId(resolvedTenantId);
     User saved = userRepository.save(user);
 
     String accessToken =
         jwtTokenProvider.generateAccessToken(
-            saved.getId(), saved.getUsername(), saved.getRole().name());
+            saved.getId(), saved.getUsername(), saved.getRole().name(), saved.getTenantId());
 
-    RefreshToken refreshToken = createRefreshToken(saved.getId());
+    RefreshToken refreshToken = createRefreshToken(saved.getId(), saved.getTenantId());
 
     if (log.isInfoEnabled()) {
       log.info(
-          "Usuário registrado com sucesso: userId={} role={}",
+          "Usuário registrado com sucesso: userId={} role={} tenantId={}",
           LogSanitizer.maskId(saved.getId()),
-          saved.getRole());
+          saved.getRole(),
+          LogSanitizer.maskId(saved.getTenantId()));
     }
     return new AuthResult(
-        accessToken, refreshToken.getToken(), saved.getUsername(), saved.getRole().name());
+        accessToken,
+        refreshToken.getToken(),
+        saved.getUsername(),
+        saved.getRole().name(),
+        saved.getTenantId());
   }
 
   @Override
@@ -141,7 +175,8 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
         log.warn(
             "Refresh token expirado para userId={}", LogSanitizer.maskId(refreshToken.getUserId()));
       }
-      refreshTokenRepository.deleteByUserId(refreshToken.getUserId());
+      refreshTokenRepository.deleteByUserIdAndTenantId(
+          refreshToken.getUserId(), refreshToken.getTenantId());
       throw new BusinessException("Refresh token expirado. Faça login novamente.");
     }
 
@@ -160,16 +195,54 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     String accessToken =
         jwtTokenProvider.generateAccessToken(
-            user.getId(), user.getUsername(), user.getRole().name());
+            user.getId(), user.getUsername(), user.getRole().name(), user.getTenantId());
 
-    refreshTokenRepository.deleteByUserId(user.getId());
-    RefreshToken newRefreshToken = createRefreshToken(user.getId());
+    refreshTokenRepository.deleteByUserIdAndTenantId(user.getId(), user.getTenantId());
+    RefreshToken newRefreshToken = createRefreshToken(user.getId(), user.getTenantId());
 
     if (log.isInfoEnabled()) {
       log.info("Token renovado com sucesso para userId={}", LogSanitizer.maskId(user.getId()));
     }
     return new AuthResult(
-        accessToken, newRefreshToken.getToken(), user.getUsername(), user.getRole().name());
+        accessToken,
+        newRefreshToken.getToken(),
+        user.getUsername(),
+        user.getRole().name(),
+        user.getTenantId());
+  }
+
+  @Override
+  public void changePassword(String userId, String currentPassword, String newPassword) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(
+                () -> {
+                  log.warn(
+                      "Troca de senha falhou - usuário não encontrado: userId={}",
+                      LogSanitizer.maskId(userId));
+                  return new BusinessException("Usuário não encontrado.");
+                });
+
+    if (user.getRole() == Role.SUPER_ADMIN) {
+      throw new BusinessException(
+          "A senha do super admin é gerenciada pela configuração do sistema.");
+    }
+
+    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Troca de senha falhou - senha atual incorreta para userId={}",
+            LogSanitizer.maskId(userId));
+      }
+      throw new BusinessException("Senha atual incorreta.");
+    }
+
+    user.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(user);
+    if (log.isInfoEnabled()) {
+      log.info("Senha alterada com sucesso para userId={}", LogSanitizer.maskId(userId));
+    }
   }
 
   @Override
@@ -178,17 +251,35 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     tokenBlacklistService.blacklist(accessToken);
     if (jwtTokenProvider.validateToken(accessToken)) {
       String userId = jwtTokenProvider.getUserIdFromToken(accessToken);
-      refreshTokenRepository.deleteByUserId(userId);
+      String tenantId = jwtTokenProvider.getTenantIdFromToken(accessToken);
+      refreshTokenRepository.deleteByUserIdAndTenantId(userId, tenantId);
       if (log.isInfoEnabled()) {
         log.info("Logout realizado com sucesso para userId={}", LogSanitizer.maskId(userId));
       }
     }
   }
 
-  private RefreshToken createRefreshToken(String userId) {
+  private void validateTenantAssociation(Role role, String tenantId) {
+    if (role == Role.SUPER_ADMIN) {
+      return;
+    }
+    if (tenantId == null || tenantId.isBlank()) {
+      throw new BusinessException("tenantId é obrigatório para usuários do tenant.");
+    }
+  }
+
+  private String normalizeTenantId(String tenantId) {
+    if (tenantId == null || tenantId.isBlank()) {
+      return null;
+    }
+    return tenantId;
+  }
+
+  private RefreshToken createRefreshToken(String userId, String tenantId) {
     RefreshToken rt = new RefreshToken();
     rt.setToken(UUID.randomUUID().toString());
     rt.setUserId(userId);
+    rt.setTenantId(tenantId);
     rt.setExpiryDate(Instant.now().plusMillis(refreshExpiration));
     if (log.isDebugEnabled()) {
       log.debug("Refresh token criado para userId={}", LogSanitizer.maskId(userId));

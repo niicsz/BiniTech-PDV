@@ -15,6 +15,7 @@ public class Product implements Serializable {
   private int stockQuantity;
   private boolean active;
   private String userId;
+  private String tenantId;
   private String category;
 
   public Product() {
@@ -31,6 +32,20 @@ public class Product implements Serializable {
       boolean active,
       String userId,
       String category) {
+    this(id, barcode, description, price, costPrice, stockQuantity, active, userId, null, category);
+  }
+
+  public Product(
+      String id,
+      String barcode,
+      String description,
+      double price,
+      double costPrice,
+      int stockQuantity,
+      boolean active,
+      String userId,
+      String tenantId,
+      String category) {
     this.id = id;
     this.barcode = barcode;
     this.description = description;
@@ -39,6 +54,7 @@ public class Product implements Serializable {
     this.stockQuantity = stockQuantity;
     this.active = active;
     this.userId = userId;
+    this.tenantId = tenantId;
     this.category = category;
   }
 
@@ -118,6 +134,14 @@ public class Product implements Serializable {
     this.userId = userId;
   }
 
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
+  }
+
   public String getCategory() {
     return category;
   }
@@ -161,6 +185,9 @@ public class Product implements Serializable {
         + active
         + ", category='"
         + category
+        + '\''
+        + ", tenantId='"
+        + tenantId
         + '\''
         + '}';
   }

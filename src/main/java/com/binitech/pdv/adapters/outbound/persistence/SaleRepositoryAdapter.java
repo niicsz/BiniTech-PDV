@@ -74,4 +74,32 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   public List<Sale> findDebtorsByUserId(String userId) {
     return repository.findDebtorsByUserId(userId).stream().map(mapper::toDomain).toList();
   }
+
+  @Override
+  public List<Sale> findAllByTenantId(String tenantId, int page, int size) {
+    return repository
+        .findAllByTenantId(tenantId, PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
+
+  @Override
+  public List<Sale> findByTimestampBetweenAndTenantId(
+      LocalDateTime start, LocalDateTime end, String tenantId) {
+    return repository.findByTimestampBetweenAndTenantId(start, end, tenantId).stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
+
+  @Override
+  public List<Sale> findDebtorsByTenantId(String tenantId) {
+    return repository.findDebtorsByTenantId(tenantId).stream().map(mapper::toDomain).toList();
+  }
+
+  @Override
+  public long countByTenantIdAndTimestampBetween(
+      String tenantId, LocalDateTime start, LocalDateTime end) {
+    return repository.countByTenantIdAndTimestampBetween(tenantId, start, end);
+  }
 }
