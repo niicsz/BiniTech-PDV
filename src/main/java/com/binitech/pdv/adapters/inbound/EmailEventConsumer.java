@@ -4,6 +4,7 @@ import com.binitech.pdv.adapters.outbound.JavaMailEmailServiceAdapter;
 import com.binitech.pdv.config.RabbitMQConfig;
 import com.binitech.pdv.domain.EmailEvent;
 import com.binitech.pdv.domain.EmailEvent.EmailType;
+import com.binitech.pdv.domain.exception.EmailProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -45,7 +46,7 @@ public class EmailEventConsumer {
       mailAdapter.send(event);
     } catch (Exception e) {
       log.error("Falha ao processar e-mail para {}: {}", event.to(), e.getMessage());
-      throw new RuntimeException("Falha ao processar envio de e-mail.", e);
+      throw new EmailProcessingException("Falha ao processar envio de e-mail.", e);
     }
   }
 }

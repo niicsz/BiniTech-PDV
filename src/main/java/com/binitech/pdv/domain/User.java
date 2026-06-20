@@ -1,6 +1,6 @@
 package com.binitech.pdv.domain;
 
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.util.Objects;
 
 public class User {

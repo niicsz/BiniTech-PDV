@@ -12,8 +12,8 @@ import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.PaymentMethod;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -220,7 +220,7 @@ class SaleUseCaseImplTest {
       when(saleRepository.findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1")))
           .thenReturn(List.of(new Sale()));
 
-      List<Sale> result = saleUseCase.listSalesByDay(LocalDate.now(), "tenant1");
+      List<Sale> result = saleUseCase.listSalesByDay(LocalDate.of(2024, 1, 15), "tenant1");
 
       assertEquals(1, result.size());
       verify(saleRepository).findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1"));
@@ -238,7 +238,8 @@ class SaleUseCaseImplTest {
           .thenReturn(List.of());
 
       List<Sale> result =
-          saleUseCase.listSalesByPeriod(LocalDate.now().minusDays(7), LocalDate.now(), "tenant1");
+          saleUseCase.listSalesByPeriod(
+              LocalDate.of(2024, 1, 8), LocalDate.of(2024, 1, 15), "tenant1");
 
       assertNotNull(result);
       verify(saleRepository).findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1"));

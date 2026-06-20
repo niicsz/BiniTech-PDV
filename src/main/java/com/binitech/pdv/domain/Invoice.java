@@ -1,6 +1,6 @@
 package com.binitech.pdv.domain;
 
-import com.binitech.pdv.utils.Enum.InvoiceStatus;
+import com.binitech.pdv.utils.enums.InvoiceStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,35 +23,6 @@ public class Invoice {
   private LocalDateTime updatedAt;
 
   public Invoice() {}
-
-  public Invoice(
-      String id,
-      String tenantId,
-      String subscriptionId,
-      String stripeInvoiceId,
-      BigDecimal amount,
-      InvoiceStatus status,
-      LocalDate dueDate,
-      LocalDate paidAt,
-      String description,
-      BigDecimal baseAmount,
-      BigDecimal excessAmount,
-      LocalDateTime createdAt,
-      LocalDateTime updatedAt) {
-    this.id = id;
-    this.tenantId = tenantId;
-    this.subscriptionId = subscriptionId;
-    this.stripeInvoiceId = stripeInvoiceId;
-    this.amount = amount;
-    this.status = status;
-    this.dueDate = dueDate;
-    this.paidAt = paidAt;
-    this.description = description;
-    this.baseAmount = baseAmount;
-    this.excessAmount = excessAmount;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-  }
 
   public String getId() {
     return id;

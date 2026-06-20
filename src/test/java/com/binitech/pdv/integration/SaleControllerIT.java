@@ -8,8 +8,8 @@ import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.domain.*;
-import com.binitech.pdv.utils.Enum.PaymentMethod;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -110,7 +110,7 @@ class SaleControllerIT {
     sale.setTotalCost(5.0);
     sale.setChange(0.0);
     sale.setUserId(operatorUser.getId());
-    sale.setTimestamp(LocalDateTime.now());
+    sale.setTimestamp(LocalDateTime.of(2024, 1, 15, 12, 0));
     sale.setPaid(true);
     return saleRepository.save(sale);
   }
@@ -241,7 +241,7 @@ class SaleControllerIT {
       mockMvc
           .perform(
               get("/api/sales")
-                  .param("date", LocalDate.now().toString())
+                  .param("date", LocalDate.of(2024, 1, 15).toString())
                   .header("Authorization", "Bearer " + operatorToken))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$").isArray());
@@ -253,8 +253,8 @@ class SaleControllerIT {
       mockMvc
           .perform(
               get("/api/sales")
-                  .param("startDate", LocalDate.now().minusDays(7).toString())
-                  .param("endDate", LocalDate.now().toString())
+                  .param("startDate", LocalDate.of(2024, 1, 8).toString())
+                  .param("endDate", LocalDate.of(2024, 1, 15).toString())
                   .header("Authorization", "Bearer " + operatorToken))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$").isArray());

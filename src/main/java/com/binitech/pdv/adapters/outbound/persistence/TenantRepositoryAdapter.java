@@ -4,7 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.document.TenantDocument;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataTenantRepository;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.domain.Tenant;
-import com.binitech.pdv.utils.Enum.TenantStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -70,17 +70,18 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
   }
 
   private Tenant toDomain(TenantDocument doc) {
-    return new Tenant(
-        doc.getId(),
-        doc.getName(),
-        doc.getSlug(),
-        doc.getStatus() != null ? TenantStatus.valueOf(doc.getStatus()) : null,
-        doc.getPlanId(),
-        doc.getBillingEmail(),
-        doc.getTrialEndsAt(),
-        doc.getBlockedAt(),
-        doc.getBlockReason(),
-        doc.getCreatedAt(),
-        doc.getUpdatedAt());
+    Tenant tenant = new Tenant();
+    tenant.setId(doc.getId());
+    tenant.setName(doc.getName());
+    tenant.setSlug(doc.getSlug());
+    tenant.setStatus(doc.getStatus() != null ? TenantStatus.valueOf(doc.getStatus()) : null);
+    tenant.setPlanId(doc.getPlanId());
+    tenant.setBillingEmail(doc.getBillingEmail());
+    tenant.setTrialEndsAt(doc.getTrialEndsAt());
+    tenant.setBlockedAt(doc.getBlockedAt());
+    tenant.setBlockReason(doc.getBlockReason());
+    tenant.setCreatedAt(doc.getCreatedAt());
+    tenant.setUpdatedAt(doc.getUpdatedAt());
+    return tenant;
   }
 }

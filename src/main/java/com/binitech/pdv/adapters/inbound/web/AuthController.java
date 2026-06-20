@@ -7,8 +7,8 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.RefreshTokenRequest
 import com.binitech.pdv.adapters.inbound.web.generated.model.RegisterRequestDTO;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
-import com.binitech.pdv.utils.Enum.Role;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.Role;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

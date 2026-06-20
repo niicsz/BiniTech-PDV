@@ -5,9 +5,9 @@ import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.config.StripeGateway;
 import com.binitech.pdv.domain.Subscription;
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
-import com.binitech.pdv.utils.Enum.TenantStatus;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
@@ -15,6 +15,7 @@ import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.StripeObject;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,8 +154,8 @@ public class StripeWebhookController {
 
     Subscription subscription = subscriptionOptional.get();
     subscription.setStatus(SubscriptionStatus.CANCELLED);
-    subscription.setCancelledAt(LocalDate.now());
-    subscription.setUpdatedAt(LocalDateTime.now());
+    subscription.setCancelledAt(LocalDate.now(ZoneId.systemDefault()));
+    subscription.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     subscriptionRepository.save(subscription);
 
     tenantRepository
@@ -162,7 +163,7 @@ public class StripeWebhookController {
         .ifPresent(
             tenant -> {
               tenant.setStatus(TenantStatus.CANCELLED);
-              tenant.setUpdatedAt(LocalDateTime.now());
+              tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
               tenantRepository.save(tenant);
             });
 

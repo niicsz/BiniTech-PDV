@@ -1,7 +1,7 @@
 package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Product;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.util.List;
 
 public interface ProductUseCasePort {

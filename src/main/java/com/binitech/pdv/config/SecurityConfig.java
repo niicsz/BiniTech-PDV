@@ -18,6 +18,7 @@ import org.springframework.security.web.header.writers.XXssProtectionHeaderWrite
 public class SecurityConfig {
 
   private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+  private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final TenantValidationFilter tenantValidationFilter;
@@ -83,11 +84,11 @@ public class SecurityConfig {
                     .requestMatchers("/api/public/**")
                     .permitAll()
                     .requestMatchers("/api/admin/**")
-                    .hasRole("SUPER_ADMIN")
+                    .hasRole(ROLE_SUPER_ADMIN)
                     .requestMatchers("/actuator/**")
-                    .hasAnyRole("SUPER_ADMIN", "ADMIN")
+                    .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/auth/register")
-                    .hasAnyRole("SUPER_ADMIN", "ADMIN", "TENANT_ADMIN")
+                    .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN", "TENANT_ADMIN")
                     .requestMatchers("/api/**")
                     .authenticated()
                     .anyRequest()

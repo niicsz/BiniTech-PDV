@@ -12,9 +12,8 @@ import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -197,7 +196,7 @@ class AuthUseCaseImplTest {
     void refreshToken_withValidToken_shouldRotateTokens() {
       RefreshToken rt =
           new RefreshToken(
-              "rt1", "valid-token", "user1", "tenant1", Instant.now().plus(1, ChronoUnit.HOURS));
+              "rt1", "valid-token", "user1", "tenant1", Instant.parse("2999-01-01T00:00:00Z"));
       User user = new User("user1", "admin", "pass", Role.TENANT_ADMIN, "tenant1");
 
       when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
@@ -236,7 +235,7 @@ class AuthUseCaseImplTest {
     void refreshToken_withExpiredToken_shouldDeleteAndThrowException() {
       RefreshToken rt =
           new RefreshToken(
-              "rt1", "expired-token", "user1", "tenant1", Instant.now().minus(1, ChronoUnit.HOURS));
+              "rt1", "expired-token", "user1", "tenant1", Instant.parse("2000-01-01T00:00:00Z"));
       when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(rt));
 
       BusinessException exception =

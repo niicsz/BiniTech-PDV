@@ -4,7 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.document.SubscriptionDocum
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataSubscriptionRepository;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.domain.Subscription;
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -69,21 +69,23 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
   }
 
   private Subscription toDomain(SubscriptionDocument d) {
-    return new Subscription(
-        d.getId(),
-        d.getTenantId(),
-        d.getStripeSubscriptionId(),
-        d.getStripeCustomerId(),
-        d.getStripePriceId(),
-        d.getPlanTier(),
-        d.getStatus() != null ? SubscriptionStatus.valueOf(d.getStatus()) : null,
-        d.getCurrentPeriodStart(),
-        d.getCurrentPeriodEnd(),
-        d.getNextBillingDate(),
-        d.getLastPaymentDate(),
-        d.getFailedPaymentCount(),
-        d.getCancelledAt(),
-        d.getCreatedAt(),
-        d.getUpdatedAt());
+    Subscription subscription = new Subscription();
+    subscription.setId(d.getId());
+    subscription.setTenantId(d.getTenantId());
+    subscription.setStripeSubscriptionId(d.getStripeSubscriptionId());
+    subscription.setStripeCustomerId(d.getStripeCustomerId());
+    subscription.setStripePriceId(d.getStripePriceId());
+    subscription.setPlanTier(d.getPlanTier());
+    subscription.setStatus(
+        d.getStatus() != null ? SubscriptionStatus.valueOf(d.getStatus()) : null);
+    subscription.setCurrentPeriodStart(d.getCurrentPeriodStart());
+    subscription.setCurrentPeriodEnd(d.getCurrentPeriodEnd());
+    subscription.setNextBillingDate(d.getNextBillingDate());
+    subscription.setLastPaymentDate(d.getLastPaymentDate());
+    subscription.setFailedPaymentCount(d.getFailedPaymentCount());
+    subscription.setCancelledAt(d.getCancelledAt());
+    subscription.setCreatedAt(d.getCreatedAt());
+    subscription.setUpdatedAt(d.getUpdatedAt());
+    return subscription;
   }
 }

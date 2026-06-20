@@ -1,6 +1,6 @@
 package com.binitech.pdv.application.ports.inbound;
 
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 
 public interface AuthUseCasePort {
 

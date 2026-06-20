@@ -1,4 +1,4 @@
-package com.binitech.pdv.utils.Enum;
+package com.binitech.pdv.utils.enums;
 
 public enum SubscriptionStatus {
   PENDING,

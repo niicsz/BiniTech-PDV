@@ -1,6 +1,6 @@
 package com.binitech.pdv.domain;
 
-import com.binitech.pdv.utils.Enum.TenantStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -20,31 +20,6 @@ public class Tenant {
   private LocalDateTime updatedAt;
 
   public Tenant() {}
-
-  public Tenant(
-      String id,
-      String name,
-      String slug,
-      TenantStatus status,
-      String planId,
-      String billingEmail,
-      LocalDate trialEndsAt,
-      LocalDate blockedAt,
-      String blockReason,
-      LocalDateTime createdAt,
-      LocalDateTime updatedAt) {
-    this.id = id;
-    this.name = name;
-    this.slug = slug;
-    this.status = status;
-    this.planId = planId;
-    this.billingEmail = billingEmail;
-    this.trialEndsAt = trialEndsAt;
-    this.blockedAt = blockedAt;
-    this.blockReason = blockReason;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-  }
 
   public String getId() {
     return id;

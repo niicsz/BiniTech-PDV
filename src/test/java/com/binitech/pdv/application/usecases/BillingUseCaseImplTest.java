@@ -16,14 +16,15 @@ import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserR
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
+import com.binitech.pdv.config.BillingStripeConfig;
 import com.binitech.pdv.config.StripeGateway;
 import com.binitech.pdv.config.StripeProperties;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
-import com.binitech.pdv.utils.Enum.TenantStatus;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,9 +60,7 @@ class BillingUseCaseImplTest {
             tenantRepository,
             productRepository,
             userRepository,
-            FRONTEND_URL,
-            stripeGateway,
-            stripeProperties);
+            new BillingStripeConfig(FRONTEND_URL, stripeGateway, stripeProperties));
   }
 
   private Tenant tenant(String id, String planId, TenantStatus status) {
