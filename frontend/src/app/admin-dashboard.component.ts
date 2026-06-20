@@ -129,38 +129,47 @@ const USER_ROLE_LABEL: Record<string, string> = {
     </div>
   `,
   styles: [`
-    .admin { max-width:1100px; margin:0 auto; padding:32px 24px; }
-    .admin-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; }
-    .back { color:#7c3aed; text-decoration:none; font-size:13px; }
-    h1 { margin:6px 0 0; font-size:26px; }
-    .stats { display:flex; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
-    .stat { background:#fff; border-radius:12px; padding:18px 24px; min-width:140px; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(15,23,42,0.05); }
-    .stat .num { font-size:26px; font-weight:700; }
-    .stat .lbl { font-size:13px; color:#64748b; }
-    .stat.highlight { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
-    .stat.highlight .lbl { color:#e0e7ff; }
+    .admin { max-width:1100px; margin:0 auto; padding:40px 24px; }
+    .admin-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; }
+    .back { color:var(--primary-dark); text-decoration:none; font-size:13px; font-weight:600; }
+    .back:hover { text-decoration:underline; }
+    h1 { font-family:var(--font-display); margin:8px 0 0; font-size:34px; font-weight:800; letter-spacing:-1px; color:var(--text); }
+    .stats { display:flex; gap:16px; margin-bottom:30px; flex-wrap:wrap; }
+    .stat { background:var(--surface); border:2px solid var(--text); border-radius:var(--radius-md); padding:18px 24px;
+      min-width:150px; display:flex; flex-direction:column; gap:4px; box-shadow:5px 5px 0 var(--text); }
+    .stat .num { font-family:var(--font-display); font-size:30px; font-weight:800; letter-spacing:-1px; color:var(--text); }
+    .stat .lbl { font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-secondary); }
+    .stat.highlight { background:var(--primary); border-color:var(--text); color:#fff; }
+    .stat.highlight .num { color:#fff; }
+    .stat.highlight .lbl { color:#ffe1d7; }
     .loading { display:flex; justify-content:center; padding:40px; }
-    .tenant-table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(15,23,42,0.05); }
-    th, td { text-align:left; padding:12px 16px; border-bottom:1px solid #f1f5f9; font-size:14px; }
-    th { background:#f8fafc; color:#475569; font-weight:600; }
-    code { background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px; }
-    .badge { padding:3px 10px; border-radius:100px; font-size:12px; font-weight:600; }
-    .st-ACTIVE { background:#dcfce7; color:#15803d; }
-    .st-PENDING_APPROVAL { background:#fef9c3; color:#a16207; }
-    .st-BLOCKED { background:#fee2e2; color:#b91c1c; }
-    .st-CANCELLED { background:#e2e8f0; color:#475569; }
+    .tenant-table { width:100%; border-collapse:separate; border-spacing:0; background:var(--surface);
+      border:2px solid var(--text); border-radius:var(--radius-md); overflow:hidden; box-shadow:6px 6px 0 var(--text); }
+    th, td { text-align:left; padding:12px 16px; border-bottom:1.5px solid var(--border); font-size:14px; color:var(--text); }
+    th { background:var(--table-header-bg); color:var(--table-header-text); font-weight:700; font-family:var(--font-mono);
+      font-size:11.5px; text-transform:uppercase; letter-spacing:.6px; }
+    code { font-family:var(--font-mono); background:var(--surface-alt); padding:2px 6px; border-radius:var(--radius-sm); font-size:12px; }
+    .badge { padding:3px 10px; border-radius:100px; font-size:11.5px; font-weight:700; font-family:var(--font-mono); border:1.5px solid currentColor; }
+    .st-ACTIVE { background:var(--success-bg); color:var(--success); }
+    .st-PENDING_APPROVAL { background:var(--warning-bg); color:var(--accent); }
+    .st-BLOCKED { background:var(--danger-bg); color:var(--danger); }
+    .st-CANCELLED { background:var(--surface-alt); color:var(--text-secondary); }
     .actions { display:flex; gap:8px; align-items:center; }
-    .empty { text-align:center; color:#94a3b8; padding:32px; }
-    .users-row td { background:#f8fafc; padding:0; }
+    .empty { text-align:center; color:var(--text-tertiary); padding:32px; }
+    .users-row td { background:var(--surface-alt); padding:0; }
     .users-panel { padding:16px 20px; }
     .users-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .limit-chip { background:#e0e7ff; color:#4338ca; padding:4px 12px; border-radius:100px; font-size:12px; font-weight:600; }
-    .limit-chip.over { background:#fee2e2; color:#b91c1c; }
+    .users-head strong { font-family:var(--font-display); }
+    .limit-chip { background:var(--primary-bg); color:var(--primary-dark); padding:4px 12px; border-radius:100px;
+      font-family:var(--font-mono); font-size:11.5px; font-weight:600; border:1.5px solid var(--primary); }
+    .limit-chip.over { background:var(--danger-bg); color:var(--danger); border-color:var(--danger); }
     .users-loading { display:flex; justify-content:center; padding:16px; }
-    .users-table { width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; }
-    .users-table th, .users-table td { text-align:left; padding:8px 14px; border-bottom:1px solid #f1f5f9; font-size:13px; }
-    .users-table th { background:#eef2f7; color:#475569; font-weight:600; }
-    .role-badge { background:#f1f5f9; color:#334155; padding:2px 10px; border-radius:100px; font-size:12px; font-weight:600; }
+    .users-table { width:100%; border-collapse:separate; border-spacing:0; background:var(--surface);
+      border:1.5px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .users-table th, .users-table td { text-align:left; padding:8px 14px; border-bottom:1.5px solid var(--border); font-size:13px; }
+    .users-table th { background:var(--table-header-bg); color:var(--table-header-text); font-weight:700; }
+    .role-badge { background:var(--surface-alt); color:var(--text); padding:2px 10px; border-radius:100px;
+      font-family:var(--font-mono); font-size:11.5px; font-weight:600; }
   `]
 })
 export class AdminDashboardComponent implements OnInit {

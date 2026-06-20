@@ -1,14 +1,21 @@
 @use '@angular/material' as mat;
 
+/* ============================================================
+   "O Balcão" design system — warm mercantile / editorial.
+   Material is rethemed to a red(vermillion)/green palette and
+   the type hierarchy uses Fraunces (display) + Hanken Grotesk
+   (body). Most screens are driven by the :root tokens below.
+   ============================================================ */
+
 $light-theme: mat.define-theme((
   color: (
     theme-type: light,
-    primary: mat.$azure-palette,
-    tertiary: mat.$orange-palette,
+    primary: mat.$red-palette,
+    tertiary: mat.$green-palette,
   ),
   typography: (
-    brand-family: 'Roboto',
-    plain-family: 'Roboto',
+    brand-family: 'Fraunces',
+    plain-family: 'Hanken Grotesk',
   ),
   density: (
     scale: 0,
@@ -18,12 +25,12 @@ $light-theme: mat.define-theme((
 $dark-theme: mat.define-theme((
   color: (
     theme-type: dark,
-    primary: mat.$azure-palette,
-    tertiary: mat.$orange-palette,
+    primary: mat.$red-palette,
+    tertiary: mat.$green-palette,
   ),
   typography: (
-    brand-family: 'Roboto',
-    plain-family: 'Roboto',
+    brand-family: 'Fraunces',
+    plain-family: 'Hanken Grotesk',
   ),
   density: (
     scale: 0,
@@ -46,115 +53,121 @@ body.dark-theme {
 }
 
 :root {
-  --primary: #1976d2;
-  --primary-dark: #1565c0;
-  --primary-light: #42a5f5;
-  --primary-bg: rgba(25, 118, 210, 0.08);
+  /* vermillion — the commerce accent */
+  --primary: #d4391a;
+  --primary-dark: #a82d12;
+  --primary-light: #e8624a;
+  --primary-bg: rgba(212, 57, 26, 0.08);
 
-  --accent: #ff6f00;
-  --success: #2e7d32;
-  --danger: #c62828;
-  --warning: #f9a825;
+  --accent: #c8881f;            /* ochre */
+  --success: #1c6b46;           /* ledger green */
+  --danger: #9b1c1c;            /* deep blood red (distinct from vermillion) */
+  --warning: #c8881f;           /* ochre */
 
-  --bg: #f5f5f5;
-  --surface: #ffffff;
-  --surface-alt: #fafafa;
-  --surface-hover: #f0f0f0;
+  --bg: #f3ede1;                /* warm cream paper */
+  --surface: #fbf7ef;           /* card surface */
+  --surface-alt: #f0e8da;
+  --surface-hover: #ece3d3;
 
-  --text: #212121;
-  --text-secondary: #616161;
-  --text-tertiary: #9e9e9e;
+  --text: #241a12;              /* espresso near-black */
+  --text-secondary: #5d5043;
+  --text-tertiary: #8a7d6e;
 
-  --border: #e0e0e0;
-  --border-light: #eeeeee;
-  --divider: #e0e0e0;
+  --border: #ddd1bd;            /* warm hairline */
+  --border-light: #e7ddcb;
+  --divider: #ddd1bd;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  /* espresso-tinted, slightly heavier shadows for paper depth */
+  --shadow-sm: 0 1px 3px rgba(36, 26, 18, 0.10);
+  --shadow: 0 2px 10px rgba(36, 26, 18, 0.12);
+  --shadow-md: 0 6px 20px rgba(36, 26, 18, 0.14);
+  --shadow-lg: 0 14px 40px rgba(36, 26, 18, 0.20);
+  --shadow-hard: 4px 4px 0 var(--text);  /* brutalist offset */
 
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
 
-  --header-bg: var(--primary-dark);
-  --header-text: #ffffff;
+  --header-bg: #241a12;         /* espresso ink */
+  --header-text: #f3ede1;
 
-  --input-bg: #ffffff;
-  --input-border: #bdbdbd;
+  --input-bg: #fbf7ef;
+  --input-border: #c9bca6;
 
-  --success-bg: #e8f5e9;
-  --danger-bg: #ffebee;
-  --info-bg: #e3f2fd;
-  --warning-bg: #fff3e0;
+  --success-bg: #e3ecdf;
+  --danger-bg: #f4e2dd;
+  --info-bg: #efe7d6;
+  --warning-bg: #f6ecd5;
 
-  --table-header-bg: #f5f5f5;
-  --table-header-text: #424242;
-  --table-hover: #fafafa;
-  --table-stripe: #fafafa;
+  --table-header-bg: #ece3d3;
+  --table-header-text: #5d5043;
+  --table-hover: #f0e8da;
+  --table-stripe: rgba(36, 26, 18, 0.03);
 
-  --kbd-bg: #37474f;
-  --kbd-color: #ffffff;
+  --kbd-bg: #241a12;
+  --kbd-color: #f3ede1;
 
-  --font-mono: 'Roboto Mono', 'Consolas', monospace;
-  --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Spline Sans Mono', 'Roboto Mono', 'Consolas', monospace;
+  --font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
 
-  --focus-ring: 0 0 0 3px rgba(25, 118, 210, 0.25);
-  --focus-ring-accent: 0 0 0 3px rgba(255, 111, 0, 0.2);
+  --focus-ring: 0 0 0 3px rgba(212, 57, 26, 0.25);
+  --focus-ring-accent: 0 0 0 3px rgba(200, 136, 31, 0.25);
 }
 
 body.dark-theme {
-  --primary: #64b5f6;
-  --primary-dark: #42a5f5;
-  --primary-light: #bbdefb;
-  --primary-bg: rgba(100, 181, 246, 0.1);
+  /* "night ledger" — warm espresso dark */
+  --primary: #f0653f;
+  --primary-dark: #d4391a;
+  --primary-light: #f59175;
+  --primary-bg: rgba(240, 101, 63, 0.12);
 
-  --accent: #ffb74d;
-  --success: #66bb6a;
-  --danger: #ef5350;
-  --warning: #ffca28;
+  --accent: #e0a82e;
+  --success: #4caa7b;
+  --danger: #e06a52;
+  --warning: #e0a82e;
 
-  --bg: #0f1214;
-  --surface: #1a1d21;
-  --surface-alt: #22262b;
-  --surface-hover: #2a2e33;
+  --bg: #1a1410;
+  --surface: #241c16;
+  --surface-alt: #2c231b;
+  --surface-hover: #342a20;
 
-  --text: #e8eaed;
-  --text-secondary: #9aa0a6;
-  --text-tertiary: #6b7280;
+  --text: #f3ece0;
+  --text-secondary: #c2b4a2;
+  --text-tertiary: #8a7d6e;
 
-  --border: #2d3139;
-  --border-light: #252930;
-  --divider: #2d3139;
+  --border: #3a2f24;
+  --border-light: #2f261d;
+  --divider: #3a2f24;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.7);
+  --shadow-hard: 4px 4px 0 #0d0a07;
 
-  --header-bg: #1a1d21;
-  --header-text: #e8eaed;
+  --header-bg: #120d09;
+  --header-text: #f3ece0;
 
-  --input-bg: #22262b;
-  --input-border: #3d434d;
+  --input-bg: #2c231b;
+  --input-border: #4a3d2e;
 
-  --success-bg: rgba(102, 187, 106, 0.12);
-  --danger-bg: rgba(239, 83, 80, 0.12);
-  --info-bg: rgba(100, 181, 246, 0.12);
-  --warning-bg: rgba(255, 202, 40, 0.12);
+  --success-bg: rgba(76, 170, 123, 0.14);
+  --danger-bg: rgba(224, 106, 82, 0.14);
+  --info-bg: rgba(240, 101, 63, 0.12);
+  --warning-bg: rgba(224, 168, 46, 0.14);
 
-  --table-header-bg: #22262b;
-  --table-header-text: #9aa0a6;
-  --table-hover: #22262b;
-  --table-stripe: rgba(255, 255, 255, 0.02);
+  --table-header-bg: #2c231b;
+  --table-header-text: #c2b4a2;
+  --table-hover: #2c231b;
+  --table-stripe: rgba(243, 236, 224, 0.025);
 
-  --kbd-bg: #37474f;
-  --kbd-color: #e8eaed;
+  --kbd-bg: #120d09;
+  --kbd-color: #f3ece0;
 
-  --focus-ring: 0 0 0 3px rgba(100, 181, 246, 0.3);
-  --focus-ring-accent: 0 0 0 3px rgba(255, 183, 77, 0.25);
+  --focus-ring: 0 0 0 3px rgba(240, 101, 63, 0.32);
+  --focus-ring-accent: 0 0 0 3px rgba(224, 168, 46, 0.28);
 }
 
 body {
@@ -209,25 +222,91 @@ body.dark-theme {
     border-color: var(--input-border);
   }
 }
+/* ============================================================
+   Global Material overrides — adopt the "O Balcão" look without
+   touching every component.
+   ============================================================ */
+.mdc-button,
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button {
+  border-radius: var(--radius) !important;
+  letter-spacing: 0.2px !important;
+  font-weight: 600 !important;
+}
+.mat-mdc-unelevated-button:not(:disabled),
+.mat-mdc-raised-button:not(:disabled) {
+  /* subtle brutalist lift on primary actions */
+  box-shadow: 2px 2px 0 rgba(36, 26, 18, 0.25);
+}
+
+.mat-mdc-card {
+  border-radius: var(--radius-md) !important;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+}
+
+.mat-mdc-form-field {
+  font-family: var(--font-family);
+}
+.mat-mdc-text-field-wrapper {
+  border-radius: var(--radius) !important;
+}
+
+.mat-mdc-table,
+.mat-mdc-header-row {
+  background: transparent;
+}
+.mat-mdc-header-cell {
+  font-family: var(--font-mono) !important;
+  font-size: 11.5px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--table-header-text) !important;
+  background: var(--table-header-bg) !important;
+}
+
+.mat-mdc-dialog-surface,
+.mat-mdc-menu-panel {
+  border-radius: var(--radius-md) !important;
+  border: 1.5px solid var(--border);
+}
+
+.mat-mdc-chip {
+  border-radius: var(--radius) !important;
+  font-family: var(--font-mono);
+}
+
+/* numeric/money cells read as a ledger */
+.mono, .num, td.amount, .amount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 .page-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.6px;
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.2px;
 }
 
 .label {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.7px;
 }
 
 .value-lg {

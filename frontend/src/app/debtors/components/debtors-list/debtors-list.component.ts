@@ -192,7 +192,7 @@ interface DebtorGroup {
     }
     .card-icon-danger { background: rgba(239, 83, 80, 0.12); color: var(--danger, #ef5350); }
     .card-icon-warning { background: rgba(255, 167, 38, 0.12); color: var(--warning, #ffa726); }
-    .card-icon-primary { background: rgba(66, 165, 245, 0.12); color: var(--primary, #42a5f5); }
+    .card-icon-primary { background: rgba(212, 57, 26, 0.12); color: var(--primary, #d4391a); }
     .card-label {
       font-size: 12px;
       color: var(--text-secondary);
@@ -242,7 +242,7 @@ interface DebtorGroup {
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: linear-gradient(135deg, rgba(66,165,245,0.15), rgba(25,118,210,0.15));
+      background: linear-gradient(135deg, rgba(212,57,26,0.16), rgba(168,45,18,0.16));
     }
     .debtor-avatar mat-icon {
       font-size: 24px;
@@ -363,8 +363,8 @@ interface DebtorGroup {
       border-radius: 4px;
       font-size: 11px;
       font-weight: 500;
-      background: rgba(66,165,245,0.1);
-      color: var(--primary, #42a5f5);
+      background: rgba(212,57,26,0.1);
+      color: var(--primary, #d4391a);
       white-space: nowrap;
     }
     .sale-actions {

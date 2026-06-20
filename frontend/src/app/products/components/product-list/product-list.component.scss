@@ -118,14 +118,14 @@
     mat-icon { color: var(--warning); }
   }
   &.stat-icon-categories {
-    background: rgba(156, 39, 176, 0.08);
-    mat-icon { color: #9c27b0; }
+    background: rgba(138, 79, 42, 0.10);
+    mat-icon { color: #8a4f2a; }
   }
 }
 
 :host-context(body.dark-theme) .stat-icon-categories {
-  background: rgba(206, 147, 216, 0.12);
-  mat-icon { color: #ce93d8; }
+  background: rgba(199, 145, 102, 0.14);
+  mat-icon { color: #c79166; }
 }
 
 .stat-info {

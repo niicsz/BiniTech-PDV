@@ -27,7 +27,7 @@ import { ThemeService, ThemeColors } from '../services/theme.service';
             <div class="color-picker-wrapper">
               <input type="color" id="primaryColor" [(ngModel)]="colors.primary"
                      (change)="updateColor('primary', colors.primary!)">
-              <span class="color-value">{{ colors.primary || '#1565c0' }}</span>
+              <span class="color-value">{{ colors.primary || '#d4391a' }}</span>
             </div>
           </div>
 
@@ -36,7 +36,7 @@ import { ThemeService, ThemeColors } from '../services/theme.service';
             <div class="color-picker-wrapper">
               <input type="color" id="headerBg" [(ngModel)]="colors.headerBg"
                      (change)="updateColor('headerBg', colors.headerBg!)">
-              <span class="color-value">{{ colors.headerBg || '#0d47a1' }}</span>
+              <span class="color-value">{{ colors.headerBg || '#241a12' }}</span>
             </div>
           </div>
         </mat-card-content>
@@ -136,8 +136,8 @@ export class SettingsModalComponent {
 
   constructor() {
     this.colors = { ...this.themeService.customColors() };
-    if (!this.colors.primary) this.colors.primary = '#1565c0';
-    if (!this.colors.headerBg) this.colors.headerBg = '#0d47a1';
+    if (!this.colors.primary) this.colors.primary = '#d4391a';
+    if (!this.colors.headerBg) this.colors.headerBg = '#241a12';
   }
 
   updateColor(key: keyof ThemeColors, value: string) {
@@ -146,6 +146,6 @@ export class SettingsModalComponent {
 
   resetColors() {
     this.themeService.resetColors();
-    this.colors = { primary: '#1565c0', headerBg: '#0d47a1' };
+    this.colors = { primary: '#d4391a', headerBg: '#241a12' };
   }
 }

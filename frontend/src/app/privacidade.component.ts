@@ -1,14 +1,16 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-privacidade',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MatIconModule],
   template: `
     <div class="page">
       <article>
-        <a routerLink="/" class="back">← Voltar</a>
+        <a routerLink="/" class="back"><mat-icon>west</mat-icon> Voltar</a>
+        <span class="kicker">[ legal · lgpd ]</span>
         <h1>Política de Privacidade</h1>
         <p>Respeitamos a sua privacidade e protegemos os dados tratados na plataforma.</p>
         <h2>1. Dados coletados</h2>
@@ -23,12 +25,20 @@ import { RouterLink } from '@angular/router';
     </div>
   `,
   styles: [`
-    .page { min-height:100vh; background:#f0f4f8; padding:48px 24px; }
-    article { max-width:720px; margin:0 auto; background:#fff; border-radius:16px; padding:40px; }
-    .back { color:#4f46e5; text-decoration:none; font-size:14px; }
-    h1 { font-size:28px; margin:16px 0 20px; }
-    h2 { font-size:18px; margin:24px 0 8px; }
-    p { color:#475569; line-height:1.7; margin:0; }
+    .page { min-height:100vh; background:var(--bg); padding:64px 24px;
+      background-image:radial-gradient(circle at 85% 0%, rgba(212,57,26,0.05), transparent 40%); }
+    article { max-width:720px; margin:0 auto; background:var(--surface); border:2px solid var(--text);
+      border-radius:var(--radius-md); padding:48px 44px; box-shadow:10px 10px 0 var(--text); }
+    .back { display:inline-flex; align-items:center; gap:5px; color:var(--primary-dark); font-weight:600; font-size:14px; }
+    .back mat-icon { font-size:18px; width:18px; height:18px; }
+    .back:hover { text-decoration:underline; }
+    .kicker { display:block; margin-top:20px; font-family:var(--font-mono); font-size:12px; font-weight:600;
+      letter-spacing:1px; text-transform:uppercase; color:var(--primary-dark); }
+    h1 { font-family:var(--font-display); font-size:42px; font-weight:800; letter-spacing:-1.5px;
+      margin:8px 0 22px; color:var(--text); line-height:1; }
+    h2 { font-family:var(--font-display); font-size:21px; font-weight:700; letter-spacing:-.3px;
+      margin:30px 0 8px; color:var(--text); }
+    p { color:var(--text-secondary); line-height:1.75; font-size:15.5px; margin:0; }
   `]
 })
 export class PrivacidadeComponent {}
