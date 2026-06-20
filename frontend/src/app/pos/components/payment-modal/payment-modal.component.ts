@@ -316,7 +316,7 @@ export interface PaymentConfirmation {
       padding: 12px 16px;
       background: var(--surface-alt, #f5f5f5);
       border-radius: var(--radius, 8px);
-      border-left: 3px solid #7b1fa2;
+      border-left: 3px solid #8a4f2a;
     }
     .debtor-suggestions {
       margin: -4px 0 8px;
@@ -384,10 +384,10 @@ export interface PaymentConfirmation {
       align-items: center;
       gap: 8px;
       padding: 10px 14px;
-      background: rgba(255, 152, 0, 0.1);
-      border: 1px solid rgba(255, 152, 0, 0.4);
+      background: rgba(200, 136, 31, 0.12);
+      border: 1px solid rgba(200, 136, 31, 0.45);
       border-radius: var(--radius, 8px);
-      color: #e65100;
+      color: #8a5a12;
       font-size: 13px;
       font-weight: 500;
       margin-top: 4px;
@@ -397,7 +397,7 @@ export interface PaymentConfirmation {
       font-size: 20px;
       height: 20px;
       width: 20px;
-      color: #ff9800;
+      color: var(--accent);
       flex-shrink: 0;
     }
     .confirm-btn {
@@ -417,9 +417,9 @@ export interface PaymentConfirmation {
       align-items: center;
       gap: 10px;
       padding: 12px 16px;
-      background: #fdecea;
-      color: #b71c1c;
-      border: 1px solid #f5c6cb;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger);
       border-radius: var(--radius, 8px);
       margin: 12px 0 4px;
       font-size: 14px;
@@ -430,7 +430,7 @@ export interface PaymentConfirmation {
       font-size: 22px;
       height: 22px;
       width: 22px;
-      color: #d32f2f;
+      color: var(--danger);
       flex-shrink: 0;
     }
     @keyframes shakeIn {

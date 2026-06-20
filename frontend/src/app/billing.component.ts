@@ -134,42 +134,49 @@ const INVOICE_STATUS_LABEL: Record<string, string> = {
     </div>
   `,
   styles: [`
-    .billing { max-width:860px; margin:0 auto; padding:32px 24px; }
-    .billing-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; }
-    .back { color:#1976d2; text-decoration:none; font-size:13px; }
-    h1 { margin:6px 0 0; font-size:26px; }
-    h2 { font-size:17px; margin:0 0 16px; }
+    .billing { max-width:860px; margin:0 auto; padding:40px 24px; }
+    .billing-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; }
+    .back { color:var(--primary-dark); text-decoration:none; font-size:13px; font-weight:600; }
+    .back:hover { text-decoration:underline; }
+    h1 { font-family:var(--font-display); margin:8px 0 0; font-size:34px; font-weight:800; letter-spacing:-1px; color:var(--text); }
+    h2 { font-family:var(--font-display); font-size:20px; font-weight:700; margin:0 0 16px; color:var(--text); }
     .loading { display:flex; justify-content:center; padding:60px; }
-    .card { background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(15,23,42,0.05); margin-bottom:20px; }
-    .alert { display:flex; gap:12px; align-items:flex-start; background:#eff6ff; color:#1e40af; border-radius:12px; padding:16px 20px; margin-bottom:20px; }
-    .alert p { margin:4px 0 0; font-size:13.5px; }
-    .alert-danger { background:#fee2e2; color:#b91c1c; }
+    .card { background:var(--surface); border:2px solid var(--text); border-radius:var(--radius-md); padding:26px;
+      box-shadow:6px 6px 0 var(--text); margin-bottom:22px; }
+    .alert { display:flex; gap:12px; align-items:flex-start; background:var(--info-bg); color:var(--text);
+      border:1.5px solid var(--accent); border-radius:var(--radius-md); padding:16px 20px; margin-bottom:22px; }
+    .alert p { margin:4px 0 0; font-size:13.5px; color:var(--text-secondary); }
+    .alert strong { font-family:var(--font-display); }
+    .alert-danger { background:var(--danger-bg); color:var(--danger); border-color:var(--danger); }
+    .alert-danger p { color:var(--danger); }
     .sub-main { display:flex; justify-content:space-between; align-items:center; gap:16px; }
-    .plan-name { display:block; font-size:13px; color:#64748b; }
-    .plan-price { font-size:30px; font-weight:700; }
-    .plan-price small { font-size:14px; font-weight:500; color:#94a3b8; }
-    .sub-meta { display:flex; gap:32px; flex-wrap:wrap; margin:24px 0; padding:20px 0; border-top:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; }
+    .plan-name { display:block; font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-secondary); }
+    .plan-price { font-family:var(--font-display); font-size:36px; font-weight:800; letter-spacing:-1.5px; color:var(--text); }
+    .plan-price small { font-family:var(--font-mono); font-size:13px; font-weight:500; color:var(--text-tertiary); margin-left:4px; }
+    .sub-meta { display:flex; gap:32px; flex-wrap:wrap; margin:24px 0; padding:20px 0; border-top:2px dashed var(--border); border-bottom:2px dashed var(--border); }
     .meta-item { display:flex; flex-direction:column; gap:4px; }
-    .meta-lbl { font-size:12px; color:#94a3b8; }
-    .meta-val { font-size:15px; font-weight:600; }
-    .meta-val.danger { color:#b91c1c; }
-    .badge { padding:4px 12px; border-radius:100px; font-size:12px; font-weight:600; white-space:nowrap; }
-    .st-ACTIVE { background:#dcfce7; color:#15803d; }
-    .st-PENDING { background:#fef9c3; color:#a16207; }
-    .st-PAST_DUE { background:#ffedd5; color:#c2410c; }
-    .st-CANCELLED, .st-NONE { background:#e2e8f0; color:#475569; }
-    .pay-btn { width:100%; height:48px; font-weight:600; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:8px; }
-    .pay-hint { text-align:center; font-size:12px; color:#94a3b8; margin:10px 0 0; }
-    .manage-btn { width:100%; height:44px; font-weight:600; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px; }
-    .free-note { display:flex; align-items:center; justify-content:center; gap:8px; margin:20px 0 0; padding:14px; background:#dcfce7; color:#15803d; border-radius:10px; font-size:13.5px; font-weight:500; }
-    .invoice-table { width:100%; border-collapse:collapse; }
-    .invoice-table th, .invoice-table td { text-align:left; padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:13.5px; }
-    .invoice-table th { color:#64748b; font-weight:600; font-size:12px; text-transform:uppercase; }
-    .inv-PAID { background:#dcfce7; color:#15803d; }
-    .inv-PENDING { background:#fef9c3; color:#a16207; }
-    .inv-OVERDUE { background:#fee2e2; color:#b91c1c; }
-    .inv-CANCELLED { background:#e2e8f0; color:#475569; }
-    .empty { color:#94a3b8; text-align:center; padding:24px; }
+    .meta-lbl { font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-tertiary); }
+    .meta-val { font-size:15px; font-weight:700; color:var(--text); }
+    .meta-val.danger { color:var(--danger); }
+    .badge { padding:4px 12px; border-radius:100px; font-family:var(--font-mono); font-size:11.5px; font-weight:700;
+      white-space:nowrap; border:1.5px solid currentColor; }
+    .st-ACTIVE { background:var(--success-bg); color:var(--success); }
+    .st-PENDING { background:var(--warning-bg); color:var(--accent); }
+    .st-PAST_DUE { background:var(--danger-bg); color:var(--primary-dark); }
+    .st-CANCELLED, .st-NONE { background:var(--surface-alt); color:var(--text-secondary); }
+    .pay-btn { width:100%; height:50px; font-weight:700; margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .pay-hint { text-align:center; font-size:12px; color:var(--text-tertiary); margin:10px 0 0; }
+    .manage-btn { width:100%; height:46px; font-weight:600; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .free-note { display:flex; align-items:center; justify-content:center; gap:8px; margin:20px 0 0; padding:14px;
+      background:var(--success-bg); color:var(--success); border:1.5px solid var(--success); border-radius:var(--radius); font-size:13.5px; font-weight:600; }
+    .invoice-table { width:100%; border-collapse:separate; border-spacing:0; }
+    .invoice-table th, .invoice-table td { text-align:left; padding:10px 12px; border-bottom:1.5px solid var(--border); font-size:13.5px; color:var(--text); }
+    .invoice-table th { color:var(--table-header-text); font-family:var(--font-mono); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+    .inv-PAID { background:var(--success-bg); color:var(--success); }
+    .inv-PENDING { background:var(--warning-bg); color:var(--accent); }
+    .inv-OVERDUE { background:var(--danger-bg); color:var(--danger); }
+    .inv-CANCELLED { background:var(--surface-alt); color:var(--text-secondary); }
+    .empty { color:var(--text-tertiary); text-align:center; padding:24px; }
   `]
 })
 export class BillingComponent implements OnInit {

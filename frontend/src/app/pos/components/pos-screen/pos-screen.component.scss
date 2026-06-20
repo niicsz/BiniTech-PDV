@@ -117,8 +117,8 @@
   background: var(--input-bg);
 
   &:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(255, 111, 0, 0.12), var(--shadow-md);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(212, 57, 26, 0.14), var(--shadow-md);
   }
 }
 
@@ -372,7 +372,7 @@
 }
 
 .crediario-btn {
-  background-color: #7b1fa2 !important;
+  background-color: #8a4f2a !important; // cognac — distinct, on-palette payment method
   color: #fff !important;
 }
 

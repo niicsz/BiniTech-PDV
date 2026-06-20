@@ -150,9 +150,10 @@ import { SaleService } from './pos/services/sale.service';
       justify-content: center;
       width: 34px;
       height: 34px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #42a5f5, #1976d2);
-      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.35);
+      border-radius: var(--radius);
+      background: var(--primary);
+      border: 1.5px solid rgba(0, 0, 0, 0.35);
+      box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
     }
     .logo-icon {
       font-size: 20px;
@@ -161,11 +162,12 @@ import { SaleService } from './pos/services/sale.service';
       color: #fff;
     }
     .logo-text {
-      font-size: 17px;
-      font-weight: 700;
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 800;
       color: var(--header-text);
       white-space: nowrap;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.4px;
     }
     .logo-accent {
       font-weight: 800;
@@ -236,10 +238,10 @@ import { SaleService } from './pos/services/sale.service';
       color: var(--primary-light);
     }
     .nav-item-admin {
-      color: #a78bfa !important;
+      color: var(--accent) !important;
     }
-    .nav-item-admin mat-icon { color: #a78bfa !important; }
-    .nav-item-admin:hover { background: rgba(124,58,237,0.12) !important; }
+    .nav-item-admin mat-icon { color: var(--accent) !important; }
+    .nav-item-admin:hover { background: rgba(200, 136, 31, 0.14) !important; }
 
     .spacer {
       flex: 1;
@@ -299,10 +301,11 @@ import { SaleService } from './pos/services/sale.service';
       color: rgba(255, 255, 255, 0.92);
     }
     .user-role {
-      font-size: 10px;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
       color: rgba(255, 255, 255, 0.45);
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
       font-weight: 500;
     }
 
@@ -311,8 +314,8 @@ import { SaleService } from './pos/services/sale.service';
       transition: color 0.2s !important;
     }
     .logout-btn:hover {
-      color: #ef5350 !important;
-      background: rgba(239, 83, 80, 0.1);
+      color: var(--primary-light) !important;
+      background: rgba(212, 57, 26, 0.14);
     }
 
     .app-main {
