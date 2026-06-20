@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -185,19 +187,22 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
 
     const slug = this.tenantSlug.trim().toLowerCase();
-    if (slug) {
-      this.http
-        .get<{ id: string; name: string }>(`/api/public/tenants/slug/${encodeURIComponent(slug)}`)
-        .subscribe({
-          next: (tenant) => this.doLogin(tenant.id),
-          error: () => {
-            this.loading = false;
-            this.errorMessage = 'Loja não encontrada. Verifique o identificador informado.';
-          }
-        });
-    } else {
-      this.doLogin(undefined);
+    this.resolveTenantId(slug).subscribe({
+      next: (tenantId) => this.doLogin(tenantId),
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Loja não encontrada. Verifique o identificador informado.';
+      }
+    });
+  }
+
+  private resolveTenantId(slug: string): Observable<string | undefined> {
+    if (!slug) {
+      return of(undefined);
     }
+    return this.http
+      .get<{ id: string; name: string }>(`/api/public/tenants/slug/${encodeURIComponent(slug)}`)
+      .pipe(map((tenant) => tenant.id));
   }
 
   private doLogin(tenantId?: string): void {

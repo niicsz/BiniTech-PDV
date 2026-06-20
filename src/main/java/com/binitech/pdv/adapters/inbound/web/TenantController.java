@@ -110,8 +110,8 @@ public class TenantController {
         normalized
             .replaceAll("\\p{M}", "")
             .toLowerCase()
-            .replaceAll("[^a-z0-9]+", "-")
-            .replaceAll("^-+|-+$", "");
+            .replaceAll("[^a-z0-9]++", "-")
+            .replaceAll("(?:^-++)|(?:-++$)", "");
     if (slug.isBlank()) {
       throw new BusinessException("Não foi possível gerar um slug válido para o tenant.");
     }

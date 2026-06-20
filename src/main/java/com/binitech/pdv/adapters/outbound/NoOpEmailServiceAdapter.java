@@ -1,6 +1,7 @@
 package com.binitech.pdv.adapters.outbound;
 
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
+import com.binitech.pdv.utils.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,11 +21,9 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
       String to, String tenantName, String tenantSlug, String username, String tempPassword) {
     log.warn(
         "[EMAIL-NOOP] spring.mail.host não configurado. "
-            + "Credenciais do tenant '{}' que deveriam ser enviadas para {}: username={} password={}",
-        tenantName,
-        to,
-        username,
-        tempPassword);
+            + "E-mail de aprovação (com credenciais) do tenant '{}' não foi enviado para o "
+            + "destinatário configurado. Configure o servidor de e-mail para reenviar.",
+        LogSanitizer.maskUsername(tenantName));
   }
 
   @Override
@@ -32,10 +31,9 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
       String to, String tenantName, String username, String resetLink) {
     log.warn(
         "[EMAIL-NOOP] spring.mail.host não configurado. "
-            + "Link de redefinição de senha para o usuário '{}' do tenant '{}' (enviar para {}): {}",
-        username,
-        tenantName,
-        to,
-        resetLink);
+            + "E-mail de redefinição de senha do usuário '{}' (tenant '{}') não foi enviado. "
+            + "Configure o servidor de e-mail para reenviar.",
+        LogSanitizer.maskUsername(username),
+        LogSanitizer.maskUsername(tenantName));
   }
 }

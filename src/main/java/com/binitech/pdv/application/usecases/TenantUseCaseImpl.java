@@ -24,6 +24,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   private static final Logger log = LoggerFactory.getLogger(TenantUseCaseImpl.class);
   private static final String CHARS =
       "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$!";
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
@@ -196,10 +197,9 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   }
 
   private String generateTempPassword() {
-    SecureRandom random = new SecureRandom();
     StringBuilder sb = new StringBuilder(12);
     for (int i = 0; i < 12; i++) {
-      sb.append(CHARS.charAt(random.nextInt(CHARS.length())));
+      sb.append(CHARS.charAt(SECURE_RANDOM.nextInt(CHARS.length())));
     }
     return sb.toString();
   }

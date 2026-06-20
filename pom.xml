@@ -39,6 +39,8 @@
 		<log4j2.version>2.25.4</log4j2.version>
 		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<stripe-java.version>29.2.0</stripe-java.version>
+		<spring-amqp.version>3.2.11</spring-amqp.version>
+		<spring-retry.version>2.0.13</spring-retry.version>
 	</properties>
 
 	<profiles>

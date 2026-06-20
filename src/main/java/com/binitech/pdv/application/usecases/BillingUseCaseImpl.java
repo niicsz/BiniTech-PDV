@@ -93,7 +93,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       log.info(
           "Subscription criada/atualizada: tenantId={} tier={} baseFee={}",
           LogSanitizer.maskId(saved.getTenantId()),
-          saved.getPlanTier(),
+          LogSanitizer.neutralize(saved.getPlanTier()),
           limits.baseMonthlyFee());
     }
     return saved;
