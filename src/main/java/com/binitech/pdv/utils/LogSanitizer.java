@@ -8,7 +8,10 @@ public final class LogSanitizer {
     if (value == null) {
       return null;
     }
-    return value.replaceAll("[\\p{Cntrl}]", "_");
+    // Strip CR/LF/TAB explicitly (prevents log forging/injection) and then any
+    // remaining control characters. The explicit \r\n\t class is what static
+    // analyzers (CodeQL java/log-injection) recognize as a log-injection barrier.
+    return value.replaceAll("[\\r\\n\\t]", "_").replaceAll("\\p{Cntrl}", "_");
   }
 
   public static String maskUsername(String username) {
