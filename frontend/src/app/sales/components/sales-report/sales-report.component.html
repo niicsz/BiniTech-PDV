@@ -150,7 +150,7 @@
             <td class="col-payment">
               <span class="payment-badge" *ngFor="let p of sale.payments"
                     [ngClass]="'badge-' + p.method.toLowerCase()">
-                {{ getPaymentLabel(p.method) }}
+                {{ getPaymentLabel(p.method) }}: R$ {{ p.amount | number:'1.2-2' }}
               </span>
               <span class="customer-info" *ngIf="sale.customerName">
                 <mat-icon class="customer-icon">person</mat-icon>
