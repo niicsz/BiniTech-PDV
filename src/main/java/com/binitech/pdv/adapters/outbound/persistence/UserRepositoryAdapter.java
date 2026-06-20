@@ -4,7 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.document.UserDocument;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.domain.User;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 

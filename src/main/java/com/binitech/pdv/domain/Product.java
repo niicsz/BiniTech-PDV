@@ -22,42 +22,6 @@ public class Product implements Serializable {
     this.active = true;
   }
 
-  public Product(
-      String id,
-      String barcode,
-      String description,
-      double price,
-      double costPrice,
-      int stockQuantity,
-      boolean active,
-      String userId,
-      String category) {
-    this(id, barcode, description, price, costPrice, stockQuantity, active, userId, null, category);
-  }
-
-  public Product(
-      String id,
-      String barcode,
-      String description,
-      double price,
-      double costPrice,
-      int stockQuantity,
-      boolean active,
-      String userId,
-      String tenantId,
-      String category) {
-    this.id = id;
-    this.barcode = barcode;
-    this.description = description;
-    this.price = price;
-    this.costPrice = costPrice;
-    this.stockQuantity = stockQuantity;
-    this.active = active;
-    this.userId = userId;
-    this.tenantId = tenantId;
-    this.category = category;
-  }
-
   public void decreaseStock(int quantity) {
     if (quantity > this.stockQuantity) {
       throw new IllegalArgumentException(

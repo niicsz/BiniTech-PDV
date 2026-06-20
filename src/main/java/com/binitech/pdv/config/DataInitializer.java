@@ -2,7 +2,7 @@ package com.binitech.pdv.config;
 
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.domain.User;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

@@ -8,7 +8,7 @@ import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.User;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

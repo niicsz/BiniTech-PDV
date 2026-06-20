@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
+  private static final String FIELD_TIMESTAMP = "timestamp";
+
   private final SpringDataSaleRepository repository;
   private final PersistenceMapper mapper;
 
@@ -42,7 +44,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   @Override
   public List<Sale> findAll(int page, int size) {
     return repository
-        .findAll(PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .findAll(PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
         .stream()
         .map(mapper::toDomain)
         .toList();
@@ -51,7 +53,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   @Override
   public List<Sale> findAllByUserId(String userId, int page, int size) {
     return repository
-        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
         .stream()
         .map(mapper::toDomain)
         .toList();
@@ -78,7 +80,8 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   @Override
   public List<Sale> findAllByTenantId(String tenantId, int page, int size) {
     return repository
-        .findAllByTenantId(tenantId, PageRequest.of(page, size, Sort.by("timestamp").descending()))
+        .findAllByTenantId(
+            tenantId, PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
         .stream()
         .map(mapper::toDomain)
         .toList();

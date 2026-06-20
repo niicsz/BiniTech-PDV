@@ -8,12 +8,13 @@ import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.Role;
-import com.binitech.pdv.utils.Enum.TenantStatus;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       throw new BusinessException("Já existe um tenant com o slug: " + slug);
     }
 
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Tenant tenant = new Tenant();
     tenant.setName(name);
     tenant.setSlug(slug);
@@ -110,7 +111,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
     tenant.setStatus(TenantStatus.ACTIVE);
     tenant.setBlockedAt(null);
     tenant.setBlockReason(null);
-    tenant.setUpdatedAt(LocalDateTime.now());
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     Tenant saved = tenantRepository.save(tenant);
     if (log.isInfoEnabled()) {
       log.info("Tenant aprovado: tenantId={}", LogSanitizer.maskId(saved.getId()));
@@ -125,9 +126,9 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   public Tenant blockTenant(String tenantId, String reason) {
     Tenant tenant = getTenantById(tenantId);
     tenant.setStatus(TenantStatus.BLOCKED);
-    tenant.setBlockedAt(LocalDate.now());
+    tenant.setBlockedAt(LocalDate.now(ZoneId.systemDefault()));
     tenant.setBlockReason(reason);
-    tenant.setUpdatedAt(LocalDateTime.now());
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     Tenant saved = tenantRepository.save(tenant);
     if (log.isInfoEnabled()) {
       log.info("Tenant bloqueado: tenantId={}", LogSanitizer.maskId(saved.getId()));
@@ -144,9 +145,9 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       tenant.setBlockReason(null);
     }
     if (newStatus == TenantStatus.BLOCKED && tenant.getBlockedAt() == null) {
-      tenant.setBlockedAt(LocalDate.now());
+      tenant.setBlockedAt(LocalDate.now(ZoneId.systemDefault()));
     }
-    tenant.setUpdatedAt(LocalDateTime.now());
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     Tenant saved = tenantRepository.save(tenant);
     if (log.isInfoEnabled()) {
       log.info(
@@ -175,22 +176,22 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       userRepository.save(adminUser);
       log.info("Usuário TENANT_ADMIN criado para tenantId={}", LogSanitizer.maskId(tenant.getId()));
 
-      try {
-        emailService.sendTenantApprovalEmail(
-            tenant.getBillingEmail(),
-            tenant.getName(),
-            tenant.getSlug(),
-            tenantAdminUsername,
-            tempPassword);
-      } catch (Exception e) {
-        log.error(
-            "Falha ao enviar e-mail de boas-vindas para tenantId={}: {}",
-            LogSanitizer.maskId(tenant.getId()),
-            e.getMessage());
-      }
+      sendApprovalEmailQuietly(tenant, tenantAdminUsername, tempPassword);
     } catch (Exception e) {
       log.error(
           "Falha ao provisionar admin do tenant tenantId={}: {}",
+          LogSanitizer.maskId(tenant.getId()),
+          e.getMessage());
+    }
+  }
+
+  private void sendApprovalEmailQuietly(Tenant tenant, String username, String tempPassword) {
+    try {
+      emailService.sendTenantApprovalEmail(
+          tenant.getBillingEmail(), tenant.getName(), tenant.getSlug(), username, tempPassword);
+    } catch (Exception e) {
+      log.error(
+          "Falha ao enviar e-mail de boas-vindas para tenantId={}: {}",
           LogSanitizer.maskId(tenant.getId()),
           e.getMessage());
     }

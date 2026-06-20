@@ -3,7 +3,7 @@ package com.binitech.pdv.domain;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.binitech.pdv.domain.exception.BusinessException;
-import com.binitech.pdv.utils.Enum.PaymentMethod;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

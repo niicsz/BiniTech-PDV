@@ -2,7 +2,7 @@ package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
-import com.binitech.pdv.utils.Enum.TenantStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.util.List;
 
 public interface TenantUseCasePort {

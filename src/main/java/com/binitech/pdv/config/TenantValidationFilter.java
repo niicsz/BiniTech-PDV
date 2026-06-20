@@ -2,8 +2,8 @@ package com.binitech.pdv.config;
 
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.domain.Tenant;
-import com.binitech.pdv.utils.Enum.TenantStatus;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -98,7 +99,8 @@ public class TenantValidationFilter extends OncePerRequestFilter {
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     objectMapper.writeValue(
-        response.getWriter(), new TenantErrorResponse(code, message, OffsetDateTime.now()));
+        response.getWriter(),
+        new TenantErrorResponse(code, message, OffsetDateTime.now(ZoneId.systemDefault())));
   }
 
   private record TenantErrorResponse(String code, String message, OffsetDateTime timestamp) {}

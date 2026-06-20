@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
+  private static final String FIELD_DESCRIPTION = "description";
+
   private final SpringDataProductRepository repository;
   private final PersistenceMapper mapper;
 
@@ -45,7 +47,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "product_by_id", key = "#id", unless = "#result == null")
+  @Cacheable(value = "product_by_id", key = "#id", unless = "#result == null || #result.isEmpty()")
   public Optional<Product> findById(String id) {
     return repository.findById(id).map(mapper::toDomain);
   }
@@ -59,7 +61,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(value = "products_all", key = "#page + ':' + #size")
   public List<Product> findAll(int page, int size) {
     return repository
-        .findAll(PageRequest.of(page, size, Sort.by("description").ascending()))
+        .findAll(PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
         .toList();
@@ -88,7 +90,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(value = "products_by_user", key = "#userId + ':' + #page + ':' + #size")
   public List<Product> findAllByUserId(String userId, int page, int size) {
     return repository
-        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by("description").ascending()))
+        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
         .toList();
@@ -98,7 +100,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(
       value = "product_by_barcode",
       key = "#barcode + ':' + #userId",
-      unless = "#result == null")
+      unless = "#result == null || #result.isEmpty()")
   public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
     return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
   }
@@ -112,7 +114,8 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(value = "products_by_tenant", key = "#tenantId + ':' + #page + ':' + #size")
   public List<Product> findAllByTenantId(String tenantId, int page, int size) {
     return repository
-        .findAllByTenantId(tenantId, PageRequest.of(page, size, Sort.by("description").ascending()))
+        .findAllByTenantId(
+            tenantId, PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
         .toList();
@@ -122,7 +125,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(
       value = "product_by_barcode_tenant",
       key = "#barcode + ':' + #tenantId",
-      unless = "#result == null")
+      unless = "#result == null || #result.isEmpty()")
   public Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId) {
     return repository.findByBarcodeAndTenantId(barcode, tenantId).map(mapper::toDomain);
   }

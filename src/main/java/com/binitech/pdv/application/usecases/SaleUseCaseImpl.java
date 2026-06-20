@@ -8,11 +8,12 @@ import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.Role;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
     sale.setUserId(userId);
     sale.setTenantId(tenantId);
-    sale.setTimestamp(LocalDateTime.now());
+    sale.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
 
     Sale saved = saleRepository.save(sale);
     if (log.isInfoEnabled()) {

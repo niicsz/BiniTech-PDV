@@ -1,7 +1,7 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.Tenant;
-import com.binitech.pdv.utils.Enum.TenantStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.util.List;
 import java.util.Optional;
 

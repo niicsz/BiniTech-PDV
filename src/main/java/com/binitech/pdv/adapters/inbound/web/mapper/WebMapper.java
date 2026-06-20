@@ -2,7 +2,7 @@ package com.binitech.pdv.adapters.inbound.web.mapper;
 
 import com.binitech.pdv.adapters.inbound.web.generated.model.*;
 import com.binitech.pdv.domain.*;
-import com.binitech.pdv.utils.Enum.PaymentMethod;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;

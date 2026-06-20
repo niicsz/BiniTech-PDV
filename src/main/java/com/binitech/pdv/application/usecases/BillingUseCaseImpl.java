@@ -6,6 +6,7 @@ import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
+import com.binitech.pdv.config.BillingStripeConfig;
 import com.binitech.pdv.config.PlanConfig;
 import com.binitech.pdv.config.PlanConfig.PlanLimits;
 import com.binitech.pdv.config.StripeGateway;
@@ -15,14 +16,15 @@ import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.InvoiceStatus;
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
-import com.binitech.pdv.utils.Enum.TenantStatus;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.InvoiceStatus;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import com.stripe.exception.StripeException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -52,24 +54,22 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       TenantRepositoryPort tenantRepository,
       SpringDataProductRepository productRepository,
       SpringDataUserRepository userRepository,
-      String frontendUrl,
-      StripeGateway stripeGateway,
-      StripeProperties stripeProperties) {
+      BillingStripeConfig stripeConfig) {
     this.subscriptionRepository = subscriptionRepository;
     this.invoiceRepository = invoiceRepository;
     this.tenantRepository = tenantRepository;
     this.productRepository = productRepository;
     this.userRepository = userRepository;
-    this.frontendUrl = frontendUrl;
-    this.stripeGateway = stripeGateway;
-    this.stripeProperties = stripeProperties;
+    this.frontendUrl = stripeConfig.frontendUrl();
+    this.stripeGateway = stripeConfig.stripeGateway();
+    this.stripeProperties = stripeConfig.stripeProperties();
   }
 
   @Override
   public Subscription createSubscription(String tenantId, String planTier) {
     PlanLimits limits = PlanConfig.getLimits(planTier);
-    LocalDate today = LocalDate.now();
-    LocalDateTime now = LocalDateTime.now();
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Subscription subscription =
         subscriptionRepository.findByTenantId(tenantId).orElseGet(Subscription::new);
 
@@ -107,8 +107,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             .findByTenantId(tenantId)
             .orElseThrow(() -> new ResourceNotFoundException("Subscription", "tenantId", tenantId));
     PlanLimits limits = PlanConfig.getLimits(subscription.getPlanTier());
-    LocalDate today = LocalDate.now();
-    LocalDateTime now = LocalDateTime.now();
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     int effectiveProducts =
         activeProducts >= 0
@@ -162,8 +162,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   @Override
   public Invoice markInvoicePaid(String stripeInvoiceId, String stripeSubscriptionId) {
-    LocalDate today = LocalDate.now();
-    LocalDateTime now = LocalDateTime.now();
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     Optional<Subscription> subscriptionOptional =
         hasText(stripeSubscriptionId)
@@ -219,7 +219,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
                 () ->
                     new ResourceNotFoundException(
                         "Subscription", "stripeSubscriptionId", stripeSubscriptionId));
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     subscription.setFailedPaymentCount(subscription.getFailedPaymentCount() + 1);
     subscription.setStatus(SubscriptionStatus.PAST_DUE);
@@ -242,7 +242,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   @Override
   public void blockOverdueTenants(int graceDays) {
-    LocalDate cutoffDate = LocalDate.now().minusDays(graceDays);
+    LocalDate cutoffDate = LocalDate.now(ZoneId.systemDefault()).minusDays(graceDays);
     Set<String> processedTenantIds = new HashSet<>();
 
     for (Invoice invoice : invoiceRepository.findOverdueInvoicesBefore(cutoffDate)) {
@@ -255,9 +255,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
               tenant -> {
                 if (tenant.getStatus() == TenantStatus.ACTIVE) {
                   tenant.setStatus(TenantStatus.BLOCKED);
-                  tenant.setBlockedAt(LocalDate.now());
+                  tenant.setBlockedAt(LocalDate.now(ZoneId.systemDefault()));
                   tenant.setBlockReason("Fatura vencida");
-                  tenant.setUpdatedAt(LocalDateTime.now());
+                  tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
                   tenantRepository.save(tenant);
                   log.warn(
                       "Tenant bloqueado por inadimplência: tenantId={} invoiceId={}",
@@ -361,8 +361,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         Optional.ofNullable(stripeProperties.tierForPrice(stripePriceId))
             .orElse(tenant.getPlanId());
 
-    LocalDate today = LocalDate.now();
-    LocalDateTime now = LocalDateTime.now();
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Subscription subscription = createSubscription(tenant.getId(), planTier);
     if (hasText(stripeSubscriptionId)) {
       subscription.setStripeSubscriptionId(stripeSubscriptionId);
@@ -389,10 +389,10 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         tenantRepository
             .findById(tenantId)
             .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     Subscription subscription = createSubscription(tenantId, tenant.getPlanId());
-    subscription.setLastPaymentDate(LocalDate.now());
+    subscription.setLastPaymentDate(LocalDate.now(ZoneId.systemDefault()));
     subscription.setUpdatedAt(now);
     Subscription saved = subscriptionRepository.save(subscription);
 
@@ -476,7 +476,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     appendExtra(extras, extraProducts, "produto");
     appendExtra(extras, extraSales, "venda");
     appendExtra(extras, extraOperators, "operador");
-    if (extras.length() > 0) {
+    if (!extras.isEmpty()) {
       description.append(" + ").append(extras);
     }
     return description.toString();
@@ -486,7 +486,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (quantity <= 0) {
       return;
     }
-    if (extras.length() > 0) {
+    if (!extras.isEmpty()) {
       extras.append(", ");
     }
     extras.append(quantity).append(' ').append(label).append(quantity > 1 ? "s extras" : " extra");

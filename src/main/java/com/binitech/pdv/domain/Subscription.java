@@ -1,6 +1,6 @@
 package com.binitech.pdv.domain;
 
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -24,39 +24,6 @@ public class Subscription {
   private LocalDateTime updatedAt;
 
   public Subscription() {}
-
-  public Subscription(
-      String id,
-      String tenantId,
-      String stripeSubscriptionId,
-      String stripeCustomerId,
-      String stripePriceId,
-      String planTier,
-      SubscriptionStatus status,
-      LocalDate currentPeriodStart,
-      LocalDate currentPeriodEnd,
-      LocalDate nextBillingDate,
-      LocalDate lastPaymentDate,
-      int failedPaymentCount,
-      LocalDate cancelledAt,
-      LocalDateTime createdAt,
-      LocalDateTime updatedAt) {
-    this.id = id;
-    this.tenantId = tenantId;
-    this.stripeSubscriptionId = stripeSubscriptionId;
-    this.stripeCustomerId = stripeCustomerId;
-    this.stripePriceId = stripePriceId;
-    this.planTier = planTier;
-    this.status = status;
-    this.currentPeriodStart = currentPeriodStart;
-    this.currentPeriodEnd = currentPeriodEnd;
-    this.nextBillingDate = nextBillingDate;
-    this.lastPaymentDate = lastPaymentDate;
-    this.failedPaymentCount = failedPaymentCount;
-    this.cancelledAt = cancelledAt;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-  }
 
   public String getId() {
     return id;

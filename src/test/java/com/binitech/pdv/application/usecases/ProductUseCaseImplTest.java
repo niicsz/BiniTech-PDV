@@ -9,7 +9,7 @@ import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;

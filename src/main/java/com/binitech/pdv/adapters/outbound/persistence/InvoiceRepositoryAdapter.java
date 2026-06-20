@@ -4,7 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.document.InvoiceDocument;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataInvoiceRepository;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.domain.Invoice;
-import com.binitech.pdv.utils.Enum.InvoiceStatus;
+import com.binitech.pdv.utils.enums.InvoiceStatus;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -69,19 +69,20 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
   }
 
   private Invoice toDomain(InvoiceDocument d) {
-    return new Invoice(
-        d.getId(),
-        d.getTenantId(),
-        d.getSubscriptionId(),
-        d.getStripeInvoiceId(),
-        d.getAmount(),
-        d.getStatus() != null ? InvoiceStatus.valueOf(d.getStatus()) : null,
-        d.getDueDate(),
-        d.getPaidAt(),
-        d.getDescription(),
-        d.getBaseAmount(),
-        d.getExcessAmount(),
-        d.getCreatedAt(),
-        d.getUpdatedAt());
+    Invoice invoice = new Invoice();
+    invoice.setId(d.getId());
+    invoice.setTenantId(d.getTenantId());
+    invoice.setSubscriptionId(d.getSubscriptionId());
+    invoice.setStripeInvoiceId(d.getStripeInvoiceId());
+    invoice.setAmount(d.getAmount());
+    invoice.setStatus(d.getStatus() != null ? InvoiceStatus.valueOf(d.getStatus()) : null);
+    invoice.setDueDate(d.getDueDate());
+    invoice.setPaidAt(d.getPaidAt());
+    invoice.setDescription(d.getDescription());
+    invoice.setBaseAmount(d.getBaseAmount());
+    invoice.setExcessAmount(d.getExcessAmount());
+    invoice.setCreatedAt(d.getCreatedAt());
+    invoice.setUpdatedAt(d.getUpdatedAt());
+    return invoice;
   }
 }

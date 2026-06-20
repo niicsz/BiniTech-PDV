@@ -1,7 +1,7 @@
 package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Sale;
-import com.binitech.pdv.utils.Enum.Role;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.LocalDate;
 import java.util.List;
 

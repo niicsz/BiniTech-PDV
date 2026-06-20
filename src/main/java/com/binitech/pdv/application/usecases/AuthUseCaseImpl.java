@@ -8,8 +8,8 @@ import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
-import com.binitech.pdv.utils.Enum.Role;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,25 +56,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
             ? userRepository.findByUsernameAndTenantId(username, tenantId)
             : userRepository.findByUsernameAndTenantIdIsNull(username);
 
-    boolean passwordMatches;
-    if (userOpt.isEmpty()) {
-      if (dummyPasswordHash != null && !dummyPasswordHash.isBlank()) {
-        try {
-          passwordEncoder.matches(password, dummyPasswordHash);
-        } catch (Exception ignored) {
-        }
-      }
-      passwordMatches = false;
-    } else {
-      try {
-        passwordMatches = passwordEncoder.matches(password, userOpt.get().getPassword());
-      } catch (IllegalArgumentException e) {
-        log.error(
-            "Hash de senha inválido para usuário: {} — o usuário deve ser recriado.",
-            LogSanitizer.maskUsername(username));
-        passwordMatches = false;
-      }
-    }
+    boolean passwordMatches = verifyPassword(userOpt, password, username);
 
     if (userOpt.isEmpty() || !passwordMatches) {
       if (log.isWarnEnabled()) {
@@ -256,6 +238,32 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       if (log.isInfoEnabled()) {
         log.info("Logout realizado com sucesso para userId={}", LogSanitizer.maskId(userId));
       }
+    }
+  }
+
+  private boolean verifyPassword(Optional<User> userOpt, String rawPassword, String username) {
+    if (userOpt.isEmpty()) {
+      performDummyPasswordCheck(rawPassword);
+      return false;
+    }
+    try {
+      return passwordEncoder.matches(rawPassword, userOpt.get().getPassword());
+    } catch (IllegalArgumentException e) {
+      log.error(
+          "Hash de senha inválido para usuário: {} — o usuário deve ser recriado.",
+          LogSanitizer.maskUsername(username));
+      return false;
+    }
+  }
+
+  private void performDummyPasswordCheck(String rawPassword) {
+    if (dummyPasswordHash == null || dummyPasswordHash.isBlank()) {
+      return;
+    }
+    try {
+      passwordEncoder.matches(rawPassword, dummyPasswordHash);
+    } catch (RuntimeException e) {
+      log.trace("Verificação fictícia de senha falhou; resultado ignorado.", e);
     }
   }
 

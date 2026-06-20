@@ -1,7 +1,7 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.Subscription;
-import com.binitech.pdv.utils.Enum.SubscriptionStatus;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import java.util.List;
 import java.util.Optional;
 

@@ -1,6 +1,6 @@
 package com.binitech.pdv.domain;
 
-import com.binitech.pdv.utils.Enum.PaymentMethod;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import java.util.Objects;
 
 public class Payment {

@@ -122,8 +122,6 @@ public class BeanConfig {
         tenantRepositoryPort,
         springDataProductRepository,
         springDataUserRepository,
-        frontendUrl,
-        stripeGateway,
-        stripeProperties);
+        new BillingStripeConfig(frontendUrl, stripeGateway, stripeProperties));
   }
 }
