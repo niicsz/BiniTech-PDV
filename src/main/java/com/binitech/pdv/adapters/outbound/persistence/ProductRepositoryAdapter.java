@@ -47,7 +47,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "product_by_id", key = "#id", unless = "#result == null || #result.isEmpty()")
+  @Cacheable(value = "product_by_id", key = "#id", unless = "#result == null")
   public Optional<Product> findById(String id) {
     return repository.findById(id).map(mapper::toDomain);
   }
@@ -100,7 +100,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(
       value = "product_by_barcode",
       key = "#barcode + ':' + #userId",
-      unless = "#result == null || #result.isEmpty()")
+      unless = "#result == null")
   public Optional<Product> findByBarcodeAndUserId(String barcode, String userId) {
     return repository.findByBarcodeAndUserId(barcode, userId).map(mapper::toDomain);
   }
@@ -125,7 +125,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   @Cacheable(
       value = "product_by_barcode_tenant",
       key = "#barcode + ':' + #tenantId",
-      unless = "#result == null || #result.isEmpty()")
+      unless = "#result == null")
   public Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId) {
     return repository.findByBarcodeAndTenantId(barcode, tenantId).map(mapper::toDomain);
   }
