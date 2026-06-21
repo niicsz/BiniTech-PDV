@@ -23,6 +23,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 public class RedisCacheConfig implements CachingConfigurer {
 
   private static final Logger log = LoggerFactory.getLogger(RedisCacheConfig.class);
+  
+  private static final String CACHE_VERSION = "v2";
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -36,6 +38,7 @@ public class RedisCacheConfig implements CachingConfigurer {
     RedisCacheConfiguration defaultConfig =
         RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))
+            .computePrefixWith(cacheName -> "pdv:" + CACHE_VERSION + ":" + cacheName + "::")
             .serializeKeysWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
                     new StringRedisSerializer()))
