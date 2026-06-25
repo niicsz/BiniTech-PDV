@@ -2,6 +2,8 @@
 
 Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), desenvolvida com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 21** no frontend. Cada lojista opera em um *tenant* isolado, com cobrança recorrente via **Stripe**.
 
+> Este repositório contém **apenas o backend** (API REST). O frontend Angular vive em repositório próprio e é deployado separadamente: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. O backend expõe a API em `/api/**` e libera o domínio do frontend via CORS (`CORS_ALLOWED_ORIGINS`).
+
 ---
 
 ## 📋 Índice
@@ -169,10 +171,10 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                     Frontend (Angular 21)                     │
+│              Frontend (Angular 21) — repo/deploy separado      │
 │  Login │ POS │ Products │ Sales │ Debtors │ Password Reset     │
 └────────────────────────────┬─────────────────────────────────┘
-                             │ HTTP (REST API + JWT)
+                             │ HTTP (REST API + JWT) — cross-origin + CORS
 ┌────────────────────────────▼─────────────────────────────────┐
 │                       Adapters (Inbound)                      │
 │  AuthController │ ProductController │ SaleController           │
@@ -199,7 +201,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 │  SecurityConfig │ JwtTokenProvider │ JwtAuthenticationFilter   │
 │  TenantValidationFilter │ TokenBlacklistService │ RedisCache   │
 │  StripeGateway │ BillingStripeConfig │ PlanConfig │ DailyBilling│
-│  RabbitMQConfig │ CorsConfig │ DataInitializer │ SpaWebConfig   │
+│  RabbitMQConfig │ CorsConfig │ DataInitializer                 │
 └──────────┬──────────────────┬──────────────────┬──────────────┘
            │                  │                  │
     ┌──────▼──────┐   ┌────────▼───────┐  ┌───────▼────────┐
@@ -243,7 +245,7 @@ com.binitech.pdv
 │   ├── TenantValidationFilter, TokenBlacklistService, RedisCacheConfig
 │   ├── StripeGateway, StripeProperties, BillingStripeConfig, PlanConfig, DailyBillingJob
 │   ├── RabbitMQConfig, CorsConfig, BeanConfig, DataInitializer
-│   ├── PepperedPasswordEncoder, SpaWebConfig
+│   ├── PepperedPasswordEncoder
 │   └── DotenvEnvironmentPostProcessor
 └── utils/
     ├── LogSanitizer
@@ -255,7 +257,6 @@ com.binitech.pdv
 ## ✅ Pré-requisitos
 
 - **Java 21+**
-- **Node.js 25+** e **npm**
 - **Docker** e **Docker Compose** (para MongoDB e RabbitMQ)
 - **Redis** acessível (instância local ou container separado)
 - **Maven** (ou use o wrapper `mvnw` incluído)
@@ -289,15 +290,18 @@ O backend estará disponível em **http://localhost:8080**.
 
 ### 3. Frontend (Angular)
 
+O frontend está em repositório separado: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. Para rodá-lo localmente, clone-o e siga o README de lá:
+
 ```bash
-cd frontend
-npm install
+git clone https://github.com/niicsz/BiniTech-PDV-frontend.git
+cd BiniTech-PDV-frontend
+npm ci
 npm start
 ```
 
-O frontend estará disponível em **http://localhost:4200** e fará proxy das requisições `/api` para o backend na porta `8080`.
+O `npm start` sobe em **http://localhost:4200** e faz proxy das requisições `/api` para o backend na porta `8080` (`proxy.conf.json`).
 
-> **Produção:** O Dockerfile multi-stage compila o frontend Angular e o serve como arquivos estáticos pelo próprio Spring Boot (via `SpaWebConfig`), eliminando a necessidade de um servidor separado para o frontend.
+> **Produção:** front e back são **deploys independentes** em domínios distintos. O frontend chama a URL pública do backend (via `API_BASE`) e o backend libera esse domínio no CORS (`CORS_ALLOWED_ORIGINS`). O backend **não serve mais** os estáticos do Angular.
 
 ---
 
@@ -319,8 +323,8 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `ADMIN_PASSWORD` | Senha do super admin | — (obrigatório) |
 | `SECURITY_PEPPER` | Pepper concatenado às passwords antes do hash Argon2 | — (obrigatório) |
 | `SECURITY_DUMMY_PASSWORD_HASH` | Hash usado para mitigar timing attacks em logins inexistentes | — (obrigatório) |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS | — (obrigatório) |
-| `APP_FRONTEND_URL` | URL do frontend (usada em links de e-mail e retorno do Stripe) | `http://localhost:4200` |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS — domínio público do frontend (em dev, `http://localhost:4200`) | — (obrigatório) |
+| `APP_FRONTEND_URL` | URL pública do frontend (usada em links de e-mail e retorno do Stripe) | `http://localhost:4200` |
 
 ### RabbitMQ
 
@@ -609,11 +613,10 @@ src/test/java/com/binitech/pdv/
 
 ## 🐳 Docker
 
-O projeto inclui um **Dockerfile multi-stage** (3 estágios) que compila frontend e backend em uma única imagem otimizada:
+O projeto inclui um **Dockerfile multi-stage** (2 estágios) que compila o backend numa imagem otimizada:
 
-1. **frontend-build** — Compila o Angular com Node.js 25 Alpine
-2. **backend-build** — Compila o Spring Boot com Eclipse Temurin JDK 21, copiando o build do frontend para `resources/static/`
-3. **runtime** — Imagem final mínima com Eclipse Temurin JRE 21, executando com usuário não-root para segurança
+1. **backend-build** — Compila o Spring Boot com Eclipse Temurin JDK 21
+2. **runtime** — Imagem final mínima com Eclipse Temurin JRE 21, executando com usuário não-root para segurança
 
 A imagem inclui **HEALTHCHECK** integrado via `/actuator/health`.
 
@@ -645,11 +648,11 @@ docker run -d \
   -e ADMIN_PASSWORD=sua-senha-admin \
   -e SECURITY_PEPPER=seu-pepper-secreto \
   -e SECURITY_DUMMY_PASSWORD_HASH=seu-hash-dummy \
-  -e CORS_ALLOWED_ORIGINS=http://localhost:8080 \
+  -e CORS_ALLOWED_ORIGINS=http://localhost:4200 \
   binitech-pdv
 ```
 
-> Em produção, o frontend Angular é servido como arquivos estáticos pelo Spring Boot (via `SpaWebConfig`), sendo acessível diretamente em **http://localhost:8080**.
+> Esta imagem é **API-only**. O frontend é buildado e servido pelo seu próprio repositório/deploy ([niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)).
 
 ---
 
@@ -658,7 +661,7 @@ docker run -d \
 ```
 pdv/
 ├── docker-compose.yml          # Sobe MongoDB + RabbitMQ (Redis não incluso)
-├── Dockerfile                  # Build multi-stage (frontend + backend)
+├── Dockerfile                  # Build multi-stage (backend, API-only)
 ├── owasp-suppressions.xml      # Supressões do OWASP Dependency Check
 ├── pom.xml                     # Configuração Maven
 ├── mvnw / mvnw.cmd             # Maven Wrapper
@@ -677,18 +680,10 @@ pdv/
 │       └── java/com/binitech/pdv/
 │           ├── adapters/, application/, config/, domain/
 │           └── integration/    # Testes de integração (AuthControllerIT, etc.)
-├── frontend/
-│   ├── src/app/
-│   │   ├── auth/               # Login, Register, Forgot/Reset/Change Password, Guards, Interceptors
-│   │   ├── pos/                # Tela de PDV (carrinho, pagamento, busca)
-│   │   ├── products/           # Listagem e cadastro de produtos
-│   │   ├── sales/              # Relatório de vendas (receita, custo, lucro)
-│   │   ├── debtors/            # Gestão de devedores (crediário)
-│   │   └── shared/             # Componentes, modelos e serviços compartilhados (ThemeService, etc.)
-│   ├── proxy.conf.json
-│   └── package.json
 └── target/                     # Build artifacts
 ```
+
+> **Frontend:** em repositório separado — [niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend) (Angular 21 servido via Nginx).
 
 ---
 
