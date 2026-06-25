@@ -115,5 +115,5 @@ C4Component
 ## Notas
 
 - **Multi-tenant**: o isolamento é lógico — todos os documentos carregam `tenantId` e o `TenantValidationFilter` garante o escopo por requisição.
-- **Deploy**: o `Dockerfile` multi-stage compila a SPA (Node), embute o `dist/` em `src/main/resources/static/` e empacota tudo num único jar (Temurin 21). Healthcheck via `/actuator/health`.
+- **Deploy**: o `Dockerfile` multi-stage compila só o backend num jar (Temurin 21), API-only. Healthcheck via `/actuator/health`. O frontend é deploy separado ([niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)) que consome a API via CORS.
 - **E-mail resiliente**: o envio é desacoplado por fila (RabbitMQ); existe um `NoOpEmailServiceAdapter` para ambientes sem SMTP configurado.
