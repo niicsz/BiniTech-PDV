@@ -1,3 +1,14 @@
+logging:
+  level:
+    root: WARN
+    com.binitech: INFO
+    org.springframework: WARN
+    org.springframework.security: WARN
+    org.mongodb: WARN
+    com.rabbitmq: WARN
+    io.lettuce: WARN
+    org.apache: WARN
+
 spring:
   application:
     name: BiniTech PDV
