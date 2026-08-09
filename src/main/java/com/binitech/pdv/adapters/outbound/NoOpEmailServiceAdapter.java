@@ -20,7 +20,7 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
   public void sendTenantApprovalEmail(
       String to, String tenantName, String tenantSlug, String username, String tempPassword) {
     log.warn(
-        "[EMAIL-NOOP] spring.mail.host não configurado. "
+        "[EMAIL-NOOP] RESEND_API_KEY não configurada. "
             + "E-mail de aprovação (com credenciais) do tenant '{}' não foi enviado para o "
             + "destinatário configurado. Configure o servidor de e-mail para reenviar.",
         LogSanitizer.maskUsername(tenantName));
@@ -30,7 +30,7 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
   public void sendPasswordResetEmail(
       String to, String tenantName, String username, String resetLink) {
     log.warn(
-        "[EMAIL-NOOP] spring.mail.host não configurado. "
+        "[EMAIL-NOOP] RESEND_API_KEY não configurada. "
             + "E-mail de redefinição de senha do usuário '{}' (tenant '{}') não foi enviado. "
             + "Configure o servidor de e-mail para reenviar.",
         LogSanitizer.maskUsername(username),

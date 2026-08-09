@@ -10,17 +10,6 @@ spring:
       database: binitech_pdv
     redis:
       url: ${REDIS_URL}
-  mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -82,6 +71,10 @@ stripe:
   price-starter: ${STRIPE_PRICE_STARTER:}
   price-pro: ${STRIPE_PRICE_PRO:}
   price-enterprise: ${STRIPE_PRICE_ENTERPRISE:}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from: ${RESEND_FROM:BiniTech PDV <onboarding@resend.dev>}
 
 app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}

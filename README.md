@@ -195,7 +195,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 ├───────────────────────────────────────────────────────────────┤
 │                      Adapters (Outbound)                      │
 │  *RepositoryAdapter │ Documents │ PersistenceMapper            │
-│  JavaMailEmailServiceAdapter │ RabbitMQEmailPublisher          │
+│  ResendEmailServiceAdapter │ RabbitMQEmailPublisher            │
 ├───────────────────────────────────────────────────────────────┤
 │                       Config / Security                      │
 │  SecurityConfig │ JwtTokenProvider │ JwtAuthenticationFilter   │
@@ -238,7 +238,7 @@ com.binitech.pdv
 │   │   └── EmailEventConsumer        (consumidor RabbitMQ)
 │   └── outbound/
 │       ├── persistence/  (*RepositoryAdapter, document/, mapper/, repository/)
-│       ├── JavaMailEmailServiceAdapter, NoOpEmailServiceAdapter
+│       ├── ResendEmailServiceAdapter, NoOpEmailServiceAdapter
 │       └── RabbitMQEmailPublisher
 ├── config/
 │   ├── SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter
@@ -260,7 +260,7 @@ com.binitech.pdv
 - **Docker** e **Docker Compose** (para MongoDB e RabbitMQ)
 - **Redis** acessível (instância local ou container separado)
 - **Maven** (ou use o wrapper `mvnw` incluído)
-- (Opcional) Conta **Stripe** (test mode) e servidor **SMTP** para billing e e-mails
+- (Opcional) Conta **Stripe** (test mode) e conta **Resend** para billing e e-mails
 
 ---
 
@@ -335,14 +335,12 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `RABBITMQ_USERNAME` | Usuário do RabbitMQ | `guest` |
 | `RABBITMQ_PASSWORD` | Senha do RabbitMQ | `guest` |
 
-### E-mail (SMTP)
+### E-mail (Resend)
 
 | Variável | Descrição | Padrão |
 |---|---|---|
-| `MAIL_HOST` | Host SMTP (vazio desabilita o envio real) | — |
-| `MAIL_PORT` | Porta SMTP | `587` |
-| `MAIL_USERNAME` | Usuário SMTP | — |
-| `MAIL_PASSWORD` | Senha SMTP | — |
+| `RESEND_API_KEY` | Chave de API do Resend (vazia desabilita o envio real) | — |
+| `RESEND_FROM` | Remetente, em um domínio verificado no Resend | `BiniTech PDV <onboarding@resend.dev>` |
 
 ### Stripe (billing)
 
@@ -528,8 +526,8 @@ O envio de e-mails (ex.: aprovação de loja, redefinição de senha) é **assí
 | `RabbitMQConfig` | Declara o exchange `email.exchange`, a fila durável `email.queue` e o binding com routing key `email.approval`. |
 | `RabbitMQEmailPublisher` | Publica `EmailEvent` na fila. |
 | `EmailEventConsumer` | Consome a fila e delega o envio ao `EmailServicePort`. |
-| `JavaMailEmailServiceAdapter` | Envia e-mails via SMTP (Spring Mail). |
-| `NoOpEmailServiceAdapter` | Implementação no-op usada quando o SMTP não está configurado (ambientes de dev/test). |
+| `ResendEmailServiceAdapter` | Envia e-mails pela API HTTPS do Resend. |
+| `NoOpEmailServiceAdapter` | Implementação no-op usada quando o Resend não está configurado (ambientes de dev/test). |
 
 Falhas de processamento sinalizam `EmailProcessingException`, com suporte a retry (Spring Retry).
 
