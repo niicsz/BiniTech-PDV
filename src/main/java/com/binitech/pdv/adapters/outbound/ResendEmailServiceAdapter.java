@@ -16,6 +16,23 @@ import org.springframework.web.client.RestClient;
 public class ResendEmailServiceAdapter {
 
   private static final Logger log = LoggerFactory.getLogger(ResendEmailServiceAdapter.class);
+  private static final String EMAIL_LAYOUT =
+      """
+          <!DOCTYPE html>
+          <html lang="pt-BR">
+          <body style="margin:0;padding:0;background:#f0f4f8;font-family:Arial,Helvetica,sans-serif;">
+            <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f4f8;"><tr><td align="center" style="padding:40px 20px;">
+              <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,0.08);">
+                %s
+                <tr><td style="padding:32px 40px;color:#1e293b;">
+                  %s
+                </td></tr>
+                <tr><td style="padding:20px 40px;background:#f8fafc;text-align:center;color:#94a3b8;font-size:12px;">© BiniTech PDV — este é um e-mail automático, não responda.</td></tr>
+              </table>
+            </td></tr></table>
+          </body>
+          </html>
+          """;
 
   private final RestClient resendClient;
   private final String fromAddress;
@@ -56,49 +73,35 @@ public class ResendEmailServiceAdapter {
   }
 
   private String buildResetHtml(EmailEvent event) {
-    return """
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <body style="margin:0;padding:0;background:#f0f4f8;font-family:Arial,Helvetica,sans-serif;">
-          <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f4f8;"><tr><td align="center" style="padding:40px 20px;">
-            <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,0.08);">
-              <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;"><h1 style="margin:0;color:#ffffff;font-size:22px;">Redefinição de senha</h1></td></tr>
-              <tr><td style="padding:32px 40px;color:#1e293b;">
-                <p style="font-size:15px;line-height:1.6;color:#475569;">Recebemos um pedido para redefinir a senha do usuário <strong>%s</strong>. Clique no botão abaixo para criar uma nova senha. Este link expira em 1 hora.</p>
-                <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Redefinir senha</a></td></tr></table>
-                <p style="font-size:13px;color:#94a3b8;line-height:1.6;">Se você não solicitou esta alteração, ignore este e-mail — sua senha continua a mesma.</p>
-              </td></tr>
-              <tr><td style="padding:20px 40px;background:#f8fafc;text-align:center;color:#94a3b8;font-size:12px;">© BiniTech PDV — este é um e-mail automático, não responda.</td></tr>
-            </table>
-          </td></tr></table>
-        </body>
-        </html>
+    String content =
         """
-        .formatted(event.username(), event.actionLink());
+            <p style="font-size:15px;line-height:1.6;color:#475569;">Recebemos um pedido para redefinir a senha do usuário <strong>%s</strong>. Clique no botão abaixo para criar uma nova senha. Este link expira em 1 hora.</p>
+            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Redefinir senha</a></td></tr></table>
+            <p style="font-size:13px;color:#94a3b8;line-height:1.6;">Se você não solicitou esta alteração, ignore este e-mail — sua senha continua a mesma.</p>
+            """
+            .formatted(event.username(), event.actionLink());
+    return emailLayout(
+        "<tr><td style=\"background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#ffffff;font-size:22px;\">Redefinição de senha</h1></td></tr>",
+        content);
   }
 
   private String buildApprovalHtml(EmailEvent event) {
     String loginUrl = frontendUrl + "/login?tenant=" + event.tenantSlug();
-    return """
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <body style="margin:0;padding:0;background:#f0f4f8;font-family:Arial,Helvetica,sans-serif;">
-          <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f4f8;"><tr><td align="center" style="padding:40px 20px;">
-            <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,0.08);">
-              <tr><td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;"><h1 style="margin:0;color:#ffffff;font-size:24px;">BiniTech PDV</h1><p style="margin:8px 0 0;color:#e0e7ff;font-size:14px;">Sua conta foi aprovada</p></td></tr>
-              <tr><td style="padding:32px 40px;color:#1e293b;">
-                <p style="font-size:16px;">Olá, <strong>%s</strong>!</p>
-                <p style="font-size:15px;line-height:1.6;color:#475569;">A conta da sua empresa foi aprovada e já está ativa. Use as credenciais abaixo para acessar o sistema. Recomendamos alterar a senha no primeiro acesso.</p>
-                <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;margin:24px 0;"><tr><td style="padding:16px 20px;color:#475569;font-size:14px;"><strong>Usuário:</strong> %s<br /><strong>Senha temporária:</strong> %s</td></tr></table>
-                <table cellpadding="0" cellspacing="0" border="0" align="center"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Acessar o sistema</a></td></tr></table>
-              </td></tr>
-              <tr><td style="padding:20px 40px;background:#f8fafc;text-align:center;color:#94a3b8;font-size:12px;">© BiniTech PDV — este é um e-mail automático, não responda.</td></tr>
-            </table>
-          </td></tr></table>
-        </body>
-        </html>
+    String content =
         """
-        .formatted(event.tenantName(), event.username(), event.tempPassword(), loginUrl);
+            <p style="font-size:16px;">Olá, <strong>%s</strong>!</p>
+            <p style="font-size:15px;line-height:1.6;color:#475569;">A conta da sua empresa foi aprovada e já está ativa. Use as credenciais abaixo para acessar o sistema. Recomendamos alterar a senha no primeiro acesso.</p>
+            <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;margin:24px 0;"><tr><td style="padding:16px 20px;color:#475569;font-size:14px;"><strong>Usuário:</strong> %s<br /><strong>Senha temporária:</strong> %s</td></tr></table>
+            <table cellpadding="0" cellspacing="0" border="0" align="center"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Acessar o sistema</a></td></tr></table>
+            """
+            .formatted(event.tenantName(), event.username(), event.tempPassword(), loginUrl);
+    return emailLayout(
+        "<tr><td style=\"background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#ffffff;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#e0e7ff;font-size:14px;\">Sua conta foi aprovada</p></td></tr>",
+        content);
+  }
+
+  private String emailLayout(String header, String content) {
+    return EMAIL_LAYOUT.formatted(header, content);
   }
 
   private record EmailContent(String subject, String html) {}
