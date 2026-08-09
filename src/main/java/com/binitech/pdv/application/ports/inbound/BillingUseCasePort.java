@@ -2,6 +2,7 @@ package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Invoice;
 import com.binitech.pdv.domain.Subscription;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,5 +33,5 @@ public interface BillingUseCasePort {
       String externalReference,
       String stripePriceId);
 
-  Subscription manuallyActivate(String tenantId);
+  Subscription manuallyActivate(String tenantId, PaymentMethod paymentMethod);
 }
