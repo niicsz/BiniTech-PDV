@@ -1,6 +1,6 @@
 package com.binitech.pdv.adapters.inbound;
 
-import com.binitech.pdv.adapters.outbound.JavaMailEmailServiceAdapter;
+import com.binitech.pdv.adapters.outbound.ResendEmailServiceAdapter;
 import com.binitech.pdv.config.RabbitMQConfig;
 import com.binitech.pdv.domain.EmailEvent;
 import com.binitech.pdv.domain.EmailEvent.EmailType;
@@ -18,32 +18,32 @@ public class EmailEventConsumer {
 
   private static final Logger log = LoggerFactory.getLogger(EmailEventConsumer.class);
 
-  private final JavaMailEmailServiceAdapter mailAdapter;
+  private final ResendEmailServiceAdapter resendAdapter;
 
-  public EmailEventConsumer(@Autowired(required = false) JavaMailEmailServiceAdapter mailAdapter) {
-    this.mailAdapter = mailAdapter;
+  public EmailEventConsumer(@Autowired(required = false) ResendEmailServiceAdapter resendAdapter) {
+    this.resendAdapter = resendAdapter;
   }
 
   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
   public void consume(EmailEvent event) {
-    if (mailAdapter == null) {
+    if (resendAdapter == null) {
       if (event.type() == EmailType.PASSWORD_RESET) {
         log.warn(
-            "[EMAIL-NOOP] spring.mail.host não configurado. Link de redefinição de senha"
+            "[EMAIL-NOOP] RESEND_API_KEY não configurada. Link de redefinição de senha"
                 + " para '{}' (enviar para {}): {}",
             event.username(),
             event.to(),
             event.actionLink());
       } else {
         log.warn(
-            "[EMAIL-NOOP] Evento recebido mas spring.mail.host não configurado. tenant={} to={}",
+            "[EMAIL-NOOP] Evento recebido mas RESEND_API_KEY não configurada. tenant={} to={}",
             event.tenantName(),
             event.to());
       }
       return;
     }
     try {
-      mailAdapter.send(event);
+      resendAdapter.send(event);
     } catch (Exception e) {
       log.error("Falha ao processar e-mail para {}: {}", event.to(), e.getMessage());
       throw new EmailProcessingException("Falha ao processar envio de e-mail.", e);

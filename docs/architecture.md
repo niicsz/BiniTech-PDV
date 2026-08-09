@@ -18,7 +18,7 @@ C4Context
     System(pdv, "BiniTech PDV", "SaaS multi-tenant de ponto de venda: vendas, produtos, fiado, relatórios e billing por assinatura")
 
     System_Ext(stripe, "Stripe", "Checkout Sessions, Customer Portal e webhooks de assinatura/fatura")
-    System_Ext(smtp, "Servidor SMTP", "Envio de e-mails transacionais (reset de senha, notificações)")
+    System_Ext(resend, "Resend", "API HTTPS para e-mails transacionais (reset de senha, notificações)")
 
     Rel(visitante, pdv, "Acessa landing e faz signup", "HTTPS")
     Rel(lojista, pdv, "Gerencia a loja e a assinatura", "HTTPS")
@@ -27,7 +27,7 @@ C4Context
 
     Rel(pdv, stripe, "Cria checkout/portal e consulta assinaturas", "HTTPS/REST")
     Rel(stripe, pdv, "Notifica eventos de pagamento", "Webhook HTTPS")
-    Rel(pdv, smtp, "Envia e-mails", "SMTP/TLS")
+    Rel(pdv, resend, "Envia e-mails", "HTTPS API")
 ```
 
 ## C2 — Diagrama de Contêineres
@@ -49,7 +49,7 @@ C4Container
     }
 
     System_Ext(stripe, "Stripe", "Pagamentos e assinaturas")
-    System_Ext(smtp, "Servidor SMTP", "Entrega de e-mails")
+    System_Ext(resend, "Resend", "Entrega de e-mails")
 
     Rel(usuario, spa, "Usa", "HTTPS")
     Rel(spa, api, "Chama", "JSON/HTTPS, Bearer JWT")
@@ -59,7 +59,7 @@ C4Container
     Rel(rabbit, api, "Entrega eventos ao consumer", "AMQP")
     Rel(api, stripe, "Checkout, Customer Portal", "HTTPS/REST")
     Rel(stripe, api, "Webhooks de assinatura/fatura", "HTTPS")
-    Rel(api, smtp, "Envia e-mails", "SMTP/TLS")
+    Rel(api, resend, "Envia e-mails", "HTTPS API")
 ```
 
 ## C3 — Diagrama de Componentes (API Backend)
@@ -75,7 +75,7 @@ C4Component
     ContainerDb(redis, "Redis", "Redis", "Cache + blacklist")
     Container(rabbit, "RabbitMQ", "RabbitMQ", "Fila de e-mails")
     System_Ext(stripe, "Stripe", "Pagamentos")
-    System_Ext(smtp, "SMTP", "E-mail")
+    System_Ext(resend, "Resend", "API de e-mail")
 
     Container_Boundary(api, "API Backend") {
         Component(security, "Filtros de Segurança", "JwtAuthenticationFilter, TenantValidationFilter", "Valida JWT (consultando blacklist no Redis) e o tenant ativo em cada requisição")
@@ -87,7 +87,7 @@ C4Component
 
         Component(repoAdapters, "Repository Adapters", "XxxRepositoryAdapter + Spring Data + PersistenceMapper", "Implementam os ports outbound de persistência (XxxRepositoryPort)")
         Component(emailPublisher, "RabbitMQEmailPublisher", "Spring AMQP", "Implementa EmailServicePort publicando eventos na fila")
-        Component(emailConsumer, "EmailEventConsumer", "@RabbitListener", "Consome a fila e envia via JavaMailEmailServiceAdapter")
+        Component(emailConsumer, "EmailEventConsumer", "@RabbitListener", "Consome a fila e envia via ResendEmailServiceAdapter")
         Component(stripeGateway, "StripeGateway", "stripe-java", "Cria Checkout Sessions e sessões do Customer Portal")
         Component(billingJob, "DailyBillingJob", "@Scheduled", "Rotina diária de cobrança/expiração de assinaturas")
     }
@@ -108,7 +108,7 @@ C4Component
     Rel(repoAdapters, mongo, "Spring Data MongoDB")
     Rel(emailPublisher, rabbit, "Publica", "AMQP")
     Rel(rabbit, emailConsumer, "Entrega", "AMQP")
-    Rel(emailConsumer, smtp, "Envia e-mail", "SMTP/TLS")
+    Rel(emailConsumer, resend, "Envia e-mail", "HTTPS API")
     Rel(stripeGateway, stripe, "API REST", "HTTPS")
 ```
 
@@ -116,4 +116,4 @@ C4Component
 
 - **Multi-tenant**: o isolamento é lógico — todos os documentos carregam `tenantId` e o `TenantValidationFilter` garante o escopo por requisição.
 - **Deploy**: o `Dockerfile` multi-stage compila só o backend num jar (Temurin 21), API-only. Healthcheck via `/actuator/health`. O frontend é deploy separado ([niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)) que consome a API via CORS.
-- **E-mail resiliente**: o envio é desacoplado por fila (RabbitMQ); existe um `NoOpEmailServiceAdapter` para ambientes sem SMTP configurado.
+- **E-mail resiliente**: o envio é desacoplado por fila (RabbitMQ); existe um `NoOpEmailServiceAdapter` para ambientes sem Resend configurado.
