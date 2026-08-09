@@ -23,6 +23,7 @@ import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.util.List;
@@ -262,7 +263,7 @@ class BillingUseCaseImplTest {
       when(subscriptionRepository.findByTenantId("t9")).thenReturn(Optional.empty());
       when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
 
-      Subscription result = billingUseCase.manuallyActivate("t9");
+      Subscription result = billingUseCase.manuallyActivate("t9", PaymentMethod.PIX);
 
       assertEquals(SubscriptionStatus.ACTIVE, result.getStatus());
       assertEquals("enterprise", result.getPlanTier());
@@ -277,7 +278,9 @@ class BillingUseCaseImplTest {
     @DisplayName("Deve lançar 404 quando o tenant não existe")
     void manuallyActivate_tenantNotFound_shouldThrow() {
       when(tenantRepository.findById("none")).thenReturn(Optional.empty());
-      assertThrows(ResourceNotFoundException.class, () -> billingUseCase.manuallyActivate("none"));
+      assertThrows(
+          ResourceNotFoundException.class,
+          () -> billingUseCase.manuallyActivate("none", PaymentMethod.CASH));
     }
   }
 }
