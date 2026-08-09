@@ -4,6 +4,8 @@ import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -79,13 +81,14 @@ public class TenantController {
     return ResponseEntity.ok(toDto(tenantUseCase.blockTenant(id, request.reason())));
   }
 
-  /**
-   * Ativação manual de pagamento (fallback). Cria/ativa a assinatura do plano atual e desbloqueia o
-   * tenant. Usado quando o webhook do Stripe não chegou ou a chave não está configurada.
-   */
   @PostMapping("/api/admin/tenants/{id}/activate")
-  public ResponseEntity<TenantDTO> activateTenant(@PathVariable String id) {
-    billingUseCase.manuallyActivate(id);
+  public ResponseEntity<TenantDTO> activateTenant(
+      @PathVariable String id, @Valid @RequestBody ManualActivationRequest request) {
+    Tenant tenant = tenantUseCase.getTenantById(id);
+    if (tenant.getStatus() == TenantStatus.PENDING_APPROVAL) {
+      tenantUseCase.approveTenant(id);
+    }
+    billingUseCase.manuallyActivate(id, request.paymentMethod());
     return ResponseEntity.ok(toDto(tenantUseCase.getTenantById(id)));
   }
 
@@ -124,6 +127,8 @@ public class TenantController {
       @NotBlank @Email String billingEmail) {}
 
   public record BlockTenantRequest(@NotBlank String reason) {}
+
+  public record ManualActivationRequest(PaymentMethod paymentMethod) {}
 
   public record TenantUserDTO(String id, String username, String role) {}
 

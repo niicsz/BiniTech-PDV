@@ -18,6 +18,7 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.InvoiceStatus;
+import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import com.stripe.exception.StripeException;
@@ -384,7 +385,11 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   }
 
   @Override
-  public Subscription manuallyActivate(String tenantId) {
+  public Subscription manuallyActivate(String tenantId, PaymentMethod paymentMethod) {
+    if (paymentMethod != PaymentMethod.CASH && paymentMethod != PaymentMethod.PIX) {
+      throw new BusinessException(
+          "A liberação manual aceita somente pagamento em dinheiro ou Pix.");
+    }
     Tenant tenant =
         tenantRepository
             .findById(tenantId)
@@ -398,7 +403,10 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
     activateTenant(tenant, now);
 
-    log.info("Assinatura ativada manualmente: tenantId={}", LogSanitizer.maskId(tenantId));
+    log.info(
+        "Assinatura ativada manualmente: tenantId={} paymentMethod={}",
+        LogSanitizer.maskId(tenantId),
+        paymentMethod);
     return saved;
   }
 
