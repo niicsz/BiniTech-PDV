@@ -35,6 +35,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   }
 
   @Override
+  public java.util.List<User> findAllByUsername(String username) {
+    return repository.findAllByUsername(username).stream().map(this::toDomain).toList();
+  }
+
+  @Override
   public boolean existsByUsername(String username) {
     return repository.existsByUsername(username);
   }

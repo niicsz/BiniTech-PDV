@@ -46,30 +46,36 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
   }
 
   @Override
-  public void requestReset(String tenantSlug, String username) {
-    if (isBlank(tenantSlug) || isBlank(username)) {
+  public void requestReset(String username) {
+    if (isBlank(username)) {
       return;
     }
-    Optional<Tenant> tenantOpt = tenantRepository.findBySlug(tenantSlug.trim().toLowerCase());
-    if (tenantOpt.isEmpty()) {
-      log.info("Reset solicitado para loja inexistente: slug={}", tenantSlug);
+
+    java.util.List<User> candidates =
+        userRepository.findAllByUsername(username.trim()).stream()
+            .filter(u -> u.getRole() != Role.SUPER_ADMIN)
+            .filter(u -> !isBlank(u.getTenantId()))
+            .toList();
+
+    if (candidates.size() != 1) {
+      if (candidates.size() > 1) {
+        log.info(
+            "Reset ambíguo para username={} ({} contas)",
+            LogSanitizer.maskUsername(username),
+            candidates.size());
+      } else {
+        log.info(
+            "Reset solicitado para usuário inexistente: {}", LogSanitizer.maskUsername(username));
+      }
+      return;
+    }
+
+    User user = candidates.get(0);
+    Optional<Tenant> tenantOpt = tenantRepository.findById(user.getTenantId());
+    if (tenantOpt.isEmpty() || isBlank(tenantOpt.get().getBillingEmail())) {
       return;
     }
     Tenant tenant = tenantOpt.get();
-
-    Optional<User> userOpt =
-        userRepository.findByUsernameAndTenantId(username.trim(), tenant.getId());
-    if (userOpt.isEmpty()) {
-      log.info(
-          "Reset solicitado para usuário inexistente no tenant={}",
-          LogSanitizer.maskId(tenant.getId()));
-      return;
-    }
-    User user = userOpt.get();
-
-    if (user.getRole() == Role.SUPER_ADMIN || isBlank(tenant.getBillingEmail())) {
-      return;
-    }
 
     try {
       resetTokenRepository.deleteByUserId(user.getId());

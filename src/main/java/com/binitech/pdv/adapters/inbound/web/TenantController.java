@@ -42,8 +42,10 @@ public class TenantController {
   }
 
   @GetMapping("/api/public/tenants/slug/{slug}")
-  public ResponseEntity<TenantDTO> getTenantBySlug(@PathVariable String slug) {
-    return ResponseEntity.ok(toDto(tenantUseCase.getTenantBySlug(slug)));
+  public ResponseEntity<PublicTenantDTO> getTenantBySlug(@PathVariable String slug) {
+    Tenant tenant = tenantUseCase.getTenantBySlug(slug);
+    return ResponseEntity.ok(
+        new PublicTenantDTO(tenant.getId(), tenant.getName(), tenant.getSlug()));
   }
 
   @GetMapping("/api/admin/tenants")
@@ -131,6 +133,9 @@ public class TenantController {
   public record ManualActivationRequest(PaymentMethod paymentMethod) {}
 
   public record TenantUserDTO(String id, String username, String role) {}
+
+  /** Campos mínimos para identificação pública da loja. */
+  public record PublicTenantDTO(String id, String name, String slug) {}
 
   public record TenantDTO(
       String id,

@@ -96,7 +96,7 @@ public class AuthController implements AuthApi {
   @PostMapping("/api/auth/forgot-password")
   public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
     log.info("Requisição de redefinição de senha recebida");
-    passwordResetUseCase.requestReset(request.tenantSlug(), request.username());
+    passwordResetUseCase.requestReset(request.username());
     // Sempre 204 para não revelar se a conta existe.
     return ResponseEntity.noContent().build();
   }
@@ -134,7 +134,7 @@ public class AuthController implements AuthApi {
       @NotBlank @Size(min = 6, message = "A nova senha deve ter no mínimo 6 caracteres")
           String newPassword) {}
 
-  public record ForgotPasswordRequest(@NotBlank String tenantSlug, @NotBlank String username) {}
+  public record ForgotPasswordRequest(@NotBlank String username) {}
 
   public record ResetPasswordRequest(
       @NotBlank String token,

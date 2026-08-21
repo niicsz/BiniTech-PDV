@@ -51,14 +51,10 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     if (log.isInfoEnabled()) {
       log.info("Tentativa de login para usuário: {}", LogSanitizer.maskUsername(username));
     }
-    Optional<User> userOpt =
-        tenantId != null && !tenantId.isBlank()
-            ? userRepository.findByUsernameAndTenantId(username, tenantId)
-            : userRepository.findByUsernameAndTenantIdIsNull(username);
 
-    boolean passwordMatches = verifyPassword(userOpt, password, username);
+    Optional<User> userOpt = resolveLoginUser(username, password, tenantId);
 
-    if (userOpt.isEmpty() || !passwordMatches) {
+    if (userOpt.isEmpty()) {
       if (log.isWarnEnabled()) {
         log.warn("Login falhou para usuário: {}", LogSanitizer.maskUsername(username));
       }
@@ -87,6 +83,58 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
         user.getUsername(),
         user.getRole().name(),
         user.getTenantId());
+  }
+
+  /**
+   * Com {@code tenantId}, resolve no tenant informado. Sem {@code tenantId}, busca todas as contas
+   * com o username e autentica a única cuja senha confere (super admin ou loja).
+   */
+  private Optional<User> resolveLoginUser(String username, String password, String tenantId) {
+    java.util.List<User> candidates;
+    if (tenantId != null && !tenantId.isBlank()) {
+      candidates =
+          userRepository
+              .findByUsernameAndTenantId(username, tenantId)
+              .map(java.util.List::of)
+              .orElseGet(java.util.List::of);
+    } else {
+      candidates = userRepository.findAllByUsername(username);
+    }
+
+    if (candidates.isEmpty()) {
+      performDummyPasswordCheck(password);
+      return Optional.empty();
+    }
+
+    User matched = null;
+    int matchCount = 0;
+    for (User candidate : candidates) {
+      if (passwordMatches(candidate, password, username)) {
+        matched = candidate;
+        matchCount++;
+      }
+    }
+
+    if (matchCount == 1) {
+      return Optional.of(matched);
+    }
+    if (matchCount > 1 && log.isWarnEnabled()) {
+      log.warn(
+          "Login ambíguo: mais de uma conta com o mesmo username e senha: {}",
+          LogSanitizer.maskUsername(username));
+    }
+    return Optional.empty();
+  }
+
+  private boolean passwordMatches(User user, String rawPassword, String username) {
+    try {
+      return passwordEncoder.matches(rawPassword, user.getPassword());
+    } catch (IllegalArgumentException e) {
+      log.error(
+          "Hash de senha inválido para usuário: {} — o usuário deve ser recriado.",
+          LogSanitizer.maskUsername(username));
+      return false;
+    }
   }
 
   @Override
@@ -238,21 +286,6 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       if (log.isInfoEnabled()) {
         log.info("Logout realizado com sucesso para userId={}", LogSanitizer.maskId(userId));
       }
-    }
-  }
-
-  private boolean verifyPassword(Optional<User> userOpt, String rawPassword, String username) {
-    if (userOpt.isEmpty()) {
-      performDummyPasswordCheck(rawPassword);
-      return false;
-    }
-    try {
-      return passwordEncoder.matches(rawPassword, userOpt.get().getPassword());
-    } catch (IllegalArgumentException e) {
-      log.error(
-          "Hash de senha inválido para usuário: {} — o usuário deve ser recriado.",
-          LogSanitizer.maskUsername(username));
-      return false;
     }
   }
 
