@@ -86,7 +86,7 @@ public class ResendEmailServiceAdapter {
   }
 
   private String buildApprovalHtml(EmailEvent event) {
-    String loginUrl = frontendUrl + "/login?tenant=" + event.tenantSlug();
+    String loginUrl = frontendUrl + "/login";
     String content =
         """
             <p style="font-size:16px;">Olá, <strong>%s</strong>!</p>

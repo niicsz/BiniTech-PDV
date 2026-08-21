@@ -81,10 +81,10 @@ class AuthUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Login do super admin (sem tenant) deve usar lookup com tenantId nulo")
-    void login_superAdmin_shouldUseTenantIdIsNull() {
+    @DisplayName("Login do super admin (sem tenant) deve resolver pelo username")
+    void login_superAdmin_shouldResolveByUsername() {
       User user = new User("sa1", "root", "encodedPass", Role.SUPER_ADMIN, null);
-      when(userRepository.findByUsernameAndTenantIdIsNull("root")).thenReturn(Optional.of(user));
+      when(userRepository.findAllByUsername("root")).thenReturn(java.util.List.of(user));
       when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
       when(jwtTokenProvider.generateAccessToken("sa1", "root", "SUPER_ADMIN", null))
           .thenReturn("access-token");
@@ -96,6 +96,23 @@ class AuthUseCaseImplTest {
       assertEquals("access-token", result.accessToken());
       assertEquals("SUPER_ADMIN", result.role());
       assertNull(result.tenantId());
+    }
+
+    @Test
+    @DisplayName("Login de usuário de loja sem tenantId deve resolver pelo username")
+    void login_tenantUserWithoutTenantId_shouldResolveByUsername() {
+      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
+      when(userRepository.findAllByUsername("admin")).thenReturn(java.util.List.of(user));
+      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
+          .thenReturn("access-token");
+      when(refreshTokenRepository.save(any(RefreshToken.class)))
+          .thenAnswer(inv -> inv.getArgument(0));
+
+      AuthResult result = authUseCase.login("admin", "password", null);
+
+      assertEquals("access-token", result.accessToken());
+      assertEquals("tenant1", result.tenantId());
     }
 
     @Test

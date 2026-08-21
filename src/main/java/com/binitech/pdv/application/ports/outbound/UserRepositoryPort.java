@@ -14,6 +14,8 @@ public interface UserRepositoryPort {
 
   Optional<User> findByUsername(String username);
 
+  List<User> findAllByUsername(String username);
+
   boolean existsByUsername(String username);
 
   Optional<User> findByUsernameAndTenantId(String username, String tenantId);
