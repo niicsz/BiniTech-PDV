@@ -35,6 +35,8 @@ class AuthControllerIT {
   @Autowired private MongoTemplate mongoTemplate;
 
   private String adminToken;
+  private String tenantAdminToken;
+  private String superAdminToken;
   private User adminUser;
 
   @BeforeEach
@@ -51,8 +53,22 @@ class AuthControllerIT {
                   user.setUsername("admin");
                   user.setPassword(passwordEncoder.encode("admin123"));
                   user.setRole(Role.ADMIN);
+                  user.setTenantId("tenant-admin");
                   return userRepository.save(user);
                 });
+
+    User tenantAdmin = new User();
+    tenantAdmin.setUsername("tenant_admin");
+    tenantAdmin.setPassword(passwordEncoder.encode("tenantadmin123"));
+    tenantAdmin.setRole(Role.TENANT_ADMIN);
+    tenantAdmin.setTenantId("tenant-a");
+    tenantAdmin = userRepository.save(tenantAdmin);
+
+    User superAdmin = new User();
+    superAdmin.setUsername("super_admin_test");
+    superAdmin.setPassword(passwordEncoder.encode("superadmin123"));
+    superAdmin.setRole(Role.SUPER_ADMIN);
+    superAdmin = userRepository.save(superAdmin);
 
     adminToken =
         jwtTokenProvider.generateAccessToken(
@@ -60,6 +76,18 @@ class AuthControllerIT {
             adminUser.getUsername(),
             adminUser.getRole().name(),
             adminUser.getTenantId());
+    tenantAdminToken =
+        jwtTokenProvider.generateAccessToken(
+            tenantAdmin.getId(),
+            tenantAdmin.getUsername(),
+            tenantAdmin.getRole().name(),
+            tenantAdmin.getTenantId());
+    superAdminToken =
+        jwtTokenProvider.generateAccessToken(
+            superAdmin.getId(),
+            superAdmin.getUsername(),
+            superAdmin.getRole().name(),
+            superAdmin.getTenantId());
   }
 
   @Nested
@@ -180,6 +208,67 @@ class AuthControllerIT {
                               "role", "OPERATOR"))))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
+    }
+
+    @Test
+    @DisplayName("TENANT_ADMIN deve ignorar tenantId enviado e criar operador no próprio tenant")
+    void register_tenantAdminWithAnotherTenantId_shouldUseOwnTenant() throws Exception {
+      String uniqueUsername = "operator_" + System.currentTimeMillis();
+
+      mockMvc
+          .perform(
+              post("/api/auth/register")
+                  .header("Authorization", "Bearer " + tenantAdminToken)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      objectMapper.writeValueAsString(
+                          Map.of(
+                              "username", uniqueUsername,
+                              "password", "password123",
+                              "role", "OPERATOR",
+                              "tenantId", "tenant-b"))))
+          .andExpect(status().isCreated())
+          .andExpect(jsonPath("$.role").value("OPERATOR"))
+          .andExpect(jsonPath("$.tenantId").value("tenant-a"));
+    }
+
+    @Test
+    @DisplayName("TENANT_ADMIN não deve criar SUPER_ADMIN")
+    void register_tenantAdminAsSuperAdmin_shouldReturn403() throws Exception {
+      mockMvc
+          .perform(
+              post("/api/auth/register")
+                  .header("Authorization", "Bearer " + tenantAdminToken)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      objectMapper.writeValueAsString(
+                          Map.of(
+                              "username", "forbidden_super_" + System.currentTimeMillis(),
+                              "password", "password123",
+                              "role", "SUPER_ADMIN",
+                              "tenantId", "tenant-b"))))
+          .andExpect(status().isForbidden())
+          .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("SUPER_ADMIN deve criar outro SUPER_ADMIN sem tenant")
+    void register_superAdminAsSuperAdmin_shouldReturn201WithoutTenant() throws Exception {
+      mockMvc
+          .perform(
+              post("/api/auth/register")
+                  .header("Authorization", "Bearer " + superAdminToken)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      objectMapper.writeValueAsString(
+                          Map.of(
+                              "username", "super_" + System.currentTimeMillis(),
+                              "password", "password123",
+                              "role", "SUPER_ADMIN",
+                              "tenantId", "tenant-should-be-ignored"))))
+          .andExpect(status().isCreated())
+          .andExpect(jsonPath("$.role").value("SUPER_ADMIN"))
+          .andExpect(jsonPath("$.tenantId").doesNotExist());
     }
   }
 

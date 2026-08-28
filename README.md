@@ -373,7 +373,7 @@ O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para protege
 2. O `accessToken` é enviado no header `Authorization: Bearer <token>` em cada requisição.
 3. Quando o `accessToken` expira, o frontend usa o `refreshToken` para obter um novo par via `POST /api/auth/refresh`.
 4. **Logout** (`POST /api/auth/logout`) — Invalida o `accessToken` na blacklist do Redis e remove o `refreshToken` do banco.
-5. **Registro** (`POST /api/auth/register`) — Acessível por `SUPER_ADMIN`, `ADMIN` e `TENANT_ADMIN`.
+5. **Registro** (`POST /api/auth/register`) — `SUPER_ADMIN` pode criar qualquer role; `ADMIN` e `TENANT_ADMIN` criam apenas `OPERATOR` no próprio tenant. Para esses administradores de loja, qualquer `tenantId` enviado no corpo é ignorado.
 
 ### Recuperação e troca de senha
 
