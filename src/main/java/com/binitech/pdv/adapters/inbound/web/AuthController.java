@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,16 +63,42 @@ public class AuthController implements AuthApi {
         "Requisição de registro recebida para usuário: {} role={}",
         LogSanitizer.maskUsername(registerRequestDTO.getUsername()),
         registerRequestDTO.getRole());
-    Role role = Role.valueOf(registerRequestDTO.getRole().name());
-    String tenantId =
-        registerRequestDTO.getTenantId() != null
-            ? registerRequestDTO.getTenantId()
-            : authenticatedUserProvider.getTenantId();
+    RegistrationData registration = resolveRegistration(registerRequestDTO);
     AuthUseCasePort.AuthResult result =
         authUseCase.register(
-            registerRequestDTO.getUsername(), registerRequestDTO.getPassword(), role, tenantId);
+            registerRequestDTO.getUsername(),
+            registerRequestDTO.getPassword(),
+            registration.role(),
+            registration.tenantId());
     log.info("Usuário registrado com sucesso [role={}]", result.role());
     return ResponseEntity.status(HttpStatus.CREATED).body(toDto(result));
+  }
+
+  private RegistrationData resolveRegistration(RegisterRequestDTO request) {
+    Role creatorRole = authenticatedUserProvider.getUserRole();
+    Role requestedRole = Role.valueOf(request.getRole().name());
+
+    if (creatorRole == Role.SUPER_ADMIN) {
+      // Super admins are platform users and must never be associated with a tenant.
+      String tenantId = requestedRole == Role.SUPER_ADMIN ? null : request.getTenantId();
+      return new RegistrationData(requestedRole, tenantId);
+    }
+
+    if (creatorRole == Role.ADMIN || creatorRole == Role.TENANT_ADMIN) {
+      if (requestedRole != Role.OPERATOR) {
+        throw new AccessDeniedException("Administradores de tenant só podem criar operadores.");
+      }
+
+      String tenantId = authenticatedUserProvider.getTenantId();
+      if (tenantId == null || tenantId.isBlank()) {
+        throw new AccessDeniedException("Administrador de tenant sem tenant associado.");
+      }
+
+      // Never trust a tenantId supplied by a tenant-scoped administrator.
+      return new RegistrationData(Role.OPERATOR, tenantId);
+    }
+
+    throw new AccessDeniedException("Role sem permissão para registrar usuários.");
   }
 
   @Override
@@ -140,4 +167,6 @@ public class AuthController implements AuthApi {
       @NotBlank String token,
       @NotBlank @Size(min = 6, message = "A nova senha deve ter no mínimo 6 caracteres")
           String newPassword) {}
+
+  private record RegistrationData(Role role, String tenantId) {}
 }
