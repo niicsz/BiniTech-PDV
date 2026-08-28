@@ -61,8 +61,7 @@ public class BeanConfig {
         jwtTokenProvider,
         tokenBlacklistService,
         passwordEncoder,
-        refreshExpiration,
-        dummyPasswordHash);
+        new AuthSessionConfig(refreshExpiration, dummyPasswordHash));
   }
 
   @Bean
