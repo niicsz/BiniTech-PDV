@@ -76,6 +76,12 @@ public class TenantController {
     return ResponseEntity.ok(toDto(tenantUseCase.approveTenant(id)));
   }
 
+  @PostMapping("/api/admin/tenants/{id}/reject")
+  public ResponseEntity<TenantDTO> rejectTenant(
+      @PathVariable String id, @Valid @RequestBody RejectTenantRequest request) {
+    return ResponseEntity.ok(toDto(tenantUseCase.rejectTenant(id, request.reason())));
+  }
+
   @PostMapping("/api/admin/tenants/{id}/block")
   public ResponseEntity<TenantDTO> blockTenant(
       @PathVariable String id, @Valid @RequestBody BlockTenantRequest request) {
@@ -128,6 +134,8 @@ public class TenantController {
       @NotBlank @Email String billingEmail) {}
 
   public record BlockTenantRequest(@NotBlank String reason) {}
+
+  public record RejectTenantRequest(@NotBlank String reason) {}
 
   public record ManualActivationRequest(PaymentMethod paymentMethod) {}
 

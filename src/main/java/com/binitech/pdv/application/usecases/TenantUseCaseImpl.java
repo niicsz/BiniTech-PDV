@@ -107,6 +107,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   @Override
   public Tenant approveTenant(String tenantId) {
     Tenant tenant = getTenantById(tenantId);
+    requirePendingApproval(tenant);
 
     tenant.setStatus(TenantStatus.ACTIVE);
     tenant.setBlockedAt(null);
@@ -119,6 +120,22 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
 
     provisionTenantAdmin(saved);
 
+    return saved;
+  }
+
+  @Override
+  public Tenant rejectTenant(String tenantId, String reason) {
+    Tenant tenant = getTenantById(tenantId);
+    requirePendingApproval(tenant);
+
+    tenant.setStatus(TenantStatus.REJECTED);
+    tenant.setBlockedAt(null);
+    tenant.setBlockReason(reason);
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    Tenant saved = tenantRepository.save(tenant);
+    if (log.isInfoEnabled()) {
+      log.info("Tenant reprovado: tenantId={}", LogSanitizer.maskId(saved.getId()));
+    }
     return saved;
   }
 
@@ -182,6 +199,12 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
           "Falha ao provisionar admin do tenant tenantId={}: {}",
           LogSanitizer.maskId(tenant.getId()),
           e.getMessage());
+    }
+  }
+
+  private void requirePendingApproval(Tenant tenant) {
+    if (tenant.getStatus() != TenantStatus.PENDING_APPROVAL) {
+      throw new BusinessException("Somente solicitações pendentes podem ser avaliadas.");
     }
   }
 

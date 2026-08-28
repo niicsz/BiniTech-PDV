@@ -116,7 +116,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             ? activeProducts
             : (int) productRepository.countByTenantIdAndActiveTrue(tenantId);
     int effectiveOperators =
-        operators >= 0 ? operators : (int) userRepository.countByTenantId(tenantId);
+        operators >= 0
+            ? operators
+            : (int) userRepository.countByTenantIdAndRole(tenantId, "OPERATOR");
     int extraProducts = Math.max(effectiveProducts - limits.maxProducts(), 0);
     int extraSales = Math.max(monthlySales - limits.maxSalesPerMonth(), 0);
     int extraOperators = Math.max(effectiveOperators - limits.maxOperators(), 0);

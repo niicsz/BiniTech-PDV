@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.User;
+import com.binitech.pdv.utils.enums.Role;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,4 +26,6 @@ public interface UserRepositoryPort {
   boolean existsByUsernameAndTenantId(String username, String tenantId);
 
   long countByTenantId(String tenantId);
+
+  long countByTenantIdAndRole(String tenantId, Role role);
 }

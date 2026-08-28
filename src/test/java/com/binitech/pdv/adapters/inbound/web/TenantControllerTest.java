@@ -2,6 +2,7 @@ package com.binitech.pdv.adapters.inbound.web;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -55,5 +57,34 @@ class TenantControllerTest {
         .andExpect(jsonPath("$.blockReason").doesNotExist())
         .andExpect(jsonPath("$.createdAt").doesNotExist())
         .andExpect(jsonPath("$.updatedAt").doesNotExist());
+  }
+
+  @Test
+  void rejectTenantRequiresReasonAndReturnsUpdatedTenant() throws Exception {
+    Tenant tenant = new Tenant();
+    tenant.setId("tenant-1");
+    tenant.setName("Loja pendente");
+    tenant.setStatus(com.binitech.pdv.utils.enums.TenantStatus.REJECTED);
+    tenant.setBlockReason("Cadastro inconsistente");
+    when(tenantUseCase.rejectTenant("tenant-1", "Cadastro inconsistente")).thenReturn(tenant);
+
+    mockMvc
+        .perform(
+            post("/api/admin/tenants/{id}/reject", "tenant-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"Cadastro inconsistente\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("REJECTED"))
+        .andExpect(jsonPath("$.blockReason").value("Cadastro inconsistente"));
+  }
+
+  @Test
+  void rejectTenantWithoutReasonReturnsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/admin/tenants/{id}/reject", "tenant-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"\"}"))
+        .andExpect(status().isBadRequest());
   }
 }

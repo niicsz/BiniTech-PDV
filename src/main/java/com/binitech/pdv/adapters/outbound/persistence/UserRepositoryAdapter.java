@@ -65,6 +65,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   }
 
   @Override
+  public long countByTenantIdAndRole(String tenantId, Role role) {
+    return repository.countByTenantIdAndRole(tenantId, role.name());
+  }
+
+  @Override
   public java.util.List<User> findAllByTenantId(String tenantId) {
     return repository.findAllByTenantId(tenantId).stream().map(this::toDomain).toList();
   }

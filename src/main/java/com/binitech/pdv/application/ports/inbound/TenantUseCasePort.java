@@ -21,6 +21,8 @@ public interface TenantUseCasePort {
 
   Tenant approveTenant(String tenantId);
 
+  Tenant rejectTenant(String tenantId, String reason);
+
   Tenant blockTenant(String tenantId, String reason);
 
   Tenant updateTenantStatus(String tenantId, TenantStatus newStatus);
