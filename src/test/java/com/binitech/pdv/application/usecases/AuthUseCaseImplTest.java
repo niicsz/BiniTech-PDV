@@ -8,6 +8,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.AuthSessionConfig;
 import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
@@ -49,8 +50,7 @@ class AuthUseCaseImplTest {
             jwtTokenProvider,
             tokenBlacklistService,
             passwordEncoder,
-            86400000L,
-            "test-dummy-hash");
+            new AuthSessionConfig(86400000L, "test-dummy-hash"));
   }
 
   @Nested

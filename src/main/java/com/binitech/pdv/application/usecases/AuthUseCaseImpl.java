@@ -4,6 +4,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.AuthSessionConfig;
 import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.config.PlanConfig;
 import com.binitech.pdv.config.TokenBlacklistService;
@@ -42,16 +43,15 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       JwtTokenProvider jwtTokenProvider,
       TokenBlacklistService tokenBlacklistService,
       PasswordEncoder passwordEncoder,
-      long refreshExpiration,
-      String dummyPasswordHash) {
+      AuthSessionConfig sessionConfig) {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.jwtTokenProvider = jwtTokenProvider;
     this.tokenBlacklistService = tokenBlacklistService;
     this.passwordEncoder = passwordEncoder;
-    this.refreshExpiration = refreshExpiration;
-    this.dummyPasswordHash = dummyPasswordHash;
+    this.refreshExpiration = sessionConfig.refreshExpiration();
+    this.dummyPasswordHash = sessionConfig.dummyPasswordHash();
   }
 
   @Override
