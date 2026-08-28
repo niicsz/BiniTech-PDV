@@ -47,7 +47,7 @@ O **BiniTech PDV** é uma plataforma SaaS de frente de caixa onde cada cliente (
 
 ### Plataforma / SaaS
 - **Auto-cadastro de lojas (tenants)** — Registro público de loja, com aprovação por um Super Admin.
-- **Ciclo de vida do tenant** — `PENDING_APPROVAL → ACTIVE → BLOCKED/CANCELLED`, com bloqueio automático por inadimplência.
+- **Ciclo de vida do tenant** — solicitações podem ser aprovadas (`ACTIVE`) ou reprovadas (`REJECTED`); tenants ativos ainda podem ser bloqueados/cancelados por inadimplência.
 - **Assinaturas e cobrança** — Planos pagos via Stripe (Checkout + Customer Portal) e cobrança diária baseada em uso.
 - **Gestão de usuários por tenant** — `TENANT_ADMIN` registra operadores da própria loja; `SUPER_ADMIN` administra a plataforma.
 - **Recuperação de senha** — Fluxos de "esqueci minha senha" e troca de senha, com envio de e-mail assíncrono.
@@ -93,7 +93,7 @@ A cobrança é feita via **Stripe** (Checkout Sessions + Customer Portal + Webho
 | `enterprise` | R$ 349,00 | 2000 | 5000 | 10 |
 | `free` | R$ 0,00 | ilimitado | ilimitado | ilimitado |
 
-> O plano `free` é uma cortesia vitalícia (sem limites). Os demais são cobrados via Stripe.
+> O plano `free` é uma cortesia vitalícia (sem limites). Os demais são cobrados via Stripe. O limite de operadores é validado no backend antes de cada cadastro; o administrador da loja não consome uma vaga de operador.
 
 ### Cobrança por excedente
 
@@ -444,6 +444,7 @@ A API é documentada via **OpenAPI 3.0** (gerado a partir de `swagger.yaml`) e a
 | `GET` | `/api/admin/tenants/{id}` | Detalhar tenant | SUPER_ADMIN |
 | `GET` | `/api/admin/tenants/{id}/users` | Listar usuários do tenant | SUPER_ADMIN |
 | `POST` | `/api/admin/tenants/{id}/approve` | Aprovar tenant | SUPER_ADMIN |
+| `POST` | `/api/admin/tenants/{id}/reject` | Reprovar solicitação de tenant com motivo | SUPER_ADMIN |
 | `POST` | `/api/admin/tenants/{id}/block` | Bloquear tenant | SUPER_ADMIN |
 | `POST` | `/api/admin/tenants/{id}/activate` | Ativar tenant | SUPER_ADMIN |
 

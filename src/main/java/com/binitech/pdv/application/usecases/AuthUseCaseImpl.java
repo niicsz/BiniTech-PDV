@@ -2,14 +2,19 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
+import com.binitech.pdv.config.PlanConfig;
 import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
+import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +27,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
   private static final Logger log = LoggerFactory.getLogger(AuthUseCaseImpl.class);
 
   private final UserRepositoryPort userRepository;
+  private final TenantRepositoryPort tenantRepository;
   private final RefreshTokenRepositoryPort refreshTokenRepository;
   private final JwtTokenProvider jwtTokenProvider;
   private final TokenBlacklistService tokenBlacklistService;
@@ -31,6 +37,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
   public AuthUseCaseImpl(
       UserRepositoryPort userRepository,
+      TenantRepositoryPort tenantRepository,
       RefreshTokenRepositoryPort refreshTokenRepository,
       JwtTokenProvider jwtTokenProvider,
       TokenBlacklistService tokenBlacklistService,
@@ -38,6 +45,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       long refreshExpiration,
       String dummyPasswordHash) {
     this.userRepository = userRepository;
+    this.tenantRepository = tenantRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.jwtTokenProvider = jwtTokenProvider;
     this.tokenBlacklistService = tokenBlacklistService;
@@ -159,6 +167,8 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       }
       throw new BusinessException("Usuário já existe com o username: " + username);
     }
+
+    validateOperatorLimit(role, resolvedTenantId);
 
     User user = new User();
     user.setUsername(username);
@@ -306,6 +316,36 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     }
     if (tenantId == null || tenantId.isBlank()) {
       throw new BusinessException("tenantId é obrigatório para usuários do tenant.");
+    }
+  }
+
+  private void validateOperatorLimit(Role role, String tenantId) {
+    if (role != Role.OPERATOR) {
+      return;
+    }
+
+    Tenant tenant =
+        tenantRepository
+            .findById(tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+    if (tenant.getStatus() != TenantStatus.ACTIVE) {
+      throw new BusinessException("Somente tenants ativos podem cadastrar operadores.");
+    }
+    PlanConfig.PlanLimits limits;
+    try {
+      limits = PlanConfig.getLimits(tenant.getPlanId());
+    } catch (IllegalArgumentException exception) {
+      throw new BusinessException("O tenant não possui um plano válido.");
+    }
+
+    long currentOperators = userRepository.countByTenantIdAndRole(tenantId, Role.OPERATOR);
+    if (currentOperators >= limits.maxOperators()) {
+      throw new BusinessException(
+          "Limite de operadores do plano "
+              + tenant.getPlanId()
+              + " atingido ("
+              + limits.maxOperators()
+              + "). Faça upgrade para adicionar outro operador.");
     }
   }
 

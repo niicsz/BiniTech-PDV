@@ -46,6 +46,7 @@ public class BeanConfig {
   @Bean
   public AuthUseCasePort authUseCasePort(
       UserRepositoryPort userRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
       RefreshTokenRepositoryPort refreshTokenRepositoryPort,
       JwtTokenProvider jwtTokenProvider,
       TokenBlacklistService tokenBlacklistService,
@@ -55,6 +56,7 @@ public class BeanConfig {
     log.info("Configurando AuthUseCasePort com refresh expiration: {}ms", refreshExpiration);
     return new AuthUseCaseImpl(
         userRepositoryPort,
+        tenantRepositoryPort,
         refreshTokenRepositoryPort,
         jwtTokenProvider,
         tokenBlacklistService,

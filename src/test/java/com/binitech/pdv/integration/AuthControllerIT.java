@@ -3,10 +3,13 @@ package com.binitech.pdv.integration;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
+import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +33,7 @@ class AuthControllerIT {
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private UserRepositoryPort userRepository;
+  @Autowired private TenantRepositoryPort tenantRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private JwtTokenProvider jwtTokenProvider;
   @Autowired private MongoTemplate mongoTemplate;
@@ -43,6 +47,10 @@ class AuthControllerIT {
   void setUp() {
     mongoTemplate.getDb().getCollection("users").drop();
     mongoTemplate.getDb().getCollection("refresh_tokens").drop();
+    mongoTemplate.getDb().getCollection("tenants").drop();
+
+    createTenant("tenant-admin", "starter");
+    createTenant("tenant-a", "starter");
 
     adminUser =
         userRepository
@@ -233,6 +241,34 @@ class AuthControllerIT {
     }
 
     @Test
+    @DisplayName("Plano Starter não deve permitir mais de um operador")
+    void register_starterWithExistingOperator_shouldReturn400() throws Exception {
+      User operator = new User();
+      operator.setUsername("existing_operator");
+      operator.setPassword(passwordEncoder.encode("password123"));
+      operator.setRole(Role.OPERATOR);
+      operator.setTenantId("tenant-a");
+      userRepository.save(operator);
+
+      mockMvc
+          .perform(
+              post("/api/auth/register")
+                  .header("Authorization", "Bearer " + tenantAdminToken)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      objectMapper.writeValueAsString(
+                          Map.of(
+                              "username", "second_operator",
+                              "password", "password123",
+                              "role", "OPERATOR"))))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"))
+          .andExpect(
+              jsonPath("$.message")
+                  .value(org.hamcrest.Matchers.containsString("Limite de operadores")));
+    }
+
+    @Test
     @DisplayName("TENANT_ADMIN não deve criar SUPER_ADMIN")
     void register_tenantAdminAsSuperAdmin_shouldReturn403() throws Exception {
       mockMvc
@@ -317,5 +353,15 @@ class AuthControllerIT {
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
     }
+  }
+
+  private void createTenant(String id, String planId) {
+    Tenant tenant = new Tenant();
+    tenant.setId(id);
+    tenant.setName(id);
+    tenant.setSlug(id);
+    tenant.setPlanId(planId);
+    tenant.setStatus(TenantStatus.ACTIVE);
+    tenantRepository.save(tenant);
   }
 }

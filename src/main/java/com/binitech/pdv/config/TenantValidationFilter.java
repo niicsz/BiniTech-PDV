@@ -90,6 +90,15 @@ public class TenantValidationFilter extends OncePerRequestFilter {
       return;
     }
 
+    if (tenant.getStatus() == TenantStatus.REJECTED) {
+      writeError(
+          response,
+          HttpStatus.FORBIDDEN,
+          "TENANT_REJECTED",
+          "A solicitação de cadastro deste tenant foi reprovada.");
+      return;
+    }
+
     filterChain.doFilter(request, response);
   }
 

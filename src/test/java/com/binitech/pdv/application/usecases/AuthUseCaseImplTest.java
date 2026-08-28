@@ -6,13 +6,16 @@ import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.RefreshToken;
+import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class AuthUseCaseImplTest {
 
   @Mock private UserRepositoryPort userRepository;
+  @Mock private TenantRepositoryPort tenantRepository;
   @Mock private RefreshTokenRepositoryPort refreshTokenRepository;
   @Mock private JwtTokenProvider jwtTokenProvider;
   @Mock private TokenBlacklistService tokenBlacklistService;
@@ -40,6 +44,7 @@ class AuthUseCaseImplTest {
     authUseCase =
         new AuthUseCaseImpl(
             userRepository,
+            tenantRepository,
             refreshTokenRepository,
             jwtTokenProvider,
             tokenBlacklistService,
@@ -152,6 +157,8 @@ class AuthUseCaseImplTest {
     @DisplayName("Registro com dados válidos deve criar usuário e retornar tokens")
     void register_withValidData_shouldCreateUserAndReturnTokens() {
       when(userRepository.existsByUsernameAndTenantId("newuser", "tenant1")).thenReturn(false);
+      when(tenantRepository.findById("tenant1")).thenReturn(Optional.of(tenant("starter")));
+      when(userRepository.countByTenantIdAndRole("tenant1", Role.OPERATOR)).thenReturn(0L);
       when(passwordEncoder.encode("password")).thenReturn("encodedPass");
       when(userRepository.save(any(User.class)))
           .thenAnswer(
@@ -177,6 +184,41 @@ class AuthUseCaseImplTest {
       assertEquals("newuser", result.username());
       assertEquals("OPERATOR", result.role());
       assertEquals("tenant1", result.tenantId());
+    }
+
+    @Test
+    @DisplayName("Plano Starter deve impedir mais de um operador")
+    void register_starterAtOperatorLimit_shouldThrowException() {
+      when(userRepository.existsByUsernameAndTenantId("second-operator", "tenant1"))
+          .thenReturn(false);
+      when(tenantRepository.findById("tenant1")).thenReturn(Optional.of(tenant("starter")));
+      when(userRepository.countByTenantIdAndRole("tenant1", Role.OPERATOR)).thenReturn(1L);
+
+      BusinessException exception =
+          assertThrows(
+              BusinessException.class,
+              () -> authUseCase.register("second-operator", "password", Role.OPERATOR, "tenant1"));
+
+      assertTrue(exception.getMessage().contains("Limite de operadores"));
+      verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Tenant reprovado não deve cadastrar operador")
+    void register_rejectedTenant_shouldThrowException() {
+      Tenant rejectedTenant = tenant("starter");
+      rejectedTenant.setStatus(TenantStatus.REJECTED);
+      when(userRepository.existsByUsernameAndTenantId("operator", "tenant1")).thenReturn(false);
+      when(tenantRepository.findById("tenant1")).thenReturn(Optional.of(rejectedTenant));
+
+      BusinessException exception =
+          assertThrows(
+              BusinessException.class,
+              () -> authUseCase.register("operator", "password", Role.OPERATOR, "tenant1"));
+
+      assertTrue(exception.getMessage().contains("tenants ativos"));
+      verify(userRepository, never()).countByTenantIdAndRole("tenant1", Role.OPERATOR);
+      verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -303,5 +345,13 @@ class AuthUseCaseImplTest {
           BusinessException.class, () -> authUseCase.changePassword("sa1", "x", "newPass"));
       verify(userRepository, never()).save(any());
     }
+  }
+
+  private Tenant tenant(String planId) {
+    Tenant tenant = new Tenant();
+    tenant.setId("tenant1");
+    tenant.setPlanId(planId);
+    tenant.setStatus(TenantStatus.ACTIVE);
+    return tenant;
   }
 }

@@ -23,5 +23,7 @@ public interface SpringDataUserRepository extends MongoRepository<UserDocument, 
 
   long countByTenantId(String tenantId);
 
+  long countByTenantIdAndRole(String tenantId, String role);
+
   List<UserDocument> findAllByTenantId(String tenantId);
 }
