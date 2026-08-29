@@ -107,11 +107,9 @@ public class BeanConfig {
         userRepositoryPort,
         tenantRepositoryPort,
         resetTokenRepository,
-        passwordEncoder,
         emailServicePort,
-        refreshTokenRepositoryPort,
-        tokenBlacklistService,
-        frontendUrl);
+        new PasswordResetConfig(
+            frontendUrl, passwordEncoder, refreshTokenRepositoryPort, tokenBlacklistService));
   }
 
   @Bean
