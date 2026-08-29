@@ -10,6 +10,7 @@ import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.PasswordResetConfig;
 import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.utils.enums.Role;
@@ -43,11 +44,12 @@ class PasswordResetUseCaseImplTest {
             userRepository,
             tenantRepository,
             resetTokenRepository,
-            passwordEncoder,
             emailService,
-            refreshTokenRepository,
-            tokenBlacklistService,
-            "http://localhost:4200");
+            new PasswordResetConfig(
+                "http://localhost:4200",
+                passwordEncoder,
+                refreshTokenRepository,
+                tokenBlacklistService));
   }
 
   @Test

@@ -298,10 +298,12 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     }
     String priceId = stripeProperties.priceForTier(tenant.getPlanId());
     if (!hasText(priceId)) {
-      log.error(
-          "Plano sem price configurado no Stripe: tenantId={} plan={}",
-          LogSanitizer.maskId(tenantId),
-          LogSanitizer.neutralize(tenant.getPlanId()));
+      if (log.isErrorEnabled()) {
+        log.error(
+            "Plano sem price configurado no Stripe: tenantId={} plan={}",
+            LogSanitizer.maskId(tenantId),
+            LogSanitizer.neutralize(tenant.getPlanId()));
+      }
       throw new BusinessException(
           "Não foi possível iniciar o pagamento. " + PAYMENT_SUPPORT_MESSAGE);
     }

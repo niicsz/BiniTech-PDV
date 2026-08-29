@@ -7,6 +7,7 @@ import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.PasswordResetConfig;
 import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
@@ -38,19 +39,16 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
       UserRepositoryPort userRepository,
       TenantRepositoryPort tenantRepository,
       SpringDataPasswordResetTokenRepository resetTokenRepository,
-      PasswordEncoder passwordEncoder,
       EmailServicePort emailService,
-      RefreshTokenRepositoryPort refreshTokenRepository,
-      TokenBlacklistService tokenBlacklistService,
-      String frontendUrl) {
+      PasswordResetConfig config) {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
     this.resetTokenRepository = resetTokenRepository;
-    this.passwordEncoder = passwordEncoder;
+    this.passwordEncoder = config.passwordEncoder();
     this.emailService = emailService;
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.tokenBlacklistService = tokenBlacklistService;
-    this.frontendUrl = frontendUrl;
+    this.refreshTokenRepository = config.refreshTokenRepository();
+    this.tokenBlacklistService = config.tokenBlacklistService();
+    this.frontendUrl = config.frontendUrl();
   }
 
   @Override

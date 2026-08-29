@@ -229,9 +229,9 @@ class SaleUseCaseImplTest {
       assertEquals(1, result.size());
       verify(saleRepository)
           .findByTimestampRangeAndTenantId(
-              eq(Instant.parse("2024-01-15T03:00:00Z")),
-              eq(Instant.parse("2024-01-16T03:00:00Z")),
-              eq("tenant1"));
+              Instant.parse("2024-01-15T03:00:00Z"),
+              Instant.parse("2024-01-16T03:00:00Z"),
+              "tenant1");
     }
 
     @Test
@@ -244,9 +244,9 @@ class SaleUseCaseImplTest {
 
       verify(saleRepository)
           .findByTimestampRangeAndTenantId(
-              eq(Instant.parse("2018-11-04T03:00:00Z")),
-              eq(Instant.parse("2018-11-05T02:00:00Z")),
-              eq("tenant1"));
+              Instant.parse("2018-11-04T03:00:00Z"),
+              Instant.parse("2018-11-05T02:00:00Z"),
+              "tenant1");
     }
   }
 
@@ -267,19 +267,20 @@ class SaleUseCaseImplTest {
       assertNotNull(result);
       verify(saleRepository)
           .findByTimestampRangeAndTenantId(
-              eq(Instant.parse("2024-01-08T03:00:00Z")),
-              eq(Instant.parse("2024-01-16T03:00:00Z")),
-              eq("tenant1"));
+              Instant.parse("2024-01-08T03:00:00Z"),
+              Instant.parse("2024-01-16T03:00:00Z"),
+              "tenant1");
     }
 
     @Test
     @DisplayName("Deve rejeitar período com datas invertidas")
     void listSalesByPeriod_withInvertedDates_shouldThrow() {
+      LocalDate startDate = LocalDate.of(2024, 1, 16);
+      LocalDate endDate = LocalDate.of(2024, 1, 15);
+
       assertThrows(
           BusinessException.class,
-          () ->
-              saleUseCase.listSalesByPeriod(
-                  LocalDate.of(2024, 1, 16), LocalDate.of(2024, 1, 15), "tenant1"));
+          () -> saleUseCase.listSalesByPeriod(startDate, endDate, "tenant1"));
 
       verifyNoInteractions(saleRepository);
     }

@@ -4,6 +4,7 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.ErrorDTO;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("VALIDATION_ERROR");
     error.setMessage(message);
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -52,7 +53,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("MALFORMED_JSON");
     error.setMessage("JSON inválido. Verifique a sintaxe dos dados enviados.");
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -62,7 +63,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("NOT_FOUND");
     error.setMessage(ex.getMessage());
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
   }
 
@@ -72,7 +73,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("BUSINESS_ERROR");
     error.setMessage(ex.getMessage());
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -82,7 +83,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("BAD_REQUEST");
     error.setMessage(ex.getMessage());
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -92,7 +93,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("FORBIDDEN");
     error.setMessage("Acesso negado. Você não tem permissão para esta operação.");
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
   }
 
@@ -102,7 +103,7 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("INTERNAL_ERROR");
     error.setMessage("Erro interno do servidor. Tente novamente mais tarde.");
-    error.setTimestamp(OffsetDateTime.now());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
   }
 
