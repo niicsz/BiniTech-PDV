@@ -157,6 +157,21 @@ class AuthControllerIT {
                   .content(objectMapper.writeValueAsString(Map.of("password", "password"))))
           .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("Login com JSON malformado deve retornar 400 controlado")
+    void login_withMalformedJson_shouldReturn400() throws Exception {
+      mockMvc
+          .perform(
+              post("/api/auth/login")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content("{\"username\":\"admin\",\"password\":"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("MALFORMED_JSON"))
+          .andExpect(
+              jsonPath("$.message")
+                  .value("JSON inválido. Verifique a sintaxe dos dados enviados."));
+    }
   }
 
   @Nested
@@ -352,6 +367,50 @@ class AuthControllerIT {
                           Map.of("refreshToken", "invalid-token-here"))))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"));
+    }
+  }
+
+  @Nested
+  @DisplayName("POST /api/auth/change-password")
+  class ChangePasswordTests {
+
+    @Test
+    @DisplayName("Troca de senha deve revogar access e refresh tokens anteriores")
+    void changePassword_shouldRevokeExistingSessions() throws Exception {
+      String loginResponse =
+          mockMvc
+              .perform(
+                  post("/api/auth/login")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(
+                          objectMapper.writeValueAsString(
+                              Map.of("username", "admin", "password", "admin123"))))
+              .andExpect(status().isOk())
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+      String accessToken = objectMapper.readTree(loginResponse).get("accessToken").asText();
+      String refreshToken = objectMapper.readTree(loginResponse).get("refreshToken").asText();
+
+      mockMvc
+          .perform(
+              post("/api/auth/change-password")
+                  .header("Authorization", "Bearer " + accessToken)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      objectMapper.writeValueAsString(
+                          Map.of("currentPassword", "admin123", "newPassword", "new-admin123"))))
+          .andExpect(status().isNoContent());
+
+      mockMvc
+          .perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+          .andExpect(status().isForbidden());
+      mockMvc
+          .perform(
+              post("/api/auth/refresh")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken))))
+          .andExpect(status().isBadRequest());
     }
   }
 

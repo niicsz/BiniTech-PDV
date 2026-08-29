@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,6 +42,16 @@ public class GlobalExceptionHandler {
     ErrorDTO error = new ErrorDTO();
     error.setCode("VALIDATION_ERROR");
     error.setMessage(message);
+    error.setTimestamp(OffsetDateTime.now());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorDTO> handleMalformedJson(HttpMessageNotReadableException ex) {
+    log.warn("Corpo JSON inválido: {}", ex.getMostSpecificCause().getMessage());
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("MALFORMED_JSON");
+    error.setMessage("JSON inválido. Verifique a sintaxe dos dados enviados.");
     error.setTimestamp(OffsetDateTime.now());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }

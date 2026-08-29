@@ -58,6 +58,14 @@ class JwtTokenProviderTest {
   }
 
   @Test
+  @DisplayName("Deve incluir a versão da sessão no token")
+  void getSessionVersionFromToken_shouldReturnCorrectVersion() {
+    String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1", 7L);
+
+    assertEquals(7L, jwtTokenProvider.getSessionVersionFromToken(token));
+  }
+
+  @Test
   @DisplayName("Token adulterado deve ser inválido")
   void validateToken_withTamperedToken_shouldReturnFalse() {
     String token = jwtTokenProvider.generateAccessToken("user1", "admin", "ADMIN", "tenant1");

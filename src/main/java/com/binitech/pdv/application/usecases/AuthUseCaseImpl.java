@@ -71,9 +71,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     User user = userOpt.get();
 
-    String accessToken =
-        jwtTokenProvider.generateAccessToken(
-            user.getId(), user.getUsername(), user.getRole().name(), user.getTenantId());
+    String accessToken = generateAccessToken(user);
 
     refreshTokenRepository.deleteByUserIdAndTenantId(user.getId(), user.getTenantId());
     RefreshToken refreshToken = createRefreshToken(user.getId(), user.getTenantId());
@@ -177,9 +175,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     user.setTenantId(resolvedTenantId);
     User saved = userRepository.save(user);
 
-    String accessToken =
-        jwtTokenProvider.generateAccessToken(
-            saved.getId(), saved.getUsername(), saved.getRole().name(), saved.getTenantId());
+    String accessToken = generateAccessToken(saved);
 
     RefreshToken refreshToken = createRefreshToken(saved.getId(), saved.getTenantId());
 
@@ -233,9 +229,7 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
                   return new BusinessException("Usuário não encontrado.");
                 });
 
-    String accessToken =
-        jwtTokenProvider.generateAccessToken(
-            user.getId(), user.getUsername(), user.getRole().name(), user.getTenantId());
+    String accessToken = generateAccessToken(user);
 
     refreshTokenRepository.deleteByUserIdAndTenantId(user.getId(), user.getTenantId());
     RefreshToken newRefreshToken = createRefreshToken(user.getId(), user.getTenantId());
@@ -280,6 +274,8 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
+    refreshTokenRepository.deleteByUserId(userId);
+    tokenBlacklistService.revokeAllForUser(userId);
     if (log.isInfoEnabled()) {
       log.info("Senha alterada com sucesso para userId={}", LogSanitizer.maskId(userId));
     }
@@ -366,5 +362,15 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       log.debug("Refresh token criado para userId={}", LogSanitizer.maskId(userId));
     }
     return refreshTokenRepository.save(rt);
+  }
+
+  private String generateAccessToken(User user) {
+    long sessionVersion = tokenBlacklistService.getSessionVersion(user.getId());
+    return jwtTokenProvider.generateAccessToken(
+        user.getId(),
+        user.getUsername(),
+        user.getRole().name(),
+        user.getTenantId(),
+        sessionVersion);
   }
 }

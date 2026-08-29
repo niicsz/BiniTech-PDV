@@ -23,6 +23,7 @@ import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
+import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,9 +73,12 @@ public class BeanConfig {
 
   @Bean
   public SaleUseCasePort saleUseCasePort(
-      SaleRepositoryPort saleRepositoryPort, ProductRepositoryPort productRepositoryPort) {
+      SaleRepositoryPort saleRepositoryPort,
+      ProductRepositoryPort productRepositoryPort,
+      @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
     log.info("Configurando SaleUseCasePort");
-    return new SaleUseCaseImpl(saleRepositoryPort, productRepositoryPort);
+    return new SaleUseCaseImpl(
+        saleRepositoryPort, productRepositoryPort, ZoneId.of(businessTimeZone));
   }
 
   @Bean
@@ -95,6 +99,8 @@ public class BeanConfig {
       SpringDataPasswordResetTokenRepository resetTokenRepository,
       PasswordEncoder passwordEncoder,
       EmailServicePort emailServicePort,
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+      TokenBlacklistService tokenBlacklistService,
       @Value("${app.frontend-url}") String frontendUrl) {
     log.info("Configurando PasswordResetUseCasePort");
     return new PasswordResetUseCaseImpl(
@@ -103,6 +109,8 @@ public class BeanConfig {
         resetTokenRepository,
         passwordEncoder,
         emailServicePort,
+        refreshTokenRepositoryPort,
+        tokenBlacklistService,
         frontendUrl);
   }
 

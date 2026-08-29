@@ -41,23 +41,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         && jwtTokenProvider.validateToken(token)
         && !tokenBlacklistService.isBlacklisted(token)) {
       String userId = jwtTokenProvider.getUserIdFromToken(token);
-      String username = jwtTokenProvider.getUsernameFromToken(token);
-      String role = jwtTokenProvider.getRoleFromToken(token);
-      String tenantId = jwtTokenProvider.getTenantIdFromToken(token);
+      long sessionVersion = jwtTokenProvider.getSessionVersionFromToken(token);
+      if (!tokenBlacklistService.isSessionRevoked(userId, sessionVersion)) {
+        String username = jwtTokenProvider.getUsernameFromToken(token);
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        String tenantId = jwtTokenProvider.getTenantIdFromToken(token);
 
-      UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(
-              userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-      authentication.setDetails(tenantId);
+        UsernamePasswordAuthenticationToken authentication =
+            new UsernamePasswordAuthenticationToken(
+                userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+        authentication.setDetails(tenantId);
 
-      SecurityContextHolder.getContext().setAuthentication(authentication);
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Autenticação JWT configurada: userId={} username={} role={} tenantId={} path={}",
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Autenticação JWT configurada: userId={} username={} role={} tenantId={} path={}",
+              Encode.forJava(userId),
+              Encode.forJava(username),
+              Encode.forJava(role),
+              Encode.forJava(String.valueOf(tenantId)),
+              Encode.forJava(request.getRequestURI()));
+        }
+      } else if (log.isWarnEnabled()) {
+        log.warn(
+            "Sessão JWT revogada recebida para userId={} path={}",
             Encode.forJava(userId),
-            Encode.forJava(username),
-            Encode.forJava(role),
-            Encode.forJava(String.valueOf(tenantId)),
             Encode.forJava(request.getRequestURI()));
       }
     } else if (StringUtils.hasText(token) && log.isWarnEnabled()) {

@@ -42,6 +42,11 @@ public class JwtTokenProvider {
   }
 
   public String generateAccessToken(String userId, String username, String role, String tenantId) {
+    return generateAccessToken(userId, username, role, tenantId, 0L);
+  }
+
+  public String generateAccessToken(
+      String userId, String username, String role, String tenantId, long sessionVersion) {
     Date now = new Date();
     Date expiry = new Date(now.getTime() + accessExpiration);
 
@@ -51,6 +56,7 @@ public class JwtTokenProvider {
             .claim("username", username)
             .claim("role", role)
             .claim("tenantId", tenantId)
+            .claim("sessionVersion", sessionVersion)
             .issuedAt(now)
             .expiration(expiry)
             .signWith(key)
@@ -91,6 +97,11 @@ public class JwtTokenProvider {
 
   public String getTenantIdFromToken(String token) {
     return getClaims(token).get("tenantId", String.class);
+  }
+
+  public long getSessionVersionFromToken(String token) {
+    Number version = getClaims(token).get("sessionVersion", Number.class);
+    return version != null ? version.longValue() : 0L;
   }
 
   private Claims getClaims(String token) {

@@ -4,8 +4,10 @@ import com.binitech.pdv.adapters.outbound.persistence.document.PasswordResetToke
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataPasswordResetTokenRepository;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
+import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -28,6 +30,8 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
   private final SpringDataPasswordResetTokenRepository resetTokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final EmailServicePort emailService;
+  private final RefreshTokenRepositoryPort refreshTokenRepository;
+  private final TokenBlacklistService tokenBlacklistService;
   private final String frontendUrl;
 
   public PasswordResetUseCaseImpl(
@@ -36,12 +40,16 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
       SpringDataPasswordResetTokenRepository resetTokenRepository,
       PasswordEncoder passwordEncoder,
       EmailServicePort emailService,
+      RefreshTokenRepositoryPort refreshTokenRepository,
+      TokenBlacklistService tokenBlacklistService,
       String frontendUrl) {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
     this.resetTokenRepository = resetTokenRepository;
     this.passwordEncoder = passwordEncoder;
     this.emailService = emailService;
+    this.refreshTokenRepository = refreshTokenRepository;
+    this.tokenBlacklistService = tokenBlacklistService;
     this.frontendUrl = frontendUrl;
   }
 
@@ -124,6 +132,8 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
     resetTokenRepository.deleteByUserId(user.getId());
+    refreshTokenRepository.deleteByUserId(user.getId());
+    tokenBlacklistService.revokeAllForUser(user.getId());
     log.info("Senha redefinida com sucesso para userId={}", LogSanitizer.maskId(user.getId()));
   }
 

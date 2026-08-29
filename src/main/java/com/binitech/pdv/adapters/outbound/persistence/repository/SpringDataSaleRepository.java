@@ -1,6 +1,7 @@
 package com.binitech.pdv.adapters.outbound.persistence.repository;
 
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
@@ -26,8 +27,9 @@ public interface SpringDataSaleRepository extends MongoRepository<SaleDocument, 
 
   List<SaleDocument> findAllByTenantId(String tenantId, Pageable pageable);
 
-  List<SaleDocument> findByTimestampBetweenAndTenantId(
-      LocalDateTime start, LocalDateTime end, String tenantId);
+  @Query("{ 'timestamp': { $gte: ?0, $lt: ?1 }, 'tenantId': ?2 }")
+  List<SaleDocument> findByTimestampRangeAndTenantId(
+      Instant startInclusive, Instant endExclusive, String tenantId);
 
   @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'tenantId': ?0 }")
   List<SaleDocument> findDebtorsByTenantId(String tenantId);
