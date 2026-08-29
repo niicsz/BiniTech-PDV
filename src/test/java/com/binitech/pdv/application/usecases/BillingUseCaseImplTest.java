@@ -117,7 +117,24 @@ class BillingUseCaseImplTest {
       when(tenantRepository.findById("t1"))
           .thenReturn(Optional.of(tenant("t1", "pro", TenantStatus.ACTIVE)));
       when(stripeGateway.isConfigured()).thenReturn(false);
-      assertThrows(BusinessException.class, () -> billingUseCase.createCheckoutUrl("t1"));
+      BusinessException exception =
+          assertThrows(BusinessException.class, () -> billingUseCase.createCheckoutUrl("t1"));
+
+      assertTrue(exception.getMessage().contains("Entre em contato com o suporte"));
+    }
+
+    @Test
+    @DisplayName("Plano sem price orienta o usuário a procurar o suporte")
+    void createCheckoutUrl_missingPrice_shouldReferToSupport() {
+      when(tenantRepository.findById("t1"))
+          .thenReturn(Optional.of(tenant("t1", "starter", TenantStatus.ACTIVE)));
+      when(stripeGateway.isConfigured()).thenReturn(true);
+      when(stripeProperties.priceForTier("starter")).thenReturn(null);
+
+      BusinessException exception =
+          assertThrows(BusinessException.class, () -> billingUseCase.createCheckoutUrl("t1"));
+
+      assertTrue(exception.getMessage().contains("Entre em contato com o suporte"));
     }
   }
 
@@ -145,7 +162,10 @@ class BillingUseCaseImplTest {
       Subscription sub = new Subscription();
       sub.setTenantId("t1");
       when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.of(sub));
-      assertThrows(BusinessException.class, () -> billingUseCase.createPortalUrl("t1"));
+      BusinessException exception =
+          assertThrows(BusinessException.class, () -> billingUseCase.createPortalUrl("t1"));
+
+      assertTrue(exception.getMessage().contains("Entre em contato com o suporte"));
     }
   }
 
