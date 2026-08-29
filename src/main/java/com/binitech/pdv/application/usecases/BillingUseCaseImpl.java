@@ -37,6 +37,8 @@ import org.slf4j.LoggerFactory;
 public class BillingUseCaseImpl implements BillingUseCasePort {
 
   private static final Logger log = LoggerFactory.getLogger(BillingUseCaseImpl.class);
+  private static final String PAYMENT_SUPPORT_MESSAGE =
+      "Entre em contato com o suporte para realizar o pagamento.";
   private static final List<String> MONTH_NAMES =
       List.of("Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez");
 
@@ -292,11 +294,16 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     }
     if (!stripeGateway.isConfigured()) {
       throw new BusinessException(
-          "Pagamento online indisponível no momento. Tente novamente mais tarde.");
+          "Pagamento online indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
     String priceId = stripeProperties.priceForTier(tenant.getPlanId());
     if (!hasText(priceId)) {
-      throw new BusinessException("Plano sem price configurado no Stripe: " + tenant.getPlanId());
+      log.error(
+          "Plano sem price configurado no Stripe: tenantId={} plan={}",
+          LogSanitizer.maskId(tenantId),
+          LogSanitizer.neutralize(tenant.getPlanId()));
+      throw new BusinessException(
+          "Não foi possível iniciar o pagamento. " + PAYMENT_SUPPORT_MESSAGE);
     }
     String baseUrl = stripTrailingSlash(frontendUrl);
     String successUrl = baseUrl + "/billing?status=success";
@@ -309,7 +316,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
           "Falha ao criar checkout no Stripe: tenantId={} error={}",
           LogSanitizer.maskId(tenantId),
           e.getMessage());
-      throw new BusinessException("Não foi possível iniciar o pagamento. Tente novamente.");
+      throw new BusinessException(
+          "Não foi possível iniciar o pagamento. " + PAYMENT_SUPPORT_MESSAGE);
     }
   }
 
@@ -322,10 +330,11 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
                 () -> new BusinessException("Nenhuma assinatura encontrada para gerenciar."));
     if (!hasText(subscription.getStripeCustomerId())) {
       throw new BusinessException(
-          "Assinatura ainda não vinculada ao Stripe. Conclua um pagamento primeiro.");
+          "Assinatura ainda não vinculada ao pagamento online. " + PAYMENT_SUPPORT_MESSAGE);
     }
     if (!stripeGateway.isConfigured()) {
-      throw new BusinessException("Gestão de assinatura indisponível no momento.");
+      throw new BusinessException(
+          "Gestão de assinatura indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
     String returnUrl = stripTrailingSlash(frontendUrl) + "/billing";
     try {
@@ -336,7 +345,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
           "Falha ao criar portal do Stripe: tenantId={} error={}",
           LogSanitizer.maskId(tenantId),
           e.getMessage());
-      throw new BusinessException("Não foi possível abrir a gestão de assinatura.");
+      throw new BusinessException(
+          "Não foi possível abrir a gestão de assinatura. " + PAYMENT_SUPPORT_MESSAGE);
     }
   }
 
