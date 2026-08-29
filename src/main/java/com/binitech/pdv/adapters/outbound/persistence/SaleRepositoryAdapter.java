@@ -4,6 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.mapper.PersistenceMapper;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataSaleRepository;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.domain.Sale;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -88,9 +89,11 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   }
 
   @Override
-  public List<Sale> findByTimestampBetweenAndTenantId(
-      LocalDateTime start, LocalDateTime end, String tenantId) {
-    return repository.findByTimestampBetweenAndTenantId(start, end, tenantId).stream()
+  public List<Sale> findByTimestampRangeAndTenantId(
+      Instant startInclusive, Instant endExclusive, String tenantId) {
+    return repository
+        .findByTimestampRangeAndTenantId(startInclusive, endExclusive, tenantId)
+        .stream()
         .map(mapper::toDomain)
         .toList();
   }

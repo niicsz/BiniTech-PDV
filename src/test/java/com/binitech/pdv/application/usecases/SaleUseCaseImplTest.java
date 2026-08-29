@@ -14,7 +14,9 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.Role;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SaleUseCaseImplTest {
 
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Sao_Paulo");
+
   @Mock private SaleRepositoryPort saleRepository;
   @Mock private ProductRepositoryPort productRepository;
 
@@ -36,7 +40,7 @@ class SaleUseCaseImplTest {
 
   @BeforeEach
   void setUp() {
-    saleUseCase = new SaleUseCaseImpl(saleRepository, productRepository);
+    saleUseCase = new SaleUseCaseImpl(saleRepository, productRepository, BUSINESS_ZONE);
   }
 
   private Product createProduct(String id, String tenantId, boolean active, int stock) {
@@ -217,13 +221,32 @@ class SaleUseCaseImplTest {
     @Test
     @DisplayName("Deve listar vendas do dia do tenant")
     void listSalesByDay_shouldReturnTenantSales() {
-      when(saleRepository.findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1")))
+      when(saleRepository.findByTimestampRangeAndTenantId(any(), any(), eq("tenant1")))
           .thenReturn(List.of(new Sale()));
 
       List<Sale> result = saleUseCase.listSalesByDay(LocalDate.of(2024, 1, 15), "tenant1");
 
       assertEquals(1, result.size());
-      verify(saleRepository).findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1"));
+      verify(saleRepository)
+          .findByTimestampRangeAndTenantId(
+              eq(Instant.parse("2024-01-15T03:00:00Z")),
+              eq(Instant.parse("2024-01-16T03:00:00Z")),
+              eq("tenant1"));
+    }
+
+    @Test
+    @DisplayName("Deve respeitar uma virada histórica de horário de verão")
+    void listSalesByDay_withDaylightSavingTransition_shouldUseZoneRules() {
+      when(saleRepository.findByTimestampRangeAndTenantId(any(), any(), eq("tenant1")))
+          .thenReturn(List.of());
+
+      saleUseCase.listSalesByDay(LocalDate.of(2018, 11, 4), "tenant1");
+
+      verify(saleRepository)
+          .findByTimestampRangeAndTenantId(
+              eq(Instant.parse("2018-11-04T03:00:00Z")),
+              eq(Instant.parse("2018-11-05T02:00:00Z")),
+              eq("tenant1"));
     }
   }
 
@@ -234,7 +257,7 @@ class SaleUseCaseImplTest {
     @Test
     @DisplayName("Deve listar vendas do período do tenant")
     void listSalesByPeriod_shouldReturnTenantSales() {
-      when(saleRepository.findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1")))
+      when(saleRepository.findByTimestampRangeAndTenantId(any(), any(), eq("tenant1")))
           .thenReturn(List.of());
 
       List<Sale> result =
@@ -242,7 +265,23 @@ class SaleUseCaseImplTest {
               LocalDate.of(2024, 1, 8), LocalDate.of(2024, 1, 15), "tenant1");
 
       assertNotNull(result);
-      verify(saleRepository).findByTimestampBetweenAndTenantId(any(), any(), eq("tenant1"));
+      verify(saleRepository)
+          .findByTimestampRangeAndTenantId(
+              eq(Instant.parse("2024-01-08T03:00:00Z")),
+              eq(Instant.parse("2024-01-16T03:00:00Z")),
+              eq("tenant1"));
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar período com datas invertidas")
+    void listSalesByPeriod_withInvertedDates_shouldThrow() {
+      assertThrows(
+          BusinessException.class,
+          () ->
+              saleUseCase.listSalesByPeriod(
+                  LocalDate.of(2024, 1, 16), LocalDate.of(2024, 1, 15), "tenant1"));
+
+      verifyNoInteractions(saleRepository);
     }
   }
 

@@ -1,5 +1,7 @@
 package com.binitech.pdv.integration;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -46,5 +48,19 @@ class CorsIT {
                 .header(HttpHeaders.ORIGIN, DISALLOWED_ORIGIN)
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("Respostas HTTPS devem incluir cabeçalhos defensivos")
+  void secureResponse_shouldIncludeDefensiveHeaders() throws Exception {
+    mockMvc
+        .perform(get("/actuator/health").secure(true))
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+        .andExpect(header().string("X-Frame-Options", "DENY"))
+        .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"))
+        .andExpect(
+            header().string("Content-Security-Policy", containsString("frame-ancestors 'none'")))
+        .andExpect(
+            header().string("Strict-Transport-Security", containsString("max-age=31536000")));
   }
 }

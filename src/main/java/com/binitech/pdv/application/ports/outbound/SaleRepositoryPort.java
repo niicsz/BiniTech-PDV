@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.Sale;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +26,8 @@ public interface SaleRepositoryPort {
 
   List<Sale> findAllByTenantId(String tenantId, int page, int size);
 
-  List<Sale> findByTimestampBetweenAndTenantId(
-      LocalDateTime start, LocalDateTime end, String tenantId);
+  List<Sale> findByTimestampRangeAndTenantId(
+      Instant startInclusive, Instant endExclusive, String tenantId);
 
   List<Sale> findDebtorsByTenantId(String tenantId);
 

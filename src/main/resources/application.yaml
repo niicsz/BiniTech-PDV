@@ -78,3 +78,4 @@ resend:
 
 app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}
+  business-time-zone: ${APP_BUSINESS_TIME_ZONE:America/Sao_Paulo}

@@ -10,9 +10,9 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.Role;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
@@ -31,11 +31,15 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
   private final SaleRepositoryPort saleRepository;
   private final ProductRepositoryPort productRepository;
+  private final ZoneId businessZone;
 
   public SaleUseCaseImpl(
-      SaleRepositoryPort saleRepository, ProductRepositoryPort productRepository) {
+      SaleRepositoryPort saleRepository,
+      ProductRepositoryPort productRepository,
+      ZoneId businessZone) {
     this.saleRepository = saleRepository;
     this.productRepository = productRepository;
+    this.businessZone = businessZone;
   }
 
   @Override
@@ -159,9 +163,9 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   @Override
   public List<Sale> listSalesByDay(LocalDate date, String tenantId) {
     log.debug("Listando vendas por dia: date={} tenantId={}", date, LogSanitizer.maskId(tenantId));
-    LocalDateTime start = date.atStartOfDay();
-    LocalDateTime end = date.atTime(LocalTime.MAX);
-    return saleRepository.findByTimestampBetweenAndTenantId(start, end, tenantId);
+    Instant startInclusive = date.atStartOfDay(businessZone).toInstant();
+    Instant endExclusive = date.plusDays(1).atStartOfDay(businessZone).toInstant();
+    return saleRepository.findByTimestampRangeAndTenantId(startInclusive, endExclusive, tenantId);
   }
 
   @Override
@@ -171,9 +175,12 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
         startDate,
         endDate,
         LogSanitizer.maskId(tenantId));
-    LocalDateTime start = startDate.atStartOfDay();
-    LocalDateTime end = endDate.atTime(LocalTime.MAX);
-    return saleRepository.findByTimestampBetweenAndTenantId(start, end, tenantId);
+    if (endDate.isBefore(startDate)) {
+      throw new BusinessException("A data final não pode ser anterior à data inicial.");
+    }
+    Instant startInclusive = startDate.atStartOfDay(businessZone).toInstant();
+    Instant endExclusive = endDate.plusDays(1).atStartOfDay(businessZone).toInstant();
+    return saleRepository.findByTimestampRangeAndTenantId(startInclusive, endExclusive, tenantId);
   }
 
   @Override

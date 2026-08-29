@@ -64,7 +64,7 @@ class AuthUseCaseImplTest {
       when(userRepository.findByUsernameAndTenantId("admin", "tenant1"))
           .thenReturn(Optional.of(user));
       when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -91,7 +91,7 @@ class AuthUseCaseImplTest {
       User user = new User("sa1", "root", "encodedPass", Role.SUPER_ADMIN, null);
       when(userRepository.findAllByUsername("root")).thenReturn(java.util.List.of(user));
       when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("sa1", "root", "SUPER_ADMIN", null))
+      when(jwtTokenProvider.generateAccessToken("sa1", "root", "SUPER_ADMIN", null, 0L))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(inv -> inv.getArgument(0));
@@ -109,7 +109,7 @@ class AuthUseCaseImplTest {
       User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
       when(userRepository.findAllByUsername("admin")).thenReturn(java.util.List.of(user));
       when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(inv -> inv.getArgument(0));
@@ -167,7 +167,7 @@ class AuthUseCaseImplTest {
                 u.setId("new-id");
                 return u;
               });
-      when(jwtTokenProvider.generateAccessToken("new-id", "newuser", "OPERATOR", "tenant1"))
+      when(jwtTokenProvider.generateAccessToken("new-id", "newuser", "OPERATOR", "tenant1", 0L))
           .thenReturn("access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -260,7 +260,7 @@ class AuthUseCaseImplTest {
 
       when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1"))
+      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
           .thenReturn("new-access-token");
       when(refreshTokenRepository.save(any(RefreshToken.class)))
           .thenAnswer(
@@ -321,6 +321,8 @@ class AuthUseCaseImplTest {
 
       assertEquals("newHash", user.getPassword());
       verify(userRepository).save(user);
+      verify(refreshTokenRepository).deleteByUserId("user1");
+      verify(tokenBlacklistService).revokeAllForUser("user1");
     }
 
     @Test
