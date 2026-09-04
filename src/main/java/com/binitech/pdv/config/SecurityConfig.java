@@ -20,6 +20,7 @@ public class SecurityConfig {
 
   private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
   private static final String ROLE_SUPER_ADMIN = "SUPER_ADMIN";
+  private static final String ROLE_ADMIN = "ADMIN";
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final TenantValidationFilter tenantValidationFilter;
@@ -88,11 +89,11 @@ public class SecurityConfig {
                     .requestMatchers("/api/admin/**")
                     .hasRole(ROLE_SUPER_ADMIN)
                     .requestMatchers("/actuator/**")
-                    .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN")
+                    .hasAnyRole(ROLE_SUPER_ADMIN, ROLE_ADMIN)
                     .requestMatchers(HttpMethod.POST, "/api/auth/register")
-                    .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN", "TENANT_ADMIN")
+                    .hasAnyRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, "TENANT_ADMIN")
                     .requestMatchers("/api/users/**")
-                    .hasAnyRole("ADMIN", "TENANT_ADMIN")
+                    .hasAnyRole(ROLE_ADMIN, "TENANT_ADMIN")
                     .requestMatchers("/api/**")
                     .authenticated()
                     .anyRequest()
