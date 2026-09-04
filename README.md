@@ -458,6 +458,18 @@ A API é documentada via **OpenAPI 3.0** (gerado a partir de `swagger.yaml`) e a
 | `GET` | `/api/billing/portal` | Abrir o Customer Portal do Stripe | Autenticado |
 | `POST` | `/webhooks/stripe` | Webhook do Stripe (eventos de pagamento) | Público (assinado) |
 
+### Usuários do tenant
+
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `GET` | `/api/users` | Listar usuários da própria empresa | ADMIN / TENANT_ADMIN |
+| `GET` | `/api/users/{id}` | Consultar usuário da própria empresa | ADMIN / TENANT_ADMIN |
+| `POST` | `/api/users` | Criar usuário na própria empresa | ADMIN / TENANT_ADMIN |
+| `PATCH` | `/api/users/{id}/status` | Ativar ou desativar usuário | ADMIN / TENANT_ADMIN |
+| `PATCH` | `/api/users/{id}/role` | Alterar role dentro da hierarquia permitida | ADMIN / TENANT_ADMIN |
+
+O `tenantId` não é aceito nesses contratos: o escopo é obtido exclusivamente da sessão autenticada. `TENANT_ADMIN` administra operadores; o `ADMIN` legado pode administrar operadores e administradores de loja. Mudanças de role ou status revogam as sessões do usuário afetado.
+
 ### Products
 
 | Método | Endpoint | Descrição | Acesso |

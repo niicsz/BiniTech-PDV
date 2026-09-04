@@ -11,6 +11,8 @@ public interface SpringDataUserRepository extends MongoRepository<UserDocument, 
 
   Optional<UserDocument> findByUsername(String username);
 
+  Optional<UserDocument> findByIdAndTenantId(String id, String tenantId);
+
   List<UserDocument> findAllByUsername(String username);
 
   boolean existsByUsername(String username);

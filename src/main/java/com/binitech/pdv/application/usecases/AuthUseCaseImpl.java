@@ -17,6 +17,8 @@ import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -70,6 +72,9 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     }
 
     User user = userOpt.get();
+    if (!user.isActive()) {
+      throw new BusinessException("Credenciais inválidas.");
+    }
 
     String accessToken = generateAccessToken(user);
 
@@ -173,6 +178,10 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     user.setPassword(passwordEncoder.encode(password));
     user.setRole(role);
     user.setTenantId(resolvedTenantId);
+    user.setActive(true);
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+    user.setCreatedAt(now);
+    user.setUpdatedAt(now);
     User saved = userRepository.save(user);
 
     String accessToken = generateAccessToken(saved);
@@ -228,6 +237,12 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
                   }
                   return new BusinessException("Usuário não encontrado.");
                 });
+
+    if (!user.isActive()) {
+      refreshTokenRepository.deleteByUserId(user.getId());
+      tokenBlacklistService.revokeAllForUser(user.getId());
+      throw new BusinessException("Usuário inativo. Entre em contato com o administrador.");
+    }
 
     String accessToken = generateAccessToken(user);
 

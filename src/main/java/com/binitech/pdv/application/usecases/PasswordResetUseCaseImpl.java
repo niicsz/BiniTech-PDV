@@ -60,6 +60,7 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
     java.util.List<User> candidates =
         userRepository.findAllByUsername(username.trim()).stream()
             .filter(u -> u.getRole() != Role.SUPER_ADMIN)
+            .filter(User::isActive)
             .filter(u -> !isBlank(u.getTenantId()))
             .toList();
 
@@ -125,6 +126,9 @@ public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
     if (user.getRole() == Role.SUPER_ADMIN) {
       throw new BusinessException(
           "A senha do super admin é gerenciada pela configuração do sistema.");
+    }
+    if (!user.isActive()) {
+      throw new BusinessException("Usuário inativo. Entre em contato com o administrador.");
     }
 
     user.setPassword(passwordEncoder.encode(newPassword));

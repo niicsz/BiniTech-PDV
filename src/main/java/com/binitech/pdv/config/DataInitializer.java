@@ -38,6 +38,7 @@ public class DataInitializer implements CommandLineRunner {
       admin.setPassword(passwordEncoder.encode(adminPassword));
       admin.setRole(Role.SUPER_ADMIN);
       admin.setTenantId(null);
+      admin.setActive(true);
       userRepository.save(admin);
       log.info("Usuário super admin padrão criado com sucesso.");
     } else {
@@ -49,6 +50,10 @@ public class DataInitializer implements CommandLineRunner {
       }
       if (admin.getRole() != Role.SUPER_ADMIN) {
         admin.setRole(Role.SUPER_ADMIN);
+        updated = true;
+      }
+      if (!admin.isActive()) {
+        admin.setActive(true);
         updated = true;
       }
       admin.setTenantId(null);

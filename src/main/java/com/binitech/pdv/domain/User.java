@@ -1,15 +1,21 @@
 package com.binitech.pdv.domain;
 
 import com.binitech.pdv.utils.enums.Role;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class User {
 
   private String id;
   private String username;
+  private String name;
+  private String email;
   private String password;
   private Role role;
   private String tenantId;
+  private Boolean active;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 
   public User() {}
 
@@ -23,6 +29,7 @@ public class User {
     this.password = password;
     this.role = role;
     this.tenantId = tenantId;
+    this.active = true;
   }
 
   public String getId() {
@@ -39,6 +46,22 @@ public class User {
 
   public void setUsername(String username) {
     this.username = username;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
   }
 
   public String getPassword() {
@@ -65,6 +88,35 @@ public class User {
     this.tenantId = tenantId;
   }
 
+  /** Usuários anteriores à inclusão deste campo permanecem ativos por compatibilidade. */
+  public boolean isActive() {
+    return active == null || active;
+  }
+
+  public Boolean getActive() {
+    return active;
+  }
+
+  public void setActive(Boolean active) {
+    this.active = active;
+  }
+
+  public LocalDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public void setCreatedAt(LocalDateTime createdAt) {
+    this.createdAt = createdAt;
+  }
+
+  public LocalDateTime getUpdatedAt() {
+    return updatedAt;
+  }
+
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -88,6 +140,8 @@ public class User {
         + role
         + ", tenantId='"
         + tenantId
-        + "'}";
+        + "', active="
+        + isActive()
+        + "}";
   }
 }

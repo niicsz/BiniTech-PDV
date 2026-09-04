@@ -91,6 +91,8 @@ public class SecurityConfig {
                     .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/auth/register")
                     .hasAnyRole(ROLE_SUPER_ADMIN, "ADMIN", "TENANT_ADMIN")
+                    .requestMatchers("/api/users/**")
+                    .hasAnyRole("ADMIN", "TENANT_ADMIN")
                     .requestMatchers("/api/**")
                     .authenticated()
                     .anyRequest()

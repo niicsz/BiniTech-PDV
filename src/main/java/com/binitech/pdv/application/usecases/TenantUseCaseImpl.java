@@ -190,6 +190,11 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       adminUser.setPassword(passwordEncoder.encode(tempPassword));
       adminUser.setRole(Role.TENANT_ADMIN);
       adminUser.setTenantId(tenant.getId());
+      adminUser.setName(tenant.getName());
+      adminUser.setEmail(tenant.getBillingEmail());
+      adminUser.setActive(true);
+      adminUser.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+      adminUser.setUpdatedAt(adminUser.getCreatedAt());
       userRepository.save(adminUser);
       log.info("Usuário TENANT_ADMIN criado para tenantId={}", LogSanitizer.maskId(tenant.getId()));
 

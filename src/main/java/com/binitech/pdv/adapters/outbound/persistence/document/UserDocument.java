@@ -1,5 +1,6 @@
 package com.binitech.pdv.adapters.outbound.persistence.document;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,12 @@ public class UserDocument {
   @Id private String id;
 
   private String username;
+  private String name;
+  private String email;
   private String password;
   private String role;
   private String tenantId;
+  private Boolean active;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 }

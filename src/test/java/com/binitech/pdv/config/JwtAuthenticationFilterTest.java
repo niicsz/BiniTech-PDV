@@ -3,9 +3,13 @@ package com.binitech.pdv.config;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.domain.User;
+import com.binitech.pdv.utils.enums.Role;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +23,7 @@ class JwtAuthenticationFilterTest {
 
   @Mock private JwtTokenProvider jwtTokenProvider;
   @Mock private TokenBlacklistService tokenBlacklistService;
+  @Mock private UserRepositoryPort userRepository;
   @Mock private HttpServletRequest request;
   @Mock private HttpServletResponse response;
   @Mock private FilterChain filterChain;
@@ -27,7 +32,7 @@ class JwtAuthenticationFilterTest {
 
   @BeforeEach
   void setUp() {
-    filter = new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistService);
+    filter = new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistService, userRepository);
     SecurityContextHolder.clearContext();
   }
 
@@ -39,14 +44,30 @@ class JwtAuthenticationFilterTest {
     when(jwtTokenProvider.getUserIdFromToken("valid-token")).thenReturn("user1");
     when(jwtTokenProvider.getSessionVersionFromToken("valid-token")).thenReturn(2L);
     when(tokenBlacklistService.isSessionRevoked("user1", 2L)).thenReturn(false);
-    when(jwtTokenProvider.getUsernameFromToken("valid-token")).thenReturn("admin");
-    when(jwtTokenProvider.getRoleFromToken("valid-token")).thenReturn("ADMIN");
+    when(userRepository.findById("user1"))
+        .thenReturn(Optional.of(new User("user1", "admin", "hash", Role.ADMIN, "tenant1")));
 
     filter.doFilterInternal(request, response, filterChain);
 
     assertNotNull(SecurityContextHolder.getContext().getAuthentication());
     assertEquals("user1", SecurityContextHolder.getContext().getAuthentication().getPrincipal());
     assertEquals("admin", SecurityContextHolder.getContext().getAuthentication().getCredentials());
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
+  @DisplayName("Token de usuário inativo não deve definir autenticação")
+  void doFilter_withInactiveUser_shouldNotSetAuthentication() throws Exception {
+    User inactive = new User("user1", "operator", "hash", Role.OPERATOR, "tenant1");
+    inactive.setActive(false);
+    when(request.getHeader("Authorization")).thenReturn("Bearer valid-token");
+    when(jwtTokenProvider.validateToken("valid-token")).thenReturn(true);
+    when(jwtTokenProvider.getUserIdFromToken("valid-token")).thenReturn("user1");
+    when(userRepository.findById("user1")).thenReturn(Optional.of(inactive));
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertNull(SecurityContextHolder.getContext().getAuthentication());
     verify(filterChain).doFilter(request, response);
   }
 
