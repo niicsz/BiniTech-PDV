@@ -15,6 +15,8 @@ tags:
     description: Operações de cadastro e consulta de produtos
   - name: Sales
     description: Operações de venda e relatórios
+  - name: Users
+    description: Gerenciamento de usuários do tenant autenticado
 
 paths:
   /api/auth/login:
@@ -100,6 +102,117 @@ paths:
       responses:
         '204':
           description: Logout realizado com sucesso
+
+  /api/users:
+    get:
+      tags: [Users]
+      summary: Listar usuários do tenant autenticado
+      operationId: listTenantUsers
+      responses:
+        '200':
+          description: Usuários do tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserDTO'
+        '403':
+          description: Usuário sem permissão
+    post:
+      tags: [Users]
+      summary: Criar usuário no tenant autenticado
+      operationId: createTenantUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+        '403':
+          description: Role sem permissão ou tentativa de escalação
+
+  /api/users/{id}:
+    get:
+      tags: [Users]
+      summary: Buscar usuário dentro do tenant autenticado
+      operationId: getTenantUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+        '404':
+          description: Usuário não pertence ao tenant ou não existe
+
+  /api/users/{id}/status:
+    patch:
+      tags: [Users]
+      summary: Ativar ou desativar usuário do tenant autenticado
+      operationId: updateTenantUserStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserStatusRequest'
+      responses:
+        '200':
+          description: Status alterado e sessões anteriores revogadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+        '403':
+          description: Usuário fora da hierarquia permitida
+
+  /api/users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Alterar role dentro da hierarquia permitida
+      operationId: updateTenantUserRole
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRoleRequest'
+      responses:
+        '200':
+          description: Role alterada e sessões anteriores revogadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+        '403':
+          description: Tentativa de atribuir privilégio não permitido
 
   /api/products:
     get:
@@ -454,6 +567,70 @@ components:
           type: string
         tenantId:
           type: string
+
+    UserRole:
+      type: string
+      enum: [SUPER_ADMIN, ADMIN, TENANT_ADMIN, OPERATOR]
+
+    UserDTO:
+      type: object
+      required: [id, name, username, role, active, currentUser, manageable]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        active:
+          type: boolean
+        currentUser:
+          type: boolean
+        manageable:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 6
+          maxLength: 128
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    UpdateUserStatusRequest:
+      type: object
+      required: [active]
+      properties:
+        active:
+          type: boolean
+
+    UpdateUserRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: '#/components/schemas/UserRole'
 
     ProductDTO:
       type: object

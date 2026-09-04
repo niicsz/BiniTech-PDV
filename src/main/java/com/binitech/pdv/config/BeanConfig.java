@@ -9,6 +9,7 @@ import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
+import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -23,6 +24,7 @@ import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
+import com.binitech.pdv.application.usecases.UserManagementUseCaseImpl;
 import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +92,22 @@ public class BeanConfig {
     log.info("Configurando TenantUseCasePort");
     return new TenantUseCaseImpl(
         tenantRepositoryPort, userRepositoryPort, passwordEncoder, emailServicePort);
+  }
+
+  @Bean
+  public UserManagementUseCasePort userManagementUseCasePort(
+      UserRepositoryPort userRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
+      TokenBlacklistService tokenBlacklistService,
+      PasswordEncoder passwordEncoder) {
+    log.info("Configurando UserManagementUseCasePort");
+    return new UserManagementUseCaseImpl(
+        userRepositoryPort,
+        tenantRepositoryPort,
+        refreshTokenRepositoryPort,
+        tokenBlacklistService,
+        passwordEncoder);
   }
 
   @Bean

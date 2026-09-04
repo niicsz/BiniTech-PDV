@@ -11,6 +11,8 @@ public interface UserRepositoryPort {
 
   Optional<User> findById(String id);
 
+  Optional<User> findByIdAndTenantId(String id, String tenantId);
+
   List<User> findAllByTenantId(String tenantId);
 
   Optional<User> findByUsername(String username);

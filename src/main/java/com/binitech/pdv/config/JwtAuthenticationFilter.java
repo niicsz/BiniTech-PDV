@@ -1,5 +1,7 @@
 package com.binitech.pdv.config;
 
+import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.domain.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +25,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtTokenProvider jwtTokenProvider;
   private final TokenBlacklistService tokenBlacklistService;
+  private final UserRepositoryPort userRepository;
 
   public JwtAuthenticationFilter(
-      JwtTokenProvider jwtTokenProvider, TokenBlacklistService tokenBlacklistService) {
+      JwtTokenProvider jwtTokenProvider,
+      TokenBlacklistService tokenBlacklistService,
+      UserRepositoryPort userRepository) {
     this.jwtTokenProvider = jwtTokenProvider;
     this.tokenBlacklistService = tokenBlacklistService;
+    this.userRepository = userRepository;
   }
 
   @Override
@@ -43,23 +49,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       String userId = jwtTokenProvider.getUserIdFromToken(token);
       long sessionVersion = jwtTokenProvider.getSessionVersionFromToken(token);
       if (!tokenBlacklistService.isSessionRevoked(userId, sessionVersion)) {
-        String username = jwtTokenProvider.getUsernameFromToken(token);
-        String role = jwtTokenProvider.getRoleFromToken(token);
-        String tenantId = jwtTokenProvider.getTenantIdFromToken(token);
+        User currentUser = userRepository.findById(userId).orElse(null);
+        if (currentUser != null && currentUser.isActive()) {
+          String username = currentUser.getUsername();
+          String role = currentUser.getRole().name();
+          String tenantId = currentUser.getTenantId();
 
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-        authentication.setDetails(tenantId);
+          UsernamePasswordAuthenticationToken authentication =
+              new UsernamePasswordAuthenticationToken(
+                  userId, username, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+          authentication.setDetails(tenantId);
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Autenticação JWT configurada: userId={} username={} role={} tenantId={} path={}",
+          SecurityContextHolder.getContext().setAuthentication(authentication);
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Autenticação JWT configurada: userId={} username={} role={} tenantId={} path={}",
+                Encode.forJava(userId),
+                Encode.forJava(username),
+                Encode.forJava(role),
+                Encode.forJava(String.valueOf(tenantId)),
+                Encode.forJava(request.getRequestURI()));
+          }
+        } else if (log.isWarnEnabled()) {
+          log.warn(
+              "Token rejeitado para usuário inexistente ou inativo: userId={} path={}",
               Encode.forJava(userId),
-              Encode.forJava(username),
-              Encode.forJava(role),
-              Encode.forJava(String.valueOf(tenantId)),
               Encode.forJava(request.getRequestURI()));
         }
       } else if (log.isWarnEnabled()) {

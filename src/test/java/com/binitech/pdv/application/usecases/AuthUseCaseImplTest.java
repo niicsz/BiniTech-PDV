@@ -147,6 +147,20 @@ class AuthUseCaseImplTest {
 
       assertTrue(exception.getMessage().contains("Credenciais inválidas"));
     }
+
+    @Test
+    @DisplayName("Usuário inativo não deve autenticar")
+    void login_withInactiveUser_shouldThrowException() {
+      User user = new User("user1", "operator", "encodedPass", Role.OPERATOR, "tenant1");
+      user.setActive(false);
+      when(userRepository.findByUsernameAndTenantId("operator", "tenant1"))
+          .thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
+
+      assertThrows(
+          BusinessException.class, () -> authUseCase.login("operator", "password", "tenant1"));
+      verify(jwtTokenProvider, never()).generateAccessToken(any(), any(), any(), any(), anyLong());
+    }
   }
 
   @Nested
@@ -302,6 +316,22 @@ class AuthUseCaseImplTest {
 
       assertTrue(exception.getMessage().contains("expirado"));
       verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
+    }
+
+    @Test
+    @DisplayName("Usuário inativo não deve renovar token")
+    void refreshToken_withInactiveUser_shouldThrowExceptionAndRevokeSessions() {
+      RefreshToken rt =
+          new RefreshToken(
+              "rt1", "valid-token", "user1", "tenant1", Instant.parse("2999-01-01T00:00:00Z"));
+      User user = new User("user1", "operator", "pass", Role.OPERATOR, "tenant1");
+      user.setActive(false);
+      when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
+      when(userRepository.findById("user1")).thenReturn(Optional.of(user));
+
+      assertThrows(BusinessException.class, () -> authUseCase.refreshToken("valid-token"));
+      verify(refreshTokenRepository).deleteByUserId("user1");
+      verify(tokenBlacklistService).revokeAllForUser("user1");
     }
   }
 
