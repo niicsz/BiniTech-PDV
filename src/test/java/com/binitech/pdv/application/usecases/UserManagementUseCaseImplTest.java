@@ -115,14 +115,12 @@ class UserManagementUseCaseImplTest {
   @DisplayName("TENANT_ADMIN não pode administrar outro TENANT_ADMIN")
   void updateStatus_tenantAdminTarget_shouldBeForbidden() {
     User target = user("other-admin", Role.TENANT_ADMIN, "tenant-a");
-    when(userRepository.findByIdAndTenantId(target.getId(), "tenant-a"))
-        .thenReturn(Optional.of(target));
+    String targetId = target.getId();
+    when(userRepository.findByIdAndTenantId(targetId, "tenant-a")).thenReturn(Optional.of(target));
 
     assertThrows(
         AccessDeniedException.class,
-        () ->
-            useCase.updateStatus(
-                target.getId(), false, "tenant-admin", "tenant-a", Role.TENANT_ADMIN));
+        () -> useCase.updateStatus(targetId, false, "tenant-admin", "tenant-a", Role.TENANT_ADMIN));
     verify(userRepository, never()).save(any());
   }
 
@@ -130,14 +128,13 @@ class UserManagementUseCaseImplTest {
   @DisplayName("ADMIN não pode atribuir SUPER_ADMIN")
   void updateRole_toSuperAdmin_shouldBeForbidden() {
     User operator = user("operator", Role.OPERATOR, "tenant-a");
-    when(userRepository.findByIdAndTenantId(operator.getId(), "tenant-a"))
+    String operatorId = operator.getId();
+    when(userRepository.findByIdAndTenantId(operatorId, "tenant-a"))
         .thenReturn(Optional.of(operator));
 
     assertThrows(
         AccessDeniedException.class,
-        () ->
-            useCase.updateRole(
-                operator.getId(), Role.SUPER_ADMIN, "admin", "tenant-a", Role.ADMIN));
+        () -> useCase.updateRole(operatorId, Role.SUPER_ADMIN, "admin", "tenant-a", Role.ADMIN));
     assertEquals(Role.OPERATOR, operator.getRole());
     verify(userRepository, never()).save(any());
   }
@@ -146,14 +143,12 @@ class UserManagementUseCaseImplTest {
   @DisplayName("Administrador não pode alterar a própria role")
   void updateRole_self_shouldBeForbidden() {
     User actor = user("admin", Role.ADMIN, "tenant-a");
-    when(userRepository.findByIdAndTenantId(actor.getId(), "tenant-a"))
-        .thenReturn(Optional.of(actor));
+    String actorId = actor.getId();
+    when(userRepository.findByIdAndTenantId(actorId, "tenant-a")).thenReturn(Optional.of(actor));
 
     assertThrows(
         AccessDeniedException.class,
-        () ->
-            useCase.updateRole(
-                actor.getId(), Role.OPERATOR, actor.getId(), "tenant-a", Role.ADMIN));
+        () -> useCase.updateRole(actorId, Role.OPERATOR, actorId, "tenant-a", Role.ADMIN));
   }
 
   @Test

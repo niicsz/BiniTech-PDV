@@ -89,11 +89,13 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     user.setUpdatedAt(now);
 
     User saved = userRepository.save(user);
-    log.info(
-        "Usuário criado pelo gerenciamento: userId={} role={} tenantId={}",
-        LogSanitizer.maskId(saved.getId()),
-        saved.getRole(),
-        LogSanitizer.maskId(tenantId));
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Usuário criado pelo gerenciamento: userId={} role={} tenantId={}",
+          LogSanitizer.maskId(saved.getId()),
+          saved.getRole(),
+          LogSanitizer.maskId(tenantId));
+    }
     return saved;
   }
 
@@ -112,11 +114,13 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     target.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     User saved = userRepository.save(target);
     revokeSessions(saved);
-    log.info(
-        "Status de usuário alterado: userId={} active={} tenantId={}",
-        LogSanitizer.maskId(userId),
-        active,
-        LogSanitizer.maskId(tenantId));
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Status de usuário alterado: userId={} active={} tenantId={}",
+          LogSanitizer.maskId(userId),
+          active,
+          LogSanitizer.maskId(tenantId));
+    }
     return saved;
   }
 
@@ -140,12 +144,14 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     target.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     User saved = userRepository.save(target);
     revokeSessions(saved);
-    log.info(
-        "Role de usuário alterada: userId={} previousRole={} newRole={} tenantId={}",
-        LogSanitizer.maskId(userId),
-        previousRole,
-        role,
-        LogSanitizer.maskId(tenantId));
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Role de usuário alterada: userId={} previousRole={} newRole={} tenantId={}",
+          LogSanitizer.maskId(userId),
+          previousRole,
+          role,
+          LogSanitizer.maskId(tenantId));
+    }
     return saved;
   }
 
