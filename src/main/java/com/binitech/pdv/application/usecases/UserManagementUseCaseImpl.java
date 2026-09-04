@@ -117,7 +117,7 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     if (log.isInfoEnabled()) {
       log.info(
           "Status de usuário alterado: userId={} active={} tenantId={}",
-          LogSanitizer.maskId(userId),
+          LogSanitizer.maskId(saved.getId()),
           active,
           LogSanitizer.maskId(tenantId));
     }
@@ -147,7 +147,7 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     if (log.isInfoEnabled()) {
       log.info(
           "Role de usuário alterada: userId={} previousRole={} newRole={} tenantId={}",
-          LogSanitizer.maskId(userId),
+          LogSanitizer.maskId(saved.getId()),
           previousRole,
           role,
           LogSanitizer.maskId(tenantId));
