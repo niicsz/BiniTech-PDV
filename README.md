@@ -4,6 +4,8 @@ Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), de
 
 > Este repositório contém **apenas o backend** (API REST). O frontend Angular vive em repositório próprio e é deployado separadamente: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. O backend expõe a API em `/api/**` e libera o domínio do frontend via CORS (`CORS_ALLOWED_ORIGINS`).
 
+O login foi extraído para o serviço independente [BiniTech Auth](auth-service/README.md), reutilizável por outras aplicações via HTTP. Para executar o PDV com login, inicie também esse serviço e configure `AUTH_SERVICE_URL`. O guia explica a execução, o contrato e a implantação com os usuários existentes.
+
 ---
 
 ## 📋 Índice
@@ -318,11 +320,12 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `PORT` | Porta do servidor backend | `8080` |
 | `JWT_SECRET` | Chave secreta para assinatura dos tokens JWT | — (obrigatório) |
 | `JWT_ACCESS_EXPIRATION` | Expiração do access token (ms) | — (obrigatório) |
-| `JWT_REFRESH_EXPIRATION` | Expiração do refresh token (ms) | — (obrigatório) |
+| `AUTH_SERVICE_URL` | URL do serviço de autenticação | `http://localhost:8081` |
+| `AUTH_CONNECT_TIMEOUT` | Tempo máximo para conectar ao serviço de autenticação | `2s` |
+| `AUTH_READ_TIMEOUT` | Tempo máximo de resposta do serviço de autenticação | `5s` |
 | `ADMIN_USERNAME` | Username do **super admin** criado na inicialização | — (obrigatório) |
 | `ADMIN_PASSWORD` | Senha do super admin | — (obrigatório) |
 | `SECURITY_PEPPER` | Pepper concatenado às passwords antes do hash Argon2 | — (obrigatório) |
-| `SECURITY_DUMMY_PASSWORD_HASH` | Hash usado para mitigar timing attacks em logins inexistentes | — (obrigatório) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS — domínio público do frontend (em dev, `http://localhost:4200`) | — (obrigatório) |
 | `APP_FRONTEND_URL` | URL pública do frontend (usada em links de e-mail e retorno do Stripe) | `http://localhost:4200` |
 
@@ -357,6 +360,8 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 ## 🔑 Autenticação e Autorização
 
 O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para proteger as rotas da API.
+
+Login, emissão/renovação de tokens e logout são executados pelo [serviço de autenticação](auth-service/README.md). As rotas correspondentes do PDV são um cliente HTTP desse serviço. Outras aplicações podem chamar a mesma API e consultar `GET /api/auth/session` para validar uma sessão sem receber `JWT_SECRET`. Cadastro, recuperação/troca de senha e autorização de lojas/planos continuam no PDV. Nesta etapa, o armazenamento das identidades e revogações é compartilhado.
 
 ### Roles
 
@@ -581,6 +586,7 @@ O projeto possui cobertura de testes unitários e de integração com relatório
 
 ```bash
 ./mvnw test
+./mvnw -f auth-service/pom.xml verify
 ```
 
 ### Gerar relatório de cobertura (JaCoCo)
@@ -618,7 +624,7 @@ src/test/java/com/binitech/pdv/
     ├── AuthControllerIT, ProductControllerIT, SaleControllerIT
 ```
 
-> Os testes de integração utilizam **Flapdoodle Embedded MongoDB** e **Spring Boot Test** com `@ActiveProfiles("test")`, sem necessidade de infraestrutura externa.
+> `verify` executa os testes `*Test`; os testes legados `*IT` não são incluídos pela configuração atual do Maven. Os `*IT` usam **Flapdoodle Embedded MongoDB** e **Spring Boot Test** com `@ActiveProfiles("test")`; os fluxos de autenticação também exigem o serviço de autenticação apontado para o mesmo MongoDB de teste e Redis. Os testes HTTP do novo serviço e do cliente usam dependências simuladas e não acessam bancos externos.
 
 ---
 
@@ -637,10 +643,10 @@ A imagem inclui **HEALTHCHECK** integrado via `/actuator/health`.
 docker build -t binitech-pdv .
 ```
 
-### Subir a infraestrutura (MongoDB + RabbitMQ)
+### Subir a infraestrutura e o serviço de autenticação
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d
 ```
 
 ### Executar a aplicação em container
@@ -652,13 +658,12 @@ docker run -d \
   -e MONGODB_URI=mongodb://host.docker.internal:27017/binitech_pdv \
   -e REDIS_URL=redis://host.docker.internal:6379 \
   -e RABBITMQ_HOST=host.docker.internal \
+  -e AUTH_SERVICE_URL=http://host.docker.internal:8081 \
   -e JWT_SECRET=sua-chave-secreta \
   -e JWT_ACCESS_EXPIRATION=3600000 \
-  -e JWT_REFRESH_EXPIRATION=604800000 \
   -e ADMIN_USERNAME=admin \
   -e ADMIN_PASSWORD=sua-senha-admin \
   -e SECURITY_PEPPER=seu-pepper-secreto \
-  -e SECURITY_DUMMY_PASSWORD_HASH=seu-hash-dummy \
   -e CORS_ALLOWED_ORIGINS=http://localhost:4200 \
   binitech-pdv
 ```
@@ -671,6 +676,8 @@ docker run -d \
 
 ```
 pdv/
+├── auth-service/               # Serviço de login independente e reutilizável
+├── docker-compose.auth.yml     # Serviço de autenticação + Redis
 ├── docker-compose.yml          # Sobe MongoDB + RabbitMQ (Redis não incluso)
 ├── Dockerfile                  # Build multi-stage (backend, API-only)
 ├── owasp-suppressions.xml      # Supressões do OWASP Dependency Check
