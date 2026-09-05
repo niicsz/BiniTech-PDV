@@ -10,6 +10,7 @@ import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
+import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -51,20 +52,17 @@ public class BeanConfig {
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort,
       RefreshTokenRepositoryPort refreshTokenRepositoryPort,
-      JwtTokenProvider jwtTokenProvider,
       TokenBlacklistService tokenBlacklistService,
       PasswordEncoder passwordEncoder,
-      @Value("${jwt.refresh-expiration}") long refreshExpiration,
-      @Value("${security.dummy-password-hash}") String dummyPasswordHash) {
-    log.info("Configurando AuthUseCasePort com refresh expiration: {}ms", refreshExpiration);
+      AuthenticationGateway authenticationGateway) {
+    log.info("Configurando AuthUseCasePort com serviço de autenticação externo");
     return new AuthUseCaseImpl(
         userRepositoryPort,
         tenantRepositoryPort,
         refreshTokenRepositoryPort,
-        jwtTokenProvider,
         tokenBlacklistService,
         passwordEncoder,
-        new AuthSessionConfig(refreshExpiration, dummyPasswordHash));
+        authenticationGateway);
   }
 
   @Bean

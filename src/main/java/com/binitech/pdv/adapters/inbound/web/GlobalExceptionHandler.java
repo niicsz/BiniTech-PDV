@@ -1,6 +1,7 @@
 package com.binitech.pdv.adapters.inbound.web;
 
 import com.binitech.pdv.adapters.inbound.web.generated.model.ErrorDTO;
+import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import java.time.OffsetDateTime;
@@ -75,6 +76,16 @@ public class GlobalExceptionHandler {
     error.setMessage(ex.getMessage());
     error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(AuthenticationUnavailableException.class)
+  public ResponseEntity<ErrorDTO> handleAuthenticationUnavailable(
+      AuthenticationUnavailableException ex) {
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("AUTH_UNAVAILABLE");
+    error.setMessage(ex.getMessage());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
   }
 
   @ExceptionHandler(IllegalArgumentException.class)

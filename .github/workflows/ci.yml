@@ -30,12 +30,17 @@ jobs:
           chmod +x mvnw
           ./mvnw verify -B
 
+      - name: Build & test authentication service
+        run: ./mvnw -f auth-service/pom.xml verify -B
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
         with:
           name: backend-test-reports
-          path: target/surefire-reports/
+          path: |
+            target/surefire-reports/
+            auth-service/target/surefire-reports/
 
   dependency-check:
     name: OWASP Dependency Check
@@ -95,3 +100,13 @@ jobs:
           tags: binitech-pdv:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build authentication image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: .
+          file: auth-service/Dockerfile
+          push: false
+          tags: binitech-auth:${{ github.sha }}
+          cache-from: type=gha,scope=auth
+          cache-to: type=gha,mode=max,scope=auth
