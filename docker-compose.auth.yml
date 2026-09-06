@@ -15,8 +15,8 @@ services:
 
   auth-service:
     build:
-      context: .
-      dockerfile: auth-service/Dockerfile
+      context: https://github.com/niicsz/BiniTech-Auth.git#91aced7890dbe9d34fdcf95fb543ba05d86e2608
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
     environment:

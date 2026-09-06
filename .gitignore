@@ -55,5 +55,6 @@ skills-lock.json
 .projects/state.test.json
 .projects/state.local.test.json
 .env
+.auth-work/
 .env.*
 !.env.example

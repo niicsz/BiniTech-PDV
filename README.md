@@ -4,7 +4,7 @@ Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), de
 
 > Este repositório contém **apenas o backend** (API REST). O frontend Angular vive em repositório próprio e é deployado separadamente: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. O backend expõe a API em `/api/**` e libera o domínio do frontend via CORS (`CORS_ALLOWED_ORIGINS`).
 
-O login foi extraído para o serviço independente [BiniTech Auth](auth-service/README.md), reutilizável por outras aplicações via HTTP. Para executar o PDV com login, inicie também esse serviço e configure `AUTH_SERVICE_URL`. O guia explica a execução, o contrato e a implantação com os usuários existentes.
+O login está no repositório independente [BiniTech Auth](https://github.com/niicsz/BiniTech-Auth), organizado em arquitetura hexagonal e reutilizável por outras aplicações via HTTP. Para executar o PDV com login, inicie também esse serviço e configure `AUTH_SERVICE_URL`. Seu código, build, CI e deploy são mantidos no repositório próprio.
 
 ---
 
@@ -361,7 +361,7 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 
 O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para proteger as rotas da API.
 
-Login, emissão/renovação de tokens e logout são executados pelo [serviço de autenticação](auth-service/README.md). As rotas correspondentes do PDV são um cliente HTTP desse serviço. Outras aplicações podem chamar a mesma API e consultar `GET /api/auth/session` para validar uma sessão sem receber `JWT_SECRET`. Cadastro, recuperação/troca de senha e autorização de lojas/planos continuam no PDV. Nesta etapa, o armazenamento das identidades e revogações é compartilhado.
+Login, emissão/renovação de tokens e logout são executados pelo [serviço de autenticação](https://github.com/niicsz/BiniTech-Auth). As rotas correspondentes do PDV são um cliente HTTP desse serviço. Outras aplicações podem chamar a mesma API e consultar `GET /api/auth/session` para validar uma sessão sem receber `JWT_SECRET`. Cadastro, recuperação/troca de senha e autorização de lojas/planos continuam no PDV. Nesta etapa, o armazenamento das identidades e revogações é compartilhado.
 
 ### Roles
 
@@ -586,7 +586,6 @@ O projeto possui cobertura de testes unitários e de integração com relatório
 
 ```bash
 ./mvnw test
-./mvnw -f auth-service/pom.xml verify
 ```
 
 ### Gerar relatório de cobertura (JaCoCo)
@@ -596,6 +595,8 @@ O projeto possui cobertura de testes unitários e de integração com relatório
 ```
 
 O relatório HTML é gerado em `target/site/jacoco/index.html`.
+
+Os testes da autenticação e das regras de arquitetura são executados no repositório [BiniTech-Auth](https://github.com/niicsz/BiniTech-Auth), com seu próprio `./mvnw verify`.
 
 ### Verificar vulnerabilidades (OWASP Dependency Check)
 
@@ -649,6 +650,8 @@ docker build -t binitech-pdv .
 docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d
 ```
 
+O Compose obtém o código de autenticação do repositório BiniTech-Auth em um commit fixo, sem manter uma cópia no PDV. A compilação exige acesso ao GitHub. Para desenvolvimento do serviço, clone seu repositório separadamente e configure `AUTH_SERVICE_URL` com sua URL local.
+
 ### Executar a aplicação em container
 
 ```bash
@@ -676,7 +679,6 @@ docker run -d \
 
 ```
 pdv/
-├── auth-service/               # Serviço de login independente e reutilizável
 ├── docker-compose.auth.yml     # Serviço de autenticação + Redis
 ├── docker-compose.yml          # Sobe MongoDB + RabbitMQ (Redis não incluso)
 ├── Dockerfile                  # Build multi-stage (backend, API-only)
