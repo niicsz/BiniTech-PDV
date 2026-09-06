@@ -5,19 +5,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
+import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
-import com.binitech.pdv.config.AuthSessionConfig;
-import com.binitech.pdv.config.JwtTokenProvider;
 import com.binitech.pdv.config.TokenBlacklistService;
-import com.binitech.pdv.domain.RefreshToken;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
-import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +31,7 @@ class AuthUseCaseImplTest {
   @Mock private UserRepositoryPort userRepository;
   @Mock private TenantRepositoryPort tenantRepository;
   @Mock private RefreshTokenRepositoryPort refreshTokenRepository;
-  @Mock private JwtTokenProvider jwtTokenProvider;
+  @Mock private AuthenticationGateway authentication;
   @Mock private TokenBlacklistService tokenBlacklistService;
   @Mock private PasswordEncoder passwordEncoder;
 
@@ -42,125 +39,27 @@ class AuthUseCaseImplTest {
 
   @BeforeEach
   void setUp() {
-    authUseCase =
-        new AuthUseCaseImpl(
-            userRepository,
-            tenantRepository,
-            refreshTokenRepository,
-            jwtTokenProvider,
-            tokenBlacklistService,
-            passwordEncoder,
-            new AuthSessionConfig(86400000L, "test-dummy-hash"));
+    authUseCase = new AuthUseCaseImpl(userRepository, tenantRepository, authentication);
   }
 
-  @Nested
-  @DisplayName("Login")
-  class LoginTests {
+  @Test
+  void login_shouldUseSharedAuthenticationService() {
+    AuthResult expected = new AuthResult("access", "refresh", "admin", "ADMIN", "tenant1");
+    when(authentication.login("admin", "password", "tenant1")).thenReturn(expected);
+    stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
+    assertEquals(expected, authUseCase.login("admin", "password", "tenant1"));
+    verifyNoInteractions(passwordEncoder, refreshTokenRepository);
+  }
 
-    @Test
-    @DisplayName("Login com credenciais válidas (tenant) deve retornar tokens")
-    void login_withValidCredentials_shouldReturnTokens() {
-      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
-      when(userRepository.findByUsernameAndTenantId("admin", "tenant1"))
-          .thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
-          .thenReturn("access-token");
-      when(refreshTokenRepository.save(any(RefreshToken.class)))
-          .thenAnswer(
-              inv -> {
-                RefreshToken rt = inv.getArgument(0);
-                rt.setId("rt1");
-                return rt;
-              });
-
-      AuthResult result = authUseCase.login("admin", "password", "tenant1");
-
-      assertNotNull(result);
-      assertEquals("access-token", result.accessToken());
-      assertNotNull(result.refreshToken());
-      assertEquals("admin", result.username());
-      assertEquals("TENANT_ADMIN", result.role());
-      assertEquals("tenant1", result.tenantId());
-      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
-    }
-
-    @Test
-    @DisplayName("Login do super admin (sem tenant) deve resolver pelo username")
-    void login_superAdmin_shouldResolveByUsername() {
-      User user = new User("sa1", "root", "encodedPass", Role.SUPER_ADMIN, null);
-      when(userRepository.findAllByUsername("root")).thenReturn(java.util.List.of(user));
-      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("sa1", "root", "SUPER_ADMIN", null, 0L))
-          .thenReturn("access-token");
-      when(refreshTokenRepository.save(any(RefreshToken.class)))
-          .thenAnswer(inv -> inv.getArgument(0));
-
-      AuthResult result = authUseCase.login("root", "password", null);
-
-      assertEquals("access-token", result.accessToken());
-      assertEquals("SUPER_ADMIN", result.role());
-      assertNull(result.tenantId());
-    }
-
-    @Test
-    @DisplayName("Login de usuário de loja sem tenantId deve resolver pelo username")
-    void login_tenantUserWithoutTenantId_shouldResolveByUsername() {
-      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
-      when(userRepository.findAllByUsername("admin")).thenReturn(java.util.List.of(user));
-      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
-          .thenReturn("access-token");
-      when(refreshTokenRepository.save(any(RefreshToken.class)))
-          .thenAnswer(inv -> inv.getArgument(0));
-
-      AuthResult result = authUseCase.login("admin", "password", null);
-
-      assertEquals("access-token", result.accessToken());
-      assertEquals("tenant1", result.tenantId());
-    }
-
-    @Test
-    @DisplayName("Login com usuário inexistente deve lançar BusinessException")
-    void login_withUnknownUser_shouldThrowException() {
-      when(userRepository.findByUsernameAndTenantId("unknown", "tenant1"))
-          .thenReturn(Optional.empty());
-
-      BusinessException exception =
-          assertThrows(
-              BusinessException.class, () -> authUseCase.login("unknown", "pass", "tenant1"));
-
-      assertTrue(exception.getMessage().contains("Credenciais inválidas"));
-    }
-
-    @Test
-    @DisplayName("Login com senha incorreta deve lançar BusinessException")
-    void login_withWrongPassword_shouldThrowException() {
-      User user = new User("user1", "admin", "encodedPass", Role.TENANT_ADMIN, "tenant1");
-      when(userRepository.findByUsernameAndTenantId("admin", "tenant1"))
-          .thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("wrongpass", "encodedPass")).thenReturn(false);
-
-      BusinessException exception =
-          assertThrows(
-              BusinessException.class, () -> authUseCase.login("admin", "wrongpass", "tenant1"));
-
-      assertTrue(exception.getMessage().contains("Credenciais inválidas"));
-    }
-
-    @Test
-    @DisplayName("Usuário inativo não deve autenticar")
-    void login_withInactiveUser_shouldThrowException() {
-      User user = new User("user1", "operator", "encodedPass", Role.OPERATOR, "tenant1");
-      user.setActive(false);
-      when(userRepository.findByUsernameAndTenantId("operator", "tenant1"))
-          .thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("password", "encodedPass")).thenReturn(true);
-
-      assertThrows(
-          BusinessException.class, () -> authUseCase.login("operator", "password", "tenant1"));
-      verify(jwtTokenProvider, never()).generateAccessToken(any(), any(), any(), any(), anyLong());
-    }
+  @Test
+  void refreshAndLogout_shouldUseSharedAuthenticationService() {
+    AuthResult expected = new AuthResult("access", "new-refresh", "admin", "ADMIN", "tenant1");
+    when(authentication.refresh("refresh")).thenReturn(expected);
+    stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
+    assertEquals(expected, authUseCase.refreshToken("refresh"));
+    authUseCase.logout("access");
+    verify(authentication).logout("access");
+    verifyNoInteractions(passwordEncoder, refreshTokenRepository);
   }
 
   @Nested
@@ -173,7 +72,7 @@ class AuthUseCaseImplTest {
       when(userRepository.existsByUsernameAndTenantId("newuser", "tenant1")).thenReturn(false);
       when(tenantRepository.findById("tenant1")).thenReturn(Optional.of(tenant("starter")));
       when(userRepository.countByTenantIdAndRole("tenant1", Role.OPERATOR)).thenReturn(0L);
-      when(passwordEncoder.encode("password")).thenReturn("encodedPass");
+      stubMembership("access-token", "newuser", Role.OPERATOR, "tenant1", "new-id");
       when(userRepository.save(any(User.class)))
           .thenAnswer(
               inv -> {
@@ -181,15 +80,9 @@ class AuthUseCaseImplTest {
                 u.setId("new-id");
                 return u;
               });
-      when(jwtTokenProvider.generateAccessToken("new-id", "newuser", "OPERATOR", "tenant1", 0L))
-          .thenReturn("access-token");
-      when(refreshTokenRepository.save(any(RefreshToken.class)))
-          .thenAnswer(
-              inv -> {
-                RefreshToken rt = inv.getArgument(0);
-                rt.setId("rt1");
-                return rt;
-              });
+      when(authentication.login("newuser", "password", "tenant1"))
+          .thenReturn(
+              new AuthResult("access-token", "refresh-token", "newuser", "OPERATOR", "tenant1"));
 
       AuthResult result = authUseCase.register("newuser", "password", Role.OPERATOR, "tenant1");
 
@@ -261,81 +154,6 @@ class AuthUseCaseImplTest {
   }
 
   @Nested
-  @DisplayName("Refresh Token")
-  class RefreshTokenTests {
-
-    @Test
-    @DisplayName("Refresh token válido deve rotacionar tokens")
-    void refreshToken_withValidToken_shouldRotateTokens() {
-      RefreshToken rt =
-          new RefreshToken(
-              "rt1", "valid-token", "user1", "tenant1", Instant.parse("2999-01-01T00:00:00Z"));
-      User user = new User("user1", "admin", "pass", Role.TENANT_ADMIN, "tenant1");
-
-      when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
-      when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(jwtTokenProvider.generateAccessToken("user1", "admin", "TENANT_ADMIN", "tenant1", 0L))
-          .thenReturn("new-access-token");
-      when(refreshTokenRepository.save(any(RefreshToken.class)))
-          .thenAnswer(
-              inv -> {
-                RefreshToken newRt = inv.getArgument(0);
-                newRt.setId("rt2");
-                return newRt;
-              });
-
-      AuthResult result = authUseCase.refreshToken("valid-token");
-
-      assertNotNull(result);
-      assertEquals("new-access-token", result.accessToken());
-      assertEquals("admin", result.username());
-      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
-    }
-
-    @Test
-    @DisplayName("Refresh token inválido deve lançar BusinessException")
-    void refreshToken_withInvalidToken_shouldThrowException() {
-      when(refreshTokenRepository.findByToken("invalid-token")).thenReturn(Optional.empty());
-
-      BusinessException exception =
-          assertThrows(BusinessException.class, () -> authUseCase.refreshToken("invalid-token"));
-
-      assertTrue(exception.getMessage().contains("Refresh token inválido"));
-    }
-
-    @Test
-    @DisplayName("Refresh token expirado deve deletar e lançar BusinessException")
-    void refreshToken_withExpiredToken_shouldDeleteAndThrowException() {
-      RefreshToken rt =
-          new RefreshToken(
-              "rt1", "expired-token", "user1", "tenant1", Instant.parse("2000-01-01T00:00:00Z"));
-      when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(rt));
-
-      BusinessException exception =
-          assertThrows(BusinessException.class, () -> authUseCase.refreshToken("expired-token"));
-
-      assertTrue(exception.getMessage().contains("expirado"));
-      verify(refreshTokenRepository).deleteByUserIdAndTenantId("user1", "tenant1");
-    }
-
-    @Test
-    @DisplayName("Usuário inativo não deve renovar token")
-    void refreshToken_withInactiveUser_shouldThrowExceptionAndRevokeSessions() {
-      RefreshToken rt =
-          new RefreshToken(
-              "rt1", "valid-token", "user1", "tenant1", Instant.parse("2999-01-01T00:00:00Z"));
-      User user = new User("user1", "operator", "pass", Role.OPERATOR, "tenant1");
-      user.setActive(false);
-      when(refreshTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(rt));
-      when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-
-      assertThrows(BusinessException.class, () -> authUseCase.refreshToken("valid-token"));
-      verify(refreshTokenRepository).deleteByUserId("user1");
-      verify(tokenBlacklistService).revokeAllForUser("user1");
-    }
-  }
-
-  @Nested
   @DisplayName("Change Password")
   class ChangePasswordTests {
 
@@ -344,15 +162,12 @@ class AuthUseCaseImplTest {
     void changePassword_withValidCurrent_shouldUpdate() {
       User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("oldPass", "oldHash")).thenReturn(true);
-      when(passwordEncoder.encode("newPass")).thenReturn("newHash");
 
       authUseCase.changePassword("user1", "oldPass", "newPass");
 
-      assertEquals("newHash", user.getPassword());
-      verify(userRepository).save(user);
-      verify(refreshTokenRepository).deleteByUserId("user1");
-      verify(tokenBlacklistService).revokeAllForUser("user1");
+      verify(authentication).changePassword("user1", "oldPass", "newPass");
+      verify(userRepository, never()).save(any());
+      verifyNoInteractions(passwordEncoder, refreshTokenRepository, tokenBlacklistService);
     }
 
     @Test
@@ -360,7 +175,9 @@ class AuthUseCaseImplTest {
     void changePassword_withWrongCurrent_shouldThrow() {
       User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
+      doThrow(new BusinessException("Invalid credentials"))
+          .when(authentication)
+          .changePassword("user1", "wrong", "newPass");
 
       assertThrows(
           BusinessException.class, () -> authUseCase.changePassword("user1", "wrong", "newPass"));
@@ -377,6 +194,14 @@ class AuthUseCaseImplTest {
           BusinessException.class, () -> authUseCase.changePassword("sa1", "x", "newPass"));
       verify(userRepository, never()).save(any());
     }
+  }
+
+  private void stubMembership(
+      String token, String username, Role role, String tenantId, String id) {
+    when(authentication.session(token))
+        .thenReturn(new AuthenticationGateway.SessionIdentity(id, username, null, tenantId));
+    when(userRepository.findById(id))
+        .thenReturn(Optional.of(new User(id, username, null, role, tenantId)));
   }
 
   private Tenant tenant(String planId) {

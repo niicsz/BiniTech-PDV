@@ -3,6 +3,7 @@ package com.binitech.pdv.adapters.inbound.web;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.binitech.pdv.adapters.inbound.web.generated.model.ErrorDTO;
+import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,5 +81,13 @@ class GlobalExceptionHandlerTest {
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     assertEquals("INTERNAL_ERROR", response.getBody().getCode());
     assertTrue(response.getBody().getMessage().contains("Erro interno"));
+  }
+
+  @Test
+  void authenticationUnavailable_shouldReturn503() {
+    var response =
+        handler.handleAuthenticationUnavailable(new AuthenticationUnavailableException());
+    assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+    assertEquals("AUTH_UNAVAILABLE", response.getBody().getCode());
   }
 }

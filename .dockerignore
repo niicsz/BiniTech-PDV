@@ -4,6 +4,13 @@
 .vscode
 *.iml
 target/
+**/target/
+.frontend-work/
+.auth-work/
+.env
+.env.*
+.agents/
+.projects/
 docker-compose.yml
 Dockerfile
 README.md

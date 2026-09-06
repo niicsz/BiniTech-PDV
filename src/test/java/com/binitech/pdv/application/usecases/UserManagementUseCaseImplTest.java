@@ -32,18 +32,13 @@ class UserManagementUseCaseImplTest {
   @Mock private RefreshTokenRepositoryPort refreshTokenRepository;
   @Mock private TokenBlacklistService tokenBlacklistService;
   @Mock private PasswordEncoder passwordEncoder;
+  @Mock private com.binitech.pdv.application.ports.outbound.AuthenticationGateway authentication;
 
   private UserManagementUseCaseImpl useCase;
 
   @BeforeEach
   void setUp() {
-    useCase =
-        new UserManagementUseCaseImpl(
-            userRepository,
-            tenantRepository,
-            refreshTokenRepository,
-            tokenBlacklistService,
-            passwordEncoder);
+    useCase = new UserManagementUseCaseImpl(userRepository, tenantRepository, authentication);
   }
 
   @Test
@@ -84,8 +79,8 @@ class UserManagementUseCaseImplTest {
             operator.getId(), false, "tenant-admin", "tenant-a", Role.TENANT_ADMIN);
 
     assertFalse(result.isActive());
-    verify(refreshTokenRepository).deleteByUserId(operator.getId());
-    verify(tokenBlacklistService).revokeAllForUser(operator.getId());
+    verify(authentication).revokeSessions(operator.getId());
+    verifyNoInteractions(refreshTokenRepository, tokenBlacklistService);
   }
 
   @Test
@@ -158,7 +153,6 @@ class UserManagementUseCaseImplTest {
     when(userRepository.existsByUsernameAndTenantId("pedro@email.com", "tenant-a"))
         .thenReturn(false);
     when(userRepository.countByTenantIdAndRole("tenant-a", Role.OPERATOR)).thenReturn(0L);
-    when(passwordEncoder.encode("password123")).thenReturn("encoded");
     when(userRepository.save(any(User.class)))
         .thenAnswer(
             invocation -> {
