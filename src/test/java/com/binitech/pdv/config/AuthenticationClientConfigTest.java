@@ -12,7 +12,8 @@ class AuthenticationClientConfigTest {
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(RestClientAutoConfiguration.class))
-          .withUserConfiguration(AuthenticationClientConfig.class);
+          .withUserConfiguration(AuthenticationClientConfig.class)
+          .withPropertyValues("auth.service-key=test-machine-key-with-at-least-32-bytes");
 
   @Test
   void defaults_createHttpClientWithBoundedTimeouts() {

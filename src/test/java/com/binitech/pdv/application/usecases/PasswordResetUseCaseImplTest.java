@@ -1,77 +1,57 @@
 package com.binitech.pdv.application.usecases;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import com.binitech.pdv.adapters.outbound.persistence.document.PasswordResetTokenDocument;
-import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataPasswordResetTokenRepository;
-import com.binitech.pdv.application.ports.outbound.EmailServicePort;
-import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
-import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
-import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
-import com.binitech.pdv.config.PasswordResetConfig;
-import com.binitech.pdv.config.TokenBlacklistService;
-import com.binitech.pdv.domain.User;
-import com.binitech.pdv.utils.enums.Role;
-import java.time.Instant;
+import com.binitech.pdv.application.ports.outbound.*;
+import com.binitech.pdv.domain.exception.BusinessException;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
-@ExtendWith(MockitoExtension.class)
 class PasswordResetUseCaseImplTest {
+  AuthenticationGateway auth = mock(AuthenticationGateway.class);
+  EmailServicePort email = mock(EmailServicePort.class);
+  PasswordResetUseCaseImpl useCase =
+      new PasswordResetUseCaseImpl(auth, email, "https://pdv.example");
 
-  @Mock private UserRepositoryPort userRepository;
-  @Mock private TenantRepositoryPort tenantRepository;
-  @Mock private SpringDataPasswordResetTokenRepository resetTokenRepository;
-  @Mock private PasswordEncoder passwordEncoder;
-  @Mock private EmailServicePort emailService;
-  @Mock private RefreshTokenRepositoryPort refreshTokenRepository;
-  @Mock private TokenBlacklistService tokenBlacklistService;
-
-  private PasswordResetUseCaseImpl passwordResetUseCase;
-
-  @BeforeEach
-  void setUp() {
-    passwordResetUseCase =
-        new PasswordResetUseCaseImpl(
-            userRepository,
-            tenantRepository,
-            resetTokenRepository,
-            emailService,
-            new PasswordResetConfig(
-                "http://localhost:4200",
-                passwordEncoder,
-                refreshTokenRepository,
-                tokenBlacklistService));
+  @Test
+  void deliversOnlyToAuthSelectedRecoveryContact() {
+    when(auth.requestRecovery("user"))
+        .thenReturn(
+            Optional.of(
+                new AuthenticationGateway.RecoveryDelivery(
+                    "user", "recovery@example.com", "token")));
+    useCase.requestReset(" user ");
+    verify(email)
+        .sendPasswordResetEmail(
+            "recovery@example.com",
+            "BiniTech",
+            "user",
+            "https://pdv.example/reset-password?token=token");
   }
 
   @Test
-  @DisplayName("Redefinição de senha deve revogar todas as sessões do usuário")
-  void resetPassword_shouldRevokeAllSessions() {
-    PasswordResetTokenDocument resetToken =
-        PasswordResetTokenDocument.builder()
-            .token("reset-token")
-            .userId("user1")
-            .expiryDate(Instant.now().plusSeconds(300))
-            .build();
-    User user = new User("user1", "operator", "old-hash", Role.OPERATOR, "tenant1");
-    when(resetTokenRepository.findByToken("reset-token")).thenReturn(Optional.of(resetToken));
-    when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-    when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+  void unknownAccountDoesNotSendMail() {
+    when(auth.requestRecovery("unknown")).thenReturn(Optional.empty());
+    useCase.requestReset("unknown");
+    verifyNoInteractions(email);
+  }
 
-    passwordResetUseCase.resetPassword("reset-token", "new-password");
+  @Test
+  void blankUsernameDoesNothing() {
+    useCase.requestReset(" ");
+    verifyNoInteractions(auth, email);
+  }
 
-    assertEquals("new-hash", user.getPassword());
-    verify(userRepository).save(user);
-    verify(resetTokenRepository).deleteByUserId("user1");
-    verify(refreshTokenRepository).deleteByUserId("user1");
-    verify(tokenBlacklistService).revokeAllForUser("user1");
+  @Test
+  void delegatesResetWithoutLocalCredentialPersistence() {
+    useCase.resetPassword("token", "new-password");
+    verify(auth).resetPassword("token", "new-password");
+  }
+
+  @Test
+  void invalidTokenIsRejected() {
+    doThrow(new BusinessException("Invalid token")).when(auth).resetPassword("bad", "new-password");
+    assertThrows(BusinessException.class, () -> useCase.resetPassword("bad", "new-password"));
   }
 }

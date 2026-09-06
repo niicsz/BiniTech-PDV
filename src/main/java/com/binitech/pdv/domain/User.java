@@ -64,6 +64,7 @@ public class User {
     this.email = email;
   }
 
+  @com.fasterxml.jackson.annotation.JsonIgnore
   public String getPassword() {
     return password;
   }

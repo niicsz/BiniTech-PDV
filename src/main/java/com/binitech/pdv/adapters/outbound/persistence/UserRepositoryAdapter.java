@@ -85,7 +85,6 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         .username(user.getUsername())
         .name(user.getName())
         .email(user.getEmail())
-        .password(user.getPassword())
         .role(user.getRole().name())
         .tenantId(user.getTenantId())
         .active(user.getActive())
@@ -97,11 +96,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   private User toDomain(UserDocument doc) {
     User user =
         new User(
-            doc.getId(),
-            doc.getUsername(),
-            doc.getPassword(),
-            Role.valueOf(doc.getRole()),
-            doc.getTenantId());
+            doc.getId(), doc.getUsername(), null, Role.valueOf(doc.getRole()), doc.getTenantId());
     user.setName(doc.getName());
     user.setEmail(doc.getEmail());
     user.setActive(doc.getActive() == null ? Boolean.TRUE : doc.getActive());

@@ -1,11 +1,10 @@
 package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
-import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.PlanConfig;
-import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -21,7 +20,6 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
 
@@ -29,21 +27,15 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
 
   private final UserRepositoryPort userRepository;
   private final TenantRepositoryPort tenantRepository;
-  private final RefreshTokenRepositoryPort refreshTokenRepository;
-  private final TokenBlacklistService tokenBlacklistService;
-  private final PasswordEncoder passwordEncoder;
+  private final AuthenticationGateway authentication;
 
   public UserManagementUseCaseImpl(
       UserRepositoryPort userRepository,
       TenantRepositoryPort tenantRepository,
-      RefreshTokenRepositoryPort refreshTokenRepository,
-      TokenBlacklistService tokenBlacklistService,
-      PasswordEncoder passwordEncoder) {
+      AuthenticationGateway authentication) {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.tokenBlacklistService = tokenBlacklistService;
-    this.passwordEncoder = passwordEncoder;
+    this.authentication = authentication;
   }
 
   @Override
@@ -81,14 +73,15 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     user.setEmail(normalizedEmail);
     // O fluxo atual autentica por username. Para novas contas, o e-mail é a credencial.
     user.setUsername(normalizedEmail);
-    user.setPassword(passwordEncoder.encode(password));
+
     user.setRole(role);
     user.setTenantId(tenantId);
     user.setActive(true);
     user.setCreatedAt(now);
     user.setUpdatedAt(now);
 
-    User saved = userRepository.save(user);
+    User saved =
+        new IdentityProvisioningUseCase(userRepository, authentication).provision(user, password);
     if (log.isInfoEnabled()) {
       log.info(
           "Usuário criado pelo gerenciamento: userId={} role={} tenantId={}",
@@ -107,6 +100,7 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     requireCanManageTarget(actorUserId, actorRole, target);
 
     if (target.isActive() == active) {
+      revokeSessions(target);
       return target;
     }
 
@@ -133,6 +127,7 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     requireAssignableRole(actorRole, role);
 
     if (target.getRole() == role) {
+      revokeSessions(target);
       return target;
     }
     if (role == Role.OPERATOR) {
@@ -226,8 +221,7 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
   }
 
   private void revokeSessions(User user) {
-    refreshTokenRepository.deleteByUserId(user.getId());
-    tokenBlacklistService.revokeAllForUser(user.getId());
+    authentication.revokeSessions(user.getId());
   }
 
   private String displayName(User user) {

@@ -19,14 +19,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class TenantUseCaseImplTest {
 
   @Mock private TenantRepositoryPort tenantRepository;
   @Mock private UserRepositoryPort userRepository;
-  @Mock private PasswordEncoder passwordEncoder;
+  @Mock private com.binitech.pdv.application.ports.outbound.AuthenticationGateway authentication;
   @Mock private EmailServicePort emailService;
 
   private TenantUseCaseImpl tenantUseCase;
@@ -34,7 +33,7 @@ class TenantUseCaseImplTest {
   @BeforeEach
   void setUp() {
     tenantUseCase =
-        new TenantUseCaseImpl(tenantRepository, userRepository, passwordEncoder, emailService);
+        new TenantUseCaseImpl(tenantRepository, userRepository, authentication, emailService);
   }
 
   @Test

@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
+import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
@@ -18,7 +19,6 @@ import java.time.ZoneId;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class TenantUseCaseImpl implements TenantUseCasePort {
 
@@ -29,17 +29,17 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
 
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
-  private final PasswordEncoder passwordEncoder;
+  private final AuthenticationGateway authentication;
   private final EmailServicePort emailService;
 
   public TenantUseCaseImpl(
       TenantRepositoryPort tenantRepository,
       UserRepositoryPort userRepository,
-      PasswordEncoder passwordEncoder,
+      AuthenticationGateway authentication,
       EmailServicePort emailService) {
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
+    this.authentication = authentication;
     this.emailService = emailService;
   }
 
@@ -108,6 +108,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   public Tenant approveTenant(String tenantId) {
     Tenant tenant = getTenantById(tenantId);
     requirePendingApproval(tenant);
+    provisionTenantAdmin(tenant);
 
     tenant.setStatus(TenantStatus.ACTIVE);
     tenant.setBlockedAt(null);
@@ -117,8 +118,6 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
     if (log.isInfoEnabled()) {
       log.info("Tenant aprovado: tenantId={}", LogSanitizer.maskId(saved.getId()));
     }
-
-    provisionTenantAdmin(saved);
 
     return saved;
   }
@@ -187,7 +186,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       String tempPassword = generateTempPassword();
       User adminUser = new User();
       adminUser.setUsername(tenantAdminUsername);
-      adminUser.setPassword(passwordEncoder.encode(tempPassword));
+
       adminUser.setRole(Role.TENANT_ADMIN);
       adminUser.setTenantId(tenant.getId());
       adminUser.setName(tenant.getName());
@@ -195,7 +194,8 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       adminUser.setActive(true);
       adminUser.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()));
       adminUser.setUpdatedAt(adminUser.getCreatedAt());
-      userRepository.save(adminUser);
+      new IdentityProvisioningUseCase(userRepository, authentication)
+          .provision(adminUser, tempPassword);
       log.info("Usuário TENANT_ADMIN criado para tenantId={}", LogSanitizer.maskId(tenant.getId()));
 
       sendApprovalEmailQuietly(tenant, tenantAdminUsername, tempPassword);
@@ -204,6 +204,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
           "Falha ao provisionar admin do tenant tenantId={}: {}",
           LogSanitizer.maskId(tenant.getId()),
           e.getMessage());
+      throw new com.binitech.pdv.domain.exception.AuthenticationUnavailableException();
     }
   }
 
