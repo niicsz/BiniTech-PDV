@@ -26,20 +26,13 @@ server:
   port: ${PORT:8080}
 
 auth:
+  service-key: ${AUTH_SERVICE_KEY}
   service-url: ${AUTH_SERVICE_URL:http://localhost:8081}
   connect-timeout: ${AUTH_CONNECT_TIMEOUT:2s}
   read-timeout: ${AUTH_READ_TIMEOUT:5s}
 
-jwt:
-  secret: ${JWT_SECRET:}
-  access-expiration: ${JWT_ACCESS_EXPIRATION}
-
 admin:
   username: ${ADMIN_USERNAME}
-  password: ${ADMIN_PASSWORD}
-
-security:
-  pepper: ${SECURITY_PEPPER}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS}

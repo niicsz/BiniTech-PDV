@@ -101,4 +101,39 @@ class HttpAuthenticationGatewayTest {
     assertThrows(
         AuthenticationUnavailableException.class, () -> gateway.login("admin", "password", null));
   }
+
+  @Test
+  void sessionValidatesBearerThroughAuth() {
+    server
+        .expect(requestTo("http://auth:8081/api/auth/session"))
+        .andExpect(header("Authorization", "Bearer access"))
+        .andRespond(
+            withSuccess(
+                "{\"userId\":\"user1\",\"username\":\"user\",\"tenantId\":\"tenant1\"}",
+                MediaType.APPLICATION_JSON));
+    assertEquals("user1", gateway.session("access").userId());
+    server.verify();
+  }
+
+  @Test
+  void provisionDelegatesCredentialsAndStableIdWithoutHashingLocally() {
+    server
+        .expect(requestTo("http://auth:8081/api/internal/identities/provision"))
+        .andExpect(
+            content()
+                .json(
+                    "{\"identityId\":\"user1\",\"username\":\"user\",\"password\":\"password\",\"tenantId\":\"tenant1\",\"recoveryEmail\":null}"))
+        .andRespond(withNoContent());
+    gateway.provision("user1", "user", "password", "tenant1", null);
+    server.verify();
+  }
+
+  @Test
+  void missingRecoveryCandidateIsNotAnInfrastructureError() {
+    server
+        .expect(requestTo("http://auth:8081/api/internal/identities/recovery"))
+        .andRespond(withNoContent());
+    assertTrue(gateway.requestRecovery("unknown").isEmpty());
+    server.verify();
+  }
 }

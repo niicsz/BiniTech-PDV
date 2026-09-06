@@ -3,120 +3,90 @@ package com.binitech.pdv.config;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.*;
 import com.binitech.pdv.domain.User;
+import com.binitech.pdv.domain.exception.*;
 import com.binitech.pdv.utils.enums.Role;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.*;
+import org.springframework.mock.web.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-@ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
-
-  @Mock private JwtTokenProvider jwtTokenProvider;
-  @Mock private TokenBlacklistService tokenBlacklistService;
-  @Mock private UserRepositoryPort userRepository;
-  @Mock private HttpServletRequest request;
-  @Mock private HttpServletResponse response;
-  @Mock private FilterChain filterChain;
-
-  private JwtAuthenticationFilter filter;
+  AuthenticationGateway auth = mock(AuthenticationGateway.class);
+  UserRepositoryPort users = mock(UserRepositoryPort.class);
+  FilterChain chain = mock(FilterChain.class);
+  MockHttpServletRequest request = new MockHttpServletRequest();
+  MockHttpServletResponse response = new MockHttpServletResponse();
+  JwtAuthenticationFilter filter = new JwtAuthenticationFilter(auth, users);
 
   @BeforeEach
-  void setUp() {
-    filter = new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistService, userRepository);
+  void resetContext() {
+    SecurityContextHolder.clearContext();
+    request.addHeader("Authorization", "Bearer token");
+  }
+
+  @AfterEach
+  void clearContext() {
     SecurityContextHolder.clearContext();
   }
 
   @Test
-  @DisplayName("Token válido deve definir autenticação no SecurityContext")
-  void doFilter_withValidToken_shouldSetAuthentication() throws Exception {
-    when(request.getHeader("Authorization")).thenReturn("Bearer valid-token");
-    when(jwtTokenProvider.validateToken("valid-token")).thenReturn(true);
-    when(jwtTokenProvider.getUserIdFromToken("valid-token")).thenReturn("user1");
-    when(jwtTokenProvider.getSessionVersionFromToken("valid-token")).thenReturn(2L);
-    when(tokenBlacklistService.isSessionRevoked("user1", 2L)).thenReturn(false);
-    when(userRepository.findById("user1"))
-        .thenReturn(Optional.of(new User("user1", "admin", "hash", Role.ADMIN, "tenant1")));
-
-    filter.doFilterInternal(request, response, filterChain);
-
-    assertNotNull(SecurityContextHolder.getContext().getAuthentication());
-    assertEquals("user1", SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-    assertEquals("admin", SecurityContextHolder.getContext().getAuthentication().getCredentials());
-    verify(filterChain).doFilter(request, response);
+  void usesLocalPermissionsInsteadOfAuthRole() throws Exception {
+    when(auth.session("token"))
+        .thenReturn(new AuthenticationGateway.SessionIdentity("u1", "user", "SUPER_ADMIN", "t1"));
+    when(users.findById("u1"))
+        .thenReturn(Optional.of(new User("u1", "user", null, Role.OPERATOR, "t1")));
+    filter.doFilterInternal(request, response, chain);
+    var principal = SecurityContextHolder.getContext().getAuthentication();
+    assertNotNull(principal);
+    assertEquals("[ROLE_OPERATOR]", principal.getAuthorities().toString());
+    verify(chain).doFilter(request, response);
   }
 
   @Test
-  @DisplayName("Token de usuário inativo não deve definir autenticação")
-  void doFilter_withInactiveUser_shouldNotSetAuthentication() throws Exception {
-    User inactive = new User("user1", "operator", "hash", Role.OPERATOR, "tenant1");
-    inactive.setActive(false);
-    when(request.getHeader("Authorization")).thenReturn("Bearer valid-token");
-    when(jwtTokenProvider.validateToken("valid-token")).thenReturn(true);
-    when(jwtTokenProvider.getUserIdFromToken("valid-token")).thenReturn("user1");
-    when(userRepository.findById("user1")).thenReturn(Optional.of(inactive));
-
-    filter.doFilterInternal(request, response, filterChain);
-
+  void rejectsInactiveMembership() throws Exception {
+    when(auth.session("token"))
+        .thenReturn(new AuthenticationGateway.SessionIdentity("u1", "user", null, "t1"));
+    var user = new User("u1", "user", null, Role.OPERATOR, "t1");
+    user.setActive(false);
+    when(users.findById("u1")).thenReturn(Optional.of(user));
+    filter.doFilterInternal(request, response, chain);
     assertNull(SecurityContextHolder.getContext().getAuthentication());
-    verify(filterChain).doFilter(request, response);
   }
 
   @Test
-  @DisplayName("Token de sessão revogada não deve definir autenticação")
-  void doFilter_withRevokedSession_shouldNotSetAuthentication() throws Exception {
-    when(request.getHeader("Authorization")).thenReturn("Bearer revoked-token");
-    when(jwtTokenProvider.validateToken("revoked-token")).thenReturn(true);
-    when(jwtTokenProvider.getUserIdFromToken("revoked-token")).thenReturn("user1");
-    when(jwtTokenProvider.getSessionVersionFromToken("revoked-token")).thenReturn(1L);
-    when(tokenBlacklistService.isSessionRevoked("user1", 1L)).thenReturn(true);
-
-    filter.doFilterInternal(request, response, filterChain);
-
+  void rejectsDifferentTenant() throws Exception {
+    when(auth.session("token"))
+        .thenReturn(new AuthenticationGateway.SessionIdentity("u1", "user", null, "t2"));
+    when(users.findById("u1"))
+        .thenReturn(Optional.of(new User("u1", "user", null, Role.OPERATOR, "t1")));
+    filter.doFilterInternal(request, response, chain);
     assertNull(SecurityContextHolder.getContext().getAuthentication());
-    verify(filterChain).doFilter(request, response);
   }
 
   @Test
-  @DisplayName("Sem header Authorization não deve definir autenticação")
-  void doFilter_withNoHeader_shouldNotSetAuthentication() throws Exception {
-    when(request.getHeader("Authorization")).thenReturn(null);
-
-    filter.doFilterInternal(request, response, filterChain);
-
+  void rejectsRevokedOrInvalidSession() throws Exception {
+    when(auth.session("token")).thenThrow(new BusinessException("Invalid session"));
+    filter.doFilterInternal(request, response, chain);
     assertNull(SecurityContextHolder.getContext().getAuthentication());
-    verify(filterChain).doFilter(request, response);
+    verifyNoInteractions(users);
   }
 
   @Test
-  @DisplayName("Token inválido não deve definir autenticação")
-  void doFilter_withInvalidToken_shouldNotSetAuthentication() throws Exception {
-    when(request.getHeader("Authorization")).thenReturn("Bearer invalid-token");
-    when(jwtTokenProvider.validateToken("invalid-token")).thenReturn(false);
-
-    filter.doFilterInternal(request, response, filterChain);
-
-    assertNull(SecurityContextHolder.getContext().getAuthentication());
-    verify(filterChain).doFilter(request, response);
+  void failsClosedWhenAuthUnavailable() throws Exception {
+    when(auth.session("token")).thenThrow(new AuthenticationUnavailableException());
+    filter.doFilterInternal(request, response, chain);
+    assertEquals(503, response.getStatus());
+    verifyNoInteractions(chain, users);
   }
 
   @Test
-  @DisplayName("Header sem 'Bearer ' não deve definir autenticação")
-  void doFilter_withNoBearerPrefix_shouldNotSetAuthentication() throws Exception {
-    when(request.getHeader("Authorization")).thenReturn("Basic some-token");
-
-    filter.doFilterInternal(request, response, filterChain);
-
-    assertNull(SecurityContextHolder.getContext().getAuthentication());
-    verify(filterChain).doFilter(request, response);
+  void permitsUnauthenticatedRequestToContinueToSecurityRules() throws Exception {
+    request.removeHeader("Authorization");
+    filter.doFilterInternal(request, response, chain);
+    verifyNoInteractions(auth, users);
+    verify(chain).doFilter(request, response);
   }
 }

@@ -39,32 +39,27 @@ class AuthUseCaseImplTest {
 
   @BeforeEach
   void setUp() {
-    authUseCase =
-        new AuthUseCaseImpl(
-            userRepository,
-            tenantRepository,
-            refreshTokenRepository,
-            tokenBlacklistService,
-            passwordEncoder,
-            authentication);
+    authUseCase = new AuthUseCaseImpl(userRepository, tenantRepository, authentication);
   }
 
   @Test
   void login_shouldUseSharedAuthenticationService() {
     AuthResult expected = new AuthResult("access", "refresh", "admin", "ADMIN", "tenant1");
     when(authentication.login("admin", "password", "tenant1")).thenReturn(expected);
-    assertSame(expected, authUseCase.login("admin", "password", "tenant1"));
-    verifyNoInteractions(userRepository, passwordEncoder, refreshTokenRepository);
+    stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
+    assertEquals(expected, authUseCase.login("admin", "password", "tenant1"));
+    verifyNoInteractions(passwordEncoder, refreshTokenRepository);
   }
 
   @Test
   void refreshAndLogout_shouldUseSharedAuthenticationService() {
     AuthResult expected = new AuthResult("access", "new-refresh", "admin", "ADMIN", "tenant1");
     when(authentication.refresh("refresh")).thenReturn(expected);
-    assertSame(expected, authUseCase.refreshToken("refresh"));
+    stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
+    assertEquals(expected, authUseCase.refreshToken("refresh"));
     authUseCase.logout("access");
     verify(authentication).logout("access");
-    verifyNoInteractions(userRepository, passwordEncoder, refreshTokenRepository);
+    verifyNoInteractions(passwordEncoder, refreshTokenRepository);
   }
 
   @Nested
@@ -77,7 +72,7 @@ class AuthUseCaseImplTest {
       when(userRepository.existsByUsernameAndTenantId("newuser", "tenant1")).thenReturn(false);
       when(tenantRepository.findById("tenant1")).thenReturn(Optional.of(tenant("starter")));
       when(userRepository.countByTenantIdAndRole("tenant1", Role.OPERATOR)).thenReturn(0L);
-      when(passwordEncoder.encode("password")).thenReturn("encodedPass");
+      stubMembership("access-token", "newuser", Role.OPERATOR, "tenant1", "new-id");
       when(userRepository.save(any(User.class)))
           .thenAnswer(
               inv -> {
@@ -167,15 +162,12 @@ class AuthUseCaseImplTest {
     void changePassword_withValidCurrent_shouldUpdate() {
       User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("oldPass", "oldHash")).thenReturn(true);
-      when(passwordEncoder.encode("newPass")).thenReturn("newHash");
 
       authUseCase.changePassword("user1", "oldPass", "newPass");
 
-      assertEquals("newHash", user.getPassword());
-      verify(userRepository).save(user);
-      verify(refreshTokenRepository).deleteByUserId("user1");
-      verify(tokenBlacklistService).revokeAllForUser("user1");
+      verify(authentication).changePassword("user1", "oldPass", "newPass");
+      verify(userRepository, never()).save(any());
+      verifyNoInteractions(passwordEncoder, refreshTokenRepository, tokenBlacklistService);
     }
 
     @Test
@@ -183,7 +175,9 @@ class AuthUseCaseImplTest {
     void changePassword_withWrongCurrent_shouldThrow() {
       User user = new User("user1", "op", "oldHash", Role.OPERATOR, "tenant1");
       when(userRepository.findById("user1")).thenReturn(Optional.of(user));
-      when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
+      doThrow(new BusinessException("Invalid credentials"))
+          .when(authentication)
+          .changePassword("user1", "wrong", "newPass");
 
       assertThrows(
           BusinessException.class, () -> authUseCase.changePassword("user1", "wrong", "newPass"));
@@ -200,6 +194,14 @@ class AuthUseCaseImplTest {
           BusinessException.class, () -> authUseCase.changePassword("sa1", "x", "newPass"));
       verify(userRepository, never()).save(any());
     }
+  }
+
+  private void stubMembership(
+      String token, String username, Role role, String tenantId, String id) {
+    when(authentication.session(token))
+        .thenReturn(new AuthenticationGateway.SessionIdentity(id, username, null, tenantId));
+    when(userRepository.findById(id))
+        .thenReturn(Optional.of(new User(id, username, null, role, tenantId)));
   }
 
   private Tenant tenant(String planId) {

@@ -1,6 +1,5 @@
 package com.binitech.pdv.config;
 
-import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataPasswordResetTokenRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
@@ -14,7 +13,6 @@ import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
-import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
@@ -32,8 +30,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class BeanConfig {
@@ -41,28 +37,12 @@ public class BeanConfig {
   private static final Logger log = LoggerFactory.getLogger(BeanConfig.class);
 
   @Bean
-  public PasswordEncoder passwordEncoder(@Value("${security.pepper}") String pepper) {
-    log.info("Configurando PasswordEncoder com Argon2 + pepper");
-    Argon2PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 1, 19456, 2);
-    return new PepperedPasswordEncoder(argon2, pepper);
-  }
-
-  @Bean
   public AuthUseCasePort authUseCasePort(
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort,
-      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
-      TokenBlacklistService tokenBlacklistService,
-      PasswordEncoder passwordEncoder,
       AuthenticationGateway authenticationGateway) {
     log.info("Configurando AuthUseCasePort com serviço de autenticação externo");
-    return new AuthUseCaseImpl(
-        userRepositoryPort,
-        tenantRepositoryPort,
-        refreshTokenRepositoryPort,
-        tokenBlacklistService,
-        passwordEncoder,
-        authenticationGateway);
+    return new AuthUseCaseImpl(userRepositoryPort, tenantRepositoryPort, authenticationGateway);
   }
 
   @Bean
@@ -85,47 +65,29 @@ public class BeanConfig {
   public TenantUseCasePort tenantUseCasePort(
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
-      PasswordEncoder passwordEncoder,
+      AuthenticationGateway authenticationGateway,
       EmailServicePort emailServicePort) {
     log.info("Configurando TenantUseCasePort");
     return new TenantUseCaseImpl(
-        tenantRepositoryPort, userRepositoryPort, passwordEncoder, emailServicePort);
+        tenantRepositoryPort, userRepositoryPort, authenticationGateway, emailServicePort);
   }
 
   @Bean
   public UserManagementUseCasePort userManagementUseCasePort(
       UserRepositoryPort userRepositoryPort,
       TenantRepositoryPort tenantRepositoryPort,
-      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
-      TokenBlacklistService tokenBlacklistService,
-      PasswordEncoder passwordEncoder) {
+      AuthenticationGateway authenticationGateway) {
     log.info("Configurando UserManagementUseCasePort");
     return new UserManagementUseCaseImpl(
-        userRepositoryPort,
-        tenantRepositoryPort,
-        refreshTokenRepositoryPort,
-        tokenBlacklistService,
-        passwordEncoder);
+        userRepositoryPort, tenantRepositoryPort, authenticationGateway);
   }
 
   @Bean
   public PasswordResetUseCasePort passwordResetUseCasePort(
-      UserRepositoryPort userRepositoryPort,
-      TenantRepositoryPort tenantRepositoryPort,
-      SpringDataPasswordResetTokenRepository resetTokenRepository,
-      PasswordEncoder passwordEncoder,
+      AuthenticationGateway authenticationGateway,
       EmailServicePort emailServicePort,
-      RefreshTokenRepositoryPort refreshTokenRepositoryPort,
-      TokenBlacklistService tokenBlacklistService,
       @Value("${app.frontend-url}") String frontendUrl) {
-    log.info("Configurando PasswordResetUseCasePort");
-    return new PasswordResetUseCaseImpl(
-        userRepositoryPort,
-        tenantRepositoryPort,
-        resetTokenRepository,
-        emailServicePort,
-        new PasswordResetConfig(
-            frontendUrl, passwordEncoder, refreshTokenRepositoryPort, tokenBlacklistService));
+    return new PasswordResetUseCaseImpl(authenticationGateway, emailServicePort, frontendUrl);
   }
 
   @Bean

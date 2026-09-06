@@ -3,9 +3,7 @@ package com.binitech.pdv.config;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
 
-@Component
 public class TokenBlacklistService {
 
   private static final String BLACKLIST_PREFIX = "token:blacklist:";

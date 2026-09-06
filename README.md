@@ -4,7 +4,7 @@ Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), de
 
 > Este repositório contém **apenas o backend** (API REST). O frontend Angular vive em repositório próprio e é deployado separadamente: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. O backend expõe a API em `/api/**` e libera o domínio do frontend via CORS (`CORS_ALLOWED_ORIGINS`).
 
-O login está no repositório independente [BiniTech Auth](https://github.com/niicsz/BiniTech-Auth), organizado em arquitetura hexagonal e reutilizável por outras aplicações via HTTP. Para executar o PDV com login, inicie também esse serviço e configure `AUTH_SERVICE_URL`. Seu código, build, CI e deploy são mantidos no repositório próprio.
+O login, as credenciais e as sessões têm banco exclusivo no repositório independente [BiniTech Auth](https://github.com/niicsz/BiniTech-Auth), organizado em arquitetura hexagonal e reutilizável por outras aplicações via HTTP. Para executar o PDV com login, inicie também esse serviço e configure `AUTH_SERVICE_URL`. Seu código, build, CI e deploy são mantidos no repositório próprio.
 
 ---
 
@@ -55,7 +55,7 @@ O **BiniTech PDV** é uma plataforma SaaS de frente de caixa onde cada cliente (
 - **Recuperação de senha** — Fluxos de "esqueci minha senha" e troca de senha, com envio de e-mail assíncrono.
 
 ### Transversal
-- **Autenticação JWT** — Login com access token e refresh token, logout com invalidação via Redis (blacklist), controle de roles.
+- **Autenticação** — Auth independente com banco próprio; o PDV valida sessões por HTTP e aplica suas permissões locais.
 - **Personalização Visual** — Modo Escuro (Dark Mode) e customização de cores da interface (cor primária e cabeçalho).
 - **Logging estruturado** — Logs com sanitização de dados sensíveis (backend com SLF4J + `LogSanitizer`, frontend com console estruturado).
 - **Virtual Threads** — Habilitadas via Spring Boot 3 + Java 21 para maior throughput em operações de I/O.
@@ -318,14 +318,11 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `MONGODB_URI` | URI de conexão com o MongoDB | — (obrigatório) |
 | `REDIS_URL` | URL de conexão com o Redis | — (obrigatório) |
 | `PORT` | Porta do servidor backend | `8080` |
-| `JWT_SECRET` | Chave secreta para assinatura dos tokens JWT | — (obrigatório) |
-| `JWT_ACCESS_EXPIRATION` | Expiração do access token (ms) | — (obrigatório) |
+| `AUTH_SERVICE_KEY` | Credencial de serviço fornecida pelo Auth; nunca enviar ao frontend | — (obrigatório) |
 | `AUTH_SERVICE_URL` | URL do serviço de autenticação | `http://localhost:8081` |
 | `AUTH_CONNECT_TIMEOUT` | Tempo máximo para conectar ao serviço de autenticação | `2s` |
 | `AUTH_READ_TIMEOUT` | Tempo máximo de resposta do serviço de autenticação | `5s` |
-| `ADMIN_USERNAME` | Username do **super admin** criado na inicialização | — (obrigatório) |
-| `ADMIN_PASSWORD` | Senha do super admin | — (obrigatório) |
-| `SECURITY_PEPPER` | Pepper concatenado às passwords antes do hash Argon2 | — (obrigatório) |
+| `ADMIN_USERNAME` | Username do **super admin** previamente provisionado | — (obrigatório) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS — domínio público do frontend (em dev, `http://localhost:4200`) | — (obrigatório) |
 | `APP_FRONTEND_URL` | URL pública do frontend (usada em links de e-mail e retorno do Stripe) | `http://localhost:4200` |
 
@@ -361,7 +358,7 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 
 O sistema utiliza **JWT (JSON Web Tokens)** com **Spring Security** para proteger as rotas da API.
 
-Login, emissão/renovação de tokens e logout são executados pelo [serviço de autenticação](https://github.com/niicsz/BiniTech-Auth). As rotas correspondentes do PDV são um cliente HTTP desse serviço. Outras aplicações podem chamar a mesma API e consultar `GET /api/auth/session` para validar uma sessão sem receber `JWT_SECRET`. Cadastro, recuperação/troca de senha e autorização de lojas/planos continuam no PDV. Nesta etapa, o armazenamento das identidades e revogações é compartilhado.
+Login, emissão/renovação de tokens e logout são executados pelo [serviço de autenticação](https://github.com/niicsz/BiniTech-Auth). As rotas correspondentes do PDV são um cliente HTTP desse serviço. Outras aplicações podem chamar a mesma API e consultar `GET /api/auth/session` para validar uma sessão sem receber `JWT_SECRET`. Cadastro e alteração/recuperação de credenciais usam a API interna autenticada do Auth. Somente vínculos, permissões e regras de lojas/planos permanecem no PDV. O Auth usa `binitech_auth` em MongoDB dedicado; o PDV não armazena hashes nem acessa dados de sessão diretamente.
 
 ### Roles
 
@@ -377,7 +374,7 @@ Login, emissão/renovação de tokens e logout são executados pelo [serviço de
 1. **Login** (`POST /api/auth/login`) — Retorna `accessToken` e `refreshToken`.
 2. O `accessToken` é enviado no header `Authorization: Bearer <token>` em cada requisição.
 3. Quando o `accessToken` expira, o frontend usa o `refreshToken` para obter um novo par via `POST /api/auth/refresh`.
-4. **Logout** (`POST /api/auth/logout`) — Invalida o `accessToken` na blacklist do Redis e remove o `refreshToken` do banco.
+4. **Logout** (`POST /api/auth/logout`) — Solicita ao Auth a invalidação do token e dos refresh tokens; o PDV não acessa o armazenamento de sessões.
 5. **Registro** (`POST /api/auth/register`) — `SUPER_ADMIN` pode criar qualquer role; `ADMIN` e `TENANT_ADMIN` criam apenas `OPERATOR` no próprio tenant. Para esses administradores de loja, qualquer `tenantId` enviado no corpo é ignorado.
 
 ### Recuperação e troca de senha
@@ -390,7 +387,7 @@ Login, emissão/renovação de tokens e logout são executados pelo [serviço de
 
 ### Inicialização
 
-Na primeira execução, o `DataInitializer` cria automaticamente um usuário **super admin** (sem tenant) com as credenciais de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
+O `DataInitializer` apenas verifica o vínculo local do administrador de plataforma (`ADMIN_USERNAME`). A identidade precisa existir no Auth e seu vínculo no PDV antes do startup. Nenhuma senha é criada ou sincronizada pelo backend.
 
 ### 🔒 Hashing de Passwords — Argon2id + Pepper
 
@@ -410,9 +407,9 @@ As passwords são protegidas com a técnica mais robusta disponível:
 
 > ⚠️ **IMPORTANTE:** Se o pepper for alterado, todas as passwords existentes ficam inválidas e os usuários terão de redefinir as suas credenciais.
 
-### 🔴 Blacklist de Tokens (Redis)
+### Revogação de sessões no Auth
 
-O `TokenBlacklistService` armazena no Redis os access tokens invalidados via logout. Cada entrada expira automaticamente quando o próprio token expiraria. O `JwtAuthenticationFilter` verifica a blacklist a cada requisição.
+O Auth controla revogações e versões de sessão no MongoDB próprio. O `JwtAuthenticationFilter` consulta `/api/auth/session` e verifica o vínculo local ativo e suas permissões. Se o Auth estiver indisponível, a requisição autenticada recebe 503; não há fallback para validação local.
 
 ### 📦 Cache de Produtos (Redis)
 
@@ -625,7 +622,7 @@ src/test/java/com/binitech/pdv/
     ├── AuthControllerIT, ProductControllerIT, SaleControllerIT
 ```
 
-> `verify` executa os testes `*Test`; os testes legados `*IT` não são incluídos pela configuração atual do Maven. Os `*IT` usam **Flapdoodle Embedded MongoDB** e **Spring Boot Test** com `@ActiveProfiles("test")`; os fluxos de autenticação também exigem o serviço de autenticação apontado para o mesmo MongoDB de teste e Redis. Os testes HTTP do novo serviço e do cliente usam dependências simuladas e não acessam bancos externos.
+> `verify` executa os testes `*Test`; os testes legados `*IT` não são incluídos pela configuração atual do Maven. Os `*IT` usam **Flapdoodle Embedded MongoDB** e **Spring Boot Test** com `@ActiveProfiles("test")`; esses testes legados ainda precisam ser adaptados à nova composição de identidades e não são evidência de validação da migração. O repositório Auth executa seus testes reais de persistência com um banco descartável separado (`MongoAdaptersIT`) e testes de arquitetura/HTTP. Os testes HTTP do novo serviço e do cliente usam dependências simuladas e não acessam bancos externos.
 
 ---
 
@@ -662,11 +659,8 @@ docker run -d \
   -e REDIS_URL=redis://host.docker.internal:6379 \
   -e RABBITMQ_HOST=host.docker.internal \
   -e AUTH_SERVICE_URL=http://host.docker.internal:8081 \
-  -e JWT_SECRET=sua-chave-secreta \
-  -e JWT_ACCESS_EXPIRATION=3600000 \
+  -e AUTH_SERVICE_KEY=sua-credencial-interna \
   -e ADMIN_USERNAME=admin \
-  -e ADMIN_PASSWORD=sua-senha-admin \
-  -e SECURITY_PEPPER=seu-pepper-secreto \
   -e CORS_ALLOWED_ORIGINS=http://localhost:4200 \
   binitech-pdv
 ```

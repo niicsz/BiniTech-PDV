@@ -17,6 +17,7 @@ public class AuthenticationClientConfig {
   AuthenticationGateway authenticationGateway(
       RestClient.Builder builder,
       @Value("${auth.service-url}") String serviceUrl,
+      @Value("${auth.service-key}") String serviceKey,
       @Value("${auth.connect-timeout:2s}") String connectTimeout,
       @Value("${auth.read-timeout:5s}") String readTimeout) {
     URI uri = URI.create(serviceUrl);
@@ -31,7 +32,11 @@ public class AuthenticationClientConfig {
     factory.setConnectTimeout(positiveTimeout(connectTimeout));
     factory.setReadTimeout(positiveTimeout(readTimeout));
     return new HttpAuthenticationGateway(
-        builder.baseUrl(serviceUrl).requestFactory(factory).build());
+        builder
+            .baseUrl(serviceUrl)
+            .defaultHeader("X-Auth-Service-Key", serviceKey)
+            .requestFactory(factory)
+            .build());
   }
 
   private Duration positiveTimeout(String value) {

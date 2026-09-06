@@ -56,6 +56,70 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
                 .toBodilessEntity());
   }
 
+  @Override
+  public SessionIdentity session(String accessToken) {
+    return invoke(
+        () ->
+            client
+                .get()
+                .uri("/api/auth/session")
+                .headers(h -> h.setBearerAuth(accessToken))
+                .retrieve()
+                .body(SessionIdentity.class));
+  }
+
+  @Override
+  public void provision(
+      String id, String username, String password, String tenantId, String recoveryEmail) {
+    post("/provision", new Provision(id, username, password, tenantId, recoveryEmail));
+  }
+
+  @Override
+  public void changePassword(String id, String currentPassword, String newPassword) {
+    post(
+        "/change-password",
+        Map.of("identityId", id, "currentPassword", currentPassword, "newPassword", newPassword));
+  }
+
+  @Override
+  public void revokeSessions(String id) {
+    post("/revoke", Map.of("identityId", id));
+  }
+
+  @Override
+  public java.util.Optional<RecoveryDelivery> requestRecovery(String username) {
+    var response =
+        invoke(
+            () ->
+                client
+                    .post()
+                    .uri("/api/internal/identities/recovery")
+                    .body(Map.of("username", username))
+                    .retrieve()
+                    .toEntity(RecoveryDelivery.class));
+    return java.util.Optional.ofNullable(response.getBody());
+  }
+
+  @Override
+  public void resetPassword(String token, String newPassword) {
+    post("/reset-password", Map.of("token", token, "newPassword", newPassword));
+  }
+
+  private void post(String path, Object body) {
+    invoke(
+        () ->
+            client
+                .post()
+                .uri("/api/internal/identities" + path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toBodilessEntity());
+  }
+
+  private record Provision(
+      String identityId, String username, String password, String tenantId, String recoveryEmail) {}
+
   private <T> T invoke(Supplier<T> operation) {
     try {
       T result = operation.get();

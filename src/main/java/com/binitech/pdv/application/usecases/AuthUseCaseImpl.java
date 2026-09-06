@@ -2,11 +2,9 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
-import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.config.PlanConfig;
-import com.binitech.pdv.config.TokenBlacklistService;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -15,40 +13,30 @@ import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 /** PDV account policies; login and session issuance belong to the authentication service. */
 public class AuthUseCaseImpl implements AuthUseCasePort {
   private final UserRepositoryPort userRepository;
   private final TenantRepositoryPort tenantRepository;
-  private final RefreshTokenRepositoryPort refreshTokenRepository;
-  private final TokenBlacklistService tokenBlacklistService;
-  private final PasswordEncoder passwordEncoder;
   private final AuthenticationGateway authentication;
 
   public AuthUseCaseImpl(
       UserRepositoryPort userRepository,
       TenantRepositoryPort tenantRepository,
-      RefreshTokenRepositoryPort refreshTokenRepository,
-      TokenBlacklistService tokenBlacklistService,
-      PasswordEncoder passwordEncoder,
       AuthenticationGateway authentication) {
     this.userRepository = userRepository;
     this.tenantRepository = tenantRepository;
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.tokenBlacklistService = tokenBlacklistService;
-    this.passwordEncoder = passwordEncoder;
     this.authentication = authentication;
   }
 
   @Override
   public AuthResult login(String username, String password, String tenantId) {
-    return authentication.login(username, password, tenantId);
+    return authorizeMembership(authentication.login(username, password, tenantId));
   }
 
   @Override
   public AuthResult refreshToken(String refreshToken) {
-    return authentication.refresh(refreshToken);
+    return authorizeMembership(authentication.refresh(refreshToken));
   }
 
   @Override
@@ -73,15 +61,16 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
 
     User user = new User();
     user.setUsername(username);
-    user.setPassword(passwordEncoder.encode(password));
+
     user.setRole(role);
     user.setTenantId(resolvedTenantId);
     user.setActive(true);
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     user.setCreatedAt(now);
     user.setUpdatedAt(now);
-    User saved = userRepository.save(user);
-    return authentication.login(saved.getUsername(), password, saved.getTenantId());
+    User saved =
+        new IdentityProvisioningUseCase(userRepository, authentication).provision(user, password);
+    return login(saved.getUsername(), password, saved.getTenantId());
   }
 
   @Override
@@ -94,13 +83,26 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
       throw new BusinessException(
           "A senha do super admin é gerenciada pela configuração do sistema.");
     }
-    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-      throw new BusinessException("Senha atual incorreta.");
+    authentication.changePassword(userId, currentPassword, newPassword);
+  }
+
+  private AuthResult authorizeMembership(AuthResult result) {
+    var identity = authentication.session(result.accessToken());
+    User membership =
+        userRepository
+            .findById(identity.userId())
+            .orElseThrow(() -> new BusinessException("Usuário sem acesso ao PDV."));
+    if (!membership.isActive()
+        || !java.util.Objects.equals(identity.tenantId(), membership.getTenantId())) {
+      authentication.logout(result.accessToken());
+      throw new BusinessException("Usuário sem acesso ao PDV.");
     }
-    user.setPassword(passwordEncoder.encode(newPassword));
-    userRepository.save(user);
-    refreshTokenRepository.deleteByUserId(userId);
-    tokenBlacklistService.revokeAllForUser(userId);
+    return new AuthResult(
+        result.accessToken(),
+        result.refreshToken(),
+        membership.getUsername(),
+        membership.getRole().name(),
+        membership.getTenantId());
   }
 
   private void validateOperatorLimit(Role role, String tenantId) {
