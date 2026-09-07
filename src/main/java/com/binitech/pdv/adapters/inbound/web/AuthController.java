@@ -79,7 +79,6 @@ public class AuthController implements AuthApi {
     Role requestedRole = Role.valueOf(request.getRole().name());
 
     if (creatorRole == Role.SUPER_ADMIN) {
-      // Super admins are platform users and must never be associated with a tenant.
       String tenantId = requestedRole == Role.SUPER_ADMIN ? null : request.getTenantId();
       return new RegistrationData(requestedRole, tenantId);
     }
@@ -94,7 +93,6 @@ public class AuthController implements AuthApi {
         throw new AccessDeniedException("Administrador de tenant sem tenant associado.");
       }
 
-      // Never trust a tenantId supplied by a tenant-scoped administrator.
       return new RegistrationData(Role.OPERATOR, tenantId);
     }
 
@@ -124,7 +122,6 @@ public class AuthController implements AuthApi {
   public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
     log.info("Requisição de redefinição de senha recebida");
     passwordResetUseCase.requestReset(request.username());
-    // Sempre 204 para não revelar se a conta existe.
     return ResponseEntity.noContent().build();
   }
 

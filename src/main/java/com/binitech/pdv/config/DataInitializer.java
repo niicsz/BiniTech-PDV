@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-/** Never creates or resets credentials. Bootstrap identities are provisioned in Auth. */
 @Component
 public class DataInitializer implements CommandLineRunner {
   private final UserRepositoryPort users;

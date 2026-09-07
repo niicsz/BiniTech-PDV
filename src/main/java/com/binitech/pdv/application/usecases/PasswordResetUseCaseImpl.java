@@ -4,7 +4,6 @@ import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 
-/** PDV only delivers mail. Recovery credentials and tokens belong to Auth. */
 public class PasswordResetUseCaseImpl implements PasswordResetUseCasePort {
   private final AuthenticationGateway authentication;
   private final EmailServicePort email;

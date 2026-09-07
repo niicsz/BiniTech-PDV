@@ -89,7 +89,6 @@ public class User {
     this.tenantId = tenantId;
   }
 
-  /** Usuários anteriores à inclusão deste campo permanecem ativos por compatibilidade. */
   public boolean isActive() {
     return active == null || active;
   }

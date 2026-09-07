@@ -71,7 +71,6 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     User user = new User();
     user.setName(name.trim());
     user.setEmail(normalizedEmail);
-    // O fluxo atual autentica por username. Para novas contas, o e-mail é a credencial.
     user.setUsername(normalizedEmail);
 
     user.setRole(role);

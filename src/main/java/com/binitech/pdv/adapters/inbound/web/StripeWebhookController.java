@@ -26,12 +26,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Recebe os webhooks do Stripe. A assinatura é verificada pelo próprio SDK ({@link
- * StripeGateway#constructEvent}); eventos com assinatura inválida tomam 400. Eventos tratados:
- * {@code checkout.session.completed} (ativa), {@code invoice.paid} (renovação), {@code
- * invoice.payment_failed} (falha) e {@code customer.subscription.deleted} (cancelamento).
- */
 @RestController
 @RequestMapping("/webhooks/stripe")
 public class StripeWebhookController {
@@ -124,7 +118,6 @@ public class StripeWebhookController {
     billingUseCase.recordPaymentFailure(subscriptionId);
   }
 
-  /** Extrai o id da subscription de uma invoice do Stripe (modelo novo: invoice.parent). */
   private String subscriptionIdOf(com.stripe.model.Invoice invoice) {
     com.stripe.model.Invoice.Parent parent = invoice.getParent();
     if (parent == null || parent.getSubscriptionDetails() == null) {
@@ -173,10 +166,6 @@ public class StripeWebhookController {
         LogSanitizer.maskId(subscription.getTenantId()));
   }
 
-  /**
-   * Desserializa o objeto do evento, com fallback "unsafe" quando a versão de API do evento difere
-   * da versão do SDK (cenário comum em integrações reais).
-   */
   private StripeObject deserialize(Event event) {
     EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
     if (deserializer.getObject().isPresent()) {

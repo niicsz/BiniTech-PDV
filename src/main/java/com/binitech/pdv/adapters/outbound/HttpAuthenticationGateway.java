@@ -129,7 +129,6 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
       return result;
     } catch (RestClientResponseException exception) {
       if (exception.getStatusCode().value() == 401) {
-        // Preserve the PDV's existing error contract for login and refresh.
         throw new BusinessException("Credenciais ou sessão inválidas.");
       }
       if (exception.getStatusCode().value() == 400) {

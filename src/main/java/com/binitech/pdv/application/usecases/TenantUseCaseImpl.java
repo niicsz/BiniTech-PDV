@@ -82,7 +82,6 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
 
   @Override
   public List<User> getUsersByTenant(String tenantId) {
-    // Garante que o tenant existe antes de listar (lança 404 caso contrário).
     getTenantById(tenantId);
     return userRepository.findAllByTenantId(tenantId);
   }

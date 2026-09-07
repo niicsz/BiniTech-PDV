@@ -141,7 +141,6 @@ public class TenantController {
 
   public record TenantUserDTO(String id, String username, String role) {}
 
-  /** Campos mínimos para identificação pública da loja. */
   public record PublicTenantDTO(String name, String slug) {}
 
   public record TenantDTO(
