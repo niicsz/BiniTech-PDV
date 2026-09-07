@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-/** Sends transactional e-mail through Resend's HTTPS API. */
 @Component
 @ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${RESEND_API_KEY:}')")
 public class ResendEmailServiceAdapter {

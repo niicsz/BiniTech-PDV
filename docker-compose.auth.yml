@@ -1,4 +1,3 @@
-# Use with: docker compose -f docker-compose.yml -f docker-compose.auth.yml up -d mongodb redis auth-service
 services:
   auth-mongodb:
     image: mongo:8

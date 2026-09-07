@@ -14,7 +14,6 @@ import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-/** PDV account policies; login and session issuance belong to the authentication service. */
 public class AuthUseCaseImpl implements AuthUseCasePort {
   private final UserRepositoryPort userRepository;
   private final TenantRepositoryPort tenantRepository;
