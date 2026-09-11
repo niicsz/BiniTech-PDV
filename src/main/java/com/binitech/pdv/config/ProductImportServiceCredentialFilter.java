@@ -25,7 +25,7 @@ public class ProductImportServiceCredentialFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !request.getRequestURI().substring(request.getContextPath().length()).startsWith(PREFIX);
+    return !request.getRequestURI().startsWith(PREFIX, request.getContextPath().length());
   }
 
   @Override
@@ -33,17 +33,25 @@ public class ProductImportServiceCredentialFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     String supplied = request.getHeader("X-Product-Import-Service-Key");
-    if (supplied == null
-        || !MessageDigest.isEqual(credential, supplied.getBytes(StandardCharsets.UTF_8))) {
+    if (!hasValidCredential(supplied)) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       return;
     }
+    authenticateService();
+    chain.doFilter(request, response);
+  }
+
+  private boolean hasValidCredential(String supplied) {
+    return supplied != null
+        && MessageDigest.isEqual(credential, supplied.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static void authenticateService() {
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(
                 "product-import-service",
                 null,
                 List.of(new SimpleGrantedAuthority("ROLE_PRODUCT_IMPORT_SERVICE"))));
-    chain.doFilter(request, response);
   }
 }

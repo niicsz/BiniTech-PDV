@@ -59,6 +59,20 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       Set<UpdateField> updateFields,
       List<ImportCommand> commands) {
     authorize(identity);
+    BatchKeys keys = validateAndCollectKeys(commands);
+    ProcessingState state =
+        new ProcessingState(
+            loadReceipts(identity.tenantId(), keys.operationIds()),
+            loadProducts(identity.tenantId(), keys.barcodes()),
+            new ArrayList<>(),
+            new ArrayList<>(),
+            new ArrayList<>());
+    Set<UpdateField> fields = updateFields == null ? Set.of() : updateFields;
+    commands.forEach(command -> process(command, identity, mode, stockMode, fields, state));
+    return persist(identity.tenantId(), state);
+  }
+
+  private BatchKeys validateAndCollectKeys(List<ImportCommand> commands) {
     if (commands == null || commands.isEmpty() || commands.size() > 500)
       throw new BusinessException("Lote deve conter de 1 a 500 produtos.");
     Set<String> operationIds = new HashSet<>();
@@ -69,58 +83,96 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       if (!barcodes.add(command.barcode()))
         throw new BusinessException("Código de barras duplicado no lote.");
     }
+    return new BatchKeys(operationIds, barcodes);
+  }
+
+  private Map<String, Receipt> loadReceipts(String tenantId, Set<String> operationIds) {
     Map<String, Receipt> prior = new HashMap<>();
     receipts
-        .findByTenantIdAndOperationIds(identity.tenantId(), operationIds)
+        .findByTenantIdAndOperationIds(tenantId, operationIds)
         .forEach(r -> prior.put(r.operationId(), r));
+    return prior;
+  }
+
+  private Map<String, Product> loadProducts(String tenantId, Set<String> barcodes) {
     Map<String, Product> existing = new HashMap<>();
     products
-        .findAllByBarcodesAndTenantId(barcodes, identity.tenantId())
+        .findAllByBarcodesAndTenantId(barcodes, tenantId)
         .forEach(p -> existing.put(p.getBarcode(), p));
+    return existing;
+  }
 
-    List<Product> changed = new ArrayList<>();
-    List<PendingResult> pending = new ArrayList<>();
-    List<ImportResult> result = new ArrayList<>();
-    for (ImportCommand command : commands) {
-      var receipt = prior.get(command.operationId());
-      if (receipt != null) {
-        result.add(
-            new ImportResult(
-                command.lineNumber(),
-                ResultAction.valueOf(receipt.action()),
-                receipt.productId(),
-                null));
-        continue;
-      }
-      try {
-        Product product = existing.get(command.barcode());
-        if (product == null) {
-          product = create(command, identity, stockMode);
-          changed.add(product);
-          existing.put(product.getBarcode(), product);
-          pending.add(new PendingResult(command, product, ResultAction.CREATED));
-        } else if (mode == ImportMode.CREATE_ONLY) {
-          pending.add(new PendingResult(command, product, ResultAction.IGNORED));
-        } else {
-          if (!privileged(identity.role())
-              && !Objects.equals(product.getUserId(), identity.userId())) throw denied();
-          update(product, command, stockMode, updateFields == null ? Set.of() : updateFields);
-          changed.add(product);
-          pending.add(new PendingResult(command, product, ResultAction.UPDATED));
-        }
-      } catch (RuntimeException exception) {
-        result.add(
-            new ImportResult(
-                command.lineNumber(), ResultAction.ERROR, null, safeMessage(exception)));
-      }
+  private void process(
+      ImportCommand command,
+      ImportIdentity identity,
+      ImportMode mode,
+      StockMode stockMode,
+      Set<UpdateField> fields,
+      ProcessingState state) {
+    Receipt receipt = state.receipts().get(command.operationId());
+    if (receipt != null) {
+      state
+          .results()
+          .add(
+              new ImportResult(
+                  command.lineNumber(),
+                  ResultAction.valueOf(receipt.action()),
+                  receipt.productId(),
+                  null));
+      return;
     }
+    try {
+      processProduct(command, identity, mode, stockMode, fields, state);
+    } catch (RuntimeException exception) {
+      state
+          .results()
+          .add(
+              new ImportResult(
+                  command.lineNumber(), ResultAction.ERROR, null, safeMessage(exception)));
+    }
+  }
 
+  private void processProduct(
+      ImportCommand command,
+      ImportIdentity identity,
+      ImportMode mode,
+      StockMode stockMode,
+      Set<UpdateField> fields,
+      ProcessingState state) {
+    Product product = state.products().get(command.barcode());
+    if (product == null) {
+      Product created = create(command, identity, stockMode);
+      state.changed().add(created);
+      state.products().put(created.getBarcode(), created);
+      state.pending().add(new PendingResult(command, created, ResultAction.CREATED));
+      return;
+    }
+    if (mode == ImportMode.CREATE_ONLY) {
+      state.pending().add(new PendingResult(command, product, ResultAction.IGNORED));
+      return;
+    }
+    authorizeUpdate(identity, product);
+    update(product, command, stockMode, fields);
+    state.changed().add(product);
+    state.pending().add(new PendingResult(command, product, ResultAction.UPDATED));
+  }
+
+  private static void authorizeUpdate(ImportIdentity identity, Product product) {
+    if (!privileged(identity.role()) && !Objects.equals(product.getUserId(), identity.userId()))
+      throw denied();
+  }
+
+  private List<ImportResult> persist(String tenantId, ProcessingState state) {
     Map<String, Product> savedByBarcode = new HashMap<>();
-    products.saveAll(changed).forEach(product -> savedByBarcode.put(product.getBarcode(), product));
+    products
+        .saveAll(state.changed())
+        .forEach(product -> savedByBarcode.put(product.getBarcode(), product));
     List<Receipt> newReceipts = new ArrayList<>();
-    for (PendingResult item : pending) {
+    for (PendingResult item : state.pending()) {
       Product saved = savedByBarcode.getOrDefault(item.product().getBarcode(), item.product());
-      result.add(new ImportResult(item.command().lineNumber(), item.action(), saved.getId(), null));
+      state
+          .results()
+          .add(new ImportResult(item.command().lineNumber(), item.action(), saved.getId(), null));
       newReceipts.add(
           new Receipt(
               item.command().operationId(),
@@ -128,9 +180,9 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
               item.action().name(),
               saved.getId()));
     }
-    if (!newReceipts.isEmpty()) receipts.saveAll(identity.tenantId(), newReceipts);
-    result.sort(Comparator.comparingInt(ImportResult::lineNumber));
-    return result;
+    if (!newReceipts.isEmpty()) receipts.saveAll(tenantId, newReceipts);
+    state.results().sort(Comparator.comparingInt(ImportResult::lineNumber));
+    return state.results();
   }
 
   private Product create(ImportCommand command, ImportIdentity identity, StockMode stockMode) {
@@ -184,6 +236,15 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
   private static String safeMessage(RuntimeException e) {
     return e.getMessage() == null ? "Produto recusado." : e.getMessage();
   }
+
+  private record BatchKeys(Set<String> operationIds, Set<String> barcodes) {}
+
+  private record ProcessingState(
+      Map<String, Receipt> receipts,
+      Map<String, Product> products,
+      List<Product> changed,
+      List<PendingResult> pending,
+      List<ImportResult> results) {}
 
   private record PendingResult(ImportCommand command, Product product, ResultAction action) {}
 }
