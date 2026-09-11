@@ -31,6 +31,14 @@ class ProductImportServiceCredentialFilterTest {
   }
 
   @Test
+  void recognizesInternalImportRouteAfterContextPath() {
+    var request = new MockHttpServletRequest("POST", "/pdv/api/internal/product-import/authorize");
+    request.setContextPath("/pdv");
+
+    assertFalse(new ProductImportServiceCredentialFilter(KEY).shouldNotFilter(request));
+  }
+
+  @Test
   void rejectsMissingOrInvalidCredentialWithoutCallingAuthenticationAlternative() throws Exception {
     var request = new MockHttpServletRequest("POST", "/api/internal/product-import/apply");
     var response = new MockHttpServletResponse();
