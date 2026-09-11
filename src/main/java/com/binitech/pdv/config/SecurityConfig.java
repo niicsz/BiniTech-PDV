@@ -2,6 +2,7 @@ package com.binitech.pdv.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,12 +25,16 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final TenantValidationFilter tenantValidationFilter;
+  private final ProductImportServiceCredentialFilter productImportServiceCredentialFilter;
 
   public SecurityConfig(
       JwtAuthenticationFilter jwtAuthenticationFilter,
-      TenantValidationFilter tenantValidationFilter) {
+      TenantValidationFilter tenantValidationFilter,
+      @Value("${product-import.service-key}") String productImportServiceKey) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.tenantValidationFilter = tenantValidationFilter;
+    this.productImportServiceCredentialFilter =
+        new ProductImportServiceCredentialFilter(productImportServiceKey);
   }
 
   @Bean
@@ -88,6 +93,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/admin/**")
                     .hasRole(ROLE_SUPER_ADMIN)
+                    .requestMatchers("/api/internal/product-import/**")
+                    .hasRole("PRODUCT_IMPORT_SERVICE")
                     .requestMatchers("/actuator/**")
                     .hasAnyRole(ROLE_SUPER_ADMIN, ROLE_ADMIN)
                     .requestMatchers(HttpMethod.POST, "/api/auth/register")
@@ -98,6 +105,8 @@ public class SecurityConfig {
                     .authenticated()
                     .anyRequest()
                     .permitAll())
+        .addFilterBefore(
+            productImportServiceCredentialFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(tenantValidationFilter, JwtAuthenticationFilter.class);
 

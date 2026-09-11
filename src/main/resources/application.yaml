@@ -31,6 +31,9 @@ auth:
   connect-timeout: ${AUTH_CONNECT_TIMEOUT:2s}
   read-timeout: ${AUTH_READ_TIMEOUT:5s}
 
+product-import:
+  service-key: ${PRODUCT_IMPORT_SERVICE_KEY}
+
 admin:
   username: ${ADMIN_USERNAME}
 

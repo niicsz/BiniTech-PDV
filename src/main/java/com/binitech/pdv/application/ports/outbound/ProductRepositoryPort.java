@@ -3,10 +3,13 @@ package com.binitech.pdv.application.ports.outbound;
 import com.binitech.pdv.domain.Product;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ProductRepositoryPort {
 
   Product save(Product product);
+
+  List<Product> saveAll(List<Product> products);
 
   Optional<Product> findById(String id);
 
@@ -27,6 +30,8 @@ public interface ProductRepositoryPort {
   List<Product> findAllByTenantId(String tenantId, int page, int size);
 
   Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId);
+
+  List<Product> findAllByBarcodesAndTenantId(Set<String> barcodes, String tenantId);
 
   boolean existsByBarcodeAndTenantId(String barcode, String tenantId);
 

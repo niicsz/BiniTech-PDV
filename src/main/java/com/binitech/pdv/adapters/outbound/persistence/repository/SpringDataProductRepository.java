@@ -3,6 +3,7 @@ package com.binitech.pdv.adapters.outbound.persistence.repository;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,8 @@ public interface SpringDataProductRepository extends MongoRepository<ProductDocu
   List<ProductDocument> findAllByTenantId(String tenantId, Pageable pageable);
 
   Optional<ProductDocument> findByBarcodeAndTenantId(String barcode, String tenantId);
+
+  List<ProductDocument> findAllByTenantIdAndBarcodeIn(String tenantId, Set<String> barcodes);
 
   boolean existsByBarcodeAndTenantId(String barcode, String tenantId);
 

@@ -56,5 +56,6 @@ skills-lock.json
 .projects/state.local.test.json
 .env
 .auth-work/
+/product-import-service/
 .env.*
 !.env.example
