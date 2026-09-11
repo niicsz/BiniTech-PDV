@@ -6,6 +6,7 @@ import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.domain.Product;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -44,6 +45,23 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
     var document = mapper.toDocument(product);
     var saved = repository.save(document);
     return mapper.toDomain(saved);
+  }
+
+  @Override
+  @CacheEvict(
+      value = {
+        "product_by_id",
+        "product_by_barcode",
+        "product_by_barcode_tenant",
+        "products_by_user",
+        "products_by_tenant",
+        "products_all"
+      },
+      allEntries = true)
+  public List<Product> saveAll(List<Product> products) {
+    return repository.saveAll(products.stream().map(mapper::toDocument).toList()).stream()
+        .map(mapper::toDomain)
+        .toList();
   }
 
   @Override
@@ -128,6 +146,14 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
       unless = "#result == null")
   public Optional<Product> findByBarcodeAndTenantId(String barcode, String tenantId) {
     return repository.findByBarcodeAndTenantId(barcode, tenantId).map(mapper::toDomain);
+  }
+
+  @Override
+  public List<Product> findAllByBarcodesAndTenantId(Set<String> barcodes, String tenantId) {
+    if (barcodes == null || barcodes.isEmpty()) return List.of();
+    return repository.findAllByTenantIdAndBarcodeIn(tenantId, barcodes).stream()
+        .map(mapper::toDomain)
+        .toList();
   }
 
   @Override

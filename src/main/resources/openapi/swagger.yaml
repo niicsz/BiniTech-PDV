@@ -13,6 +13,8 @@ tags:
     description: Autenticação e registro de usuários
   - name: Products
     description: Operações de cadastro e consulta de produtos
+  - name: ProductImportIntegration
+    description: Contrato interno em lote para o serviço de importação
   - name: Sales
     description: Operações de venda e relatórios
   - name: Users
@@ -366,6 +368,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/internal/product-import/authorize:
+    post:
+      tags: [ProductImportIntegration]
+      operationId: authorizeProductImport
+      summary: Validar vínculo, permissão e situação do tenant
+      parameters:
+        - $ref: '#/components/parameters/ProductImportServiceKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportIdentityDTO' }
+      responses:
+        '204': { description: Operação autorizada }
+        '403': { description: Usuário ou tenant sem permissão }
+
+  /api/internal/product-import/lookup:
+    post:
+      tags: [ProductImportIntegration]
+      operationId: lookupProductsForImport
+      summary: Consultar produtos existentes por barcode em lote
+      parameters:
+        - $ref: '#/components/parameters/ProductImportServiceKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportLookupRequestDTO' }
+      responses:
+        '200':
+          description: Produtos existentes no tenant
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportLookupResponseDTO' }
+
+  /api/internal/product-import/apply:
+    post:
+      tags: [ProductImportIntegration]
+      operationId: applyProductImportBatch
+      summary: Aplicar lote idempotente de criação/atualização
+      parameters:
+        - $ref: '#/components/parameters/ProductImportServiceKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportBatchRequestDTO' }
+      responses:
+        '200':
+          description: Resultado individual do lote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportBatchResponseDTO' }
+
   /api/sales:
     post:
       tags: [Sales]
@@ -507,6 +563,12 @@ paths:
                   $ref: '#/components/schemas/SaleDTO'
 
 components:
+  parameters:
+    ProductImportServiceKey:
+      name: X-Product-Import-Service-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 32 }
   schemas:
     LoginRequestDTO:
       type: object
@@ -800,6 +862,95 @@ components:
         - DEBIT_CARD
         - PIX
         - CREDIARIO
+
+    ImportIdentityDTO:
+      type: object
+      required: [userId, tenantId, role]
+      properties:
+        userId: { type: string, minLength: 1 }
+        tenantId: { type: string, minLength: 1 }
+        role: { $ref: '#/components/schemas/UserRole' }
+
+    ImportLookupRequestDTO:
+      type: object
+      required: [identity, barcodes]
+      properties:
+        identity: { $ref: '#/components/schemas/ImportIdentityDTO' }
+        barcodes:
+          type: array
+          minItems: 1
+          maxItems: 500
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 64 }
+
+    ImportProductDTO:
+      type: object
+      properties:
+        id: { type: string }
+        barcode: { type: string }
+        name: { type: string }
+        price: { type: number }
+        cost: { type: number }
+        stockQuantity: { type: integer }
+        category: { type: string }
+        active: { type: boolean }
+        ownerId: { type: string }
+
+    ImportLookupResponseDTO:
+      type: object
+      required: [products]
+      properties:
+        products:
+          type: array
+          items: { $ref: '#/components/schemas/ImportProductDTO' }
+
+    ImportBatchRequestDTO:
+      type: object
+      required: [identity, mode, stockMode, updateFields, commands]
+      properties:
+        identity: { $ref: '#/components/schemas/ImportIdentityDTO' }
+        mode: { type: string, enum: [CREATE_ONLY, CREATE_AND_UPDATE] }
+        stockMode: { type: string, enum: [IGNORE, REPLACE, INCREMENT] }
+        updateFields:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [NAME, PRICE, COST, CATEGORY, ACTIVE] }
+        commands:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/ImportProductCommandDTO' }
+
+    ImportProductCommandDTO:
+      type: object
+      required: [operationId, lineNumber, barcode, name, price, stockQuantity]
+      properties:
+        operationId: { type: string, minLength: 1, maxLength: 200 }
+        lineNumber: { type: integer, minimum: 2 }
+        barcode: { type: string, minLength: 1, maxLength: 64 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        price: { type: number, minimum: 0.01 }
+        cost: { type: number, minimum: 0 }
+        stockQuantity: { type: integer, minimum: 0 }
+        category: { type: string, maxLength: 100 }
+        active: { type: boolean }
+
+    ImportBatchResponseDTO:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/ImportProductResultDTO' }
+
+    ImportProductResultDTO:
+      type: object
+      required: [lineNumber, action]
+      properties:
+        lineNumber: { type: integer }
+        action: { type: string, enum: [CREATED, UPDATED, IGNORED, ERROR] }
+        productId: { type: string }
+        error: { type: string }
 
     ErrorDTO:
       type: object

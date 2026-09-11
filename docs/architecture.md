@@ -117,3 +117,4 @@ C4Component
 - **Multi-tenant**: o isolamento é lógico — todos os documentos carregam `tenantId` e o `TenantValidationFilter` garante o escopo por requisição.
 - **Deploy**: o `Dockerfile` multi-stage compila só o backend num jar (Temurin 21), API-only. Healthcheck via `/actuator/health`. O frontend é deploy separado ([niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)) que consome a API via CORS.
 - **E-mail resiliente**: o envio é desacoplado por fila (RabbitMQ); existe um `NoOpEmailServiceAdapter` para ambientes sem Resend configurado.
+- **Importação de produtos**: o backend de importação é um microserviço hexagonal/API-first separado, com MongoDB e GridFS próprios. Ele reutiliza Auth e RabbitMQ, e chama uma API interna autenticada do PDV para aplicar lotes no tenant da sessão. Veja [product-import-service.md](product-import-service.md).

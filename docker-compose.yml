@@ -10,6 +10,16 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=binitech_pdv
 
+  product-import-mongodb:
+    image: mongo:8
+    container_name: binitech-product-import-mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - product_import_mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=binitech_product_import
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: binitech-pdv-rabbitmq
@@ -20,6 +30,28 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
 
+  product-import-service:
+    build: ./product-import-service
+    container_name: binitech-product-import
+    depends_on:
+      - product-import-mongodb
+      - rabbitmq
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      PRODUCT_IMPORT_MONGODB_URI: mongodb://product-import-mongodb:27017
+      PRODUCT_IMPORT_MONGODB_DATABASE: binitech_product_import
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      AUTH_SERVICE_URL: http://host.docker.internal:8081
+      PDV_SERVICE_URL: http://host.docker.internal:8080
+      PRODUCT_IMPORT_SERVICE_KEY: local-product-import-key-change-me-123456
+      CORS_ALLOWED_ORIGINS: http://localhost:4200
+
 volumes:
   mongo_data:
+  product_import_mongo_data:
 

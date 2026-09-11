@@ -44,6 +44,7 @@ O **BiniTech PDV** é uma plataforma SaaS de frente de caixa onde cada cliente (
 
 ### Produtos
 - **Cadastro de produtos** — CRUD completo com código de barras, descrição, preço, preço de custo, estoque, categoria e status ativo/inativo.
+- **Importação e migração** — CSV/XLSX/XLS com mapeamento, validação, revisão, fila e relatório, executado por microserviço com MongoDB próprio ([documentação](docs/product-import-service.md)).
 - **Cache de produtos** — Resultados de consultas cacheados no Redis (TTL configurado por operação).
 - **Filtro por categoria e busca** — Filtre por categoria ou pesquise por descrição/código de barras, com indicadores de produtos ativos e estoque baixo.
 

@@ -5,6 +5,7 @@ import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserR
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
+import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
@@ -12,6 +13,7 @@ import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
@@ -20,6 +22,7 @@ import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.BillingUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
+import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
@@ -49,6 +52,15 @@ public class BeanConfig {
   public ProductUseCasePort productUseCasePort(ProductRepositoryPort productRepositoryPort) {
     log.info("Configurando ProductUseCasePort");
     return new ProductUseCaseImpl(productRepositoryPort);
+  }
+
+  @Bean
+  public ProductImportIntegrationUseCasePort productImportIntegrationUseCasePort(
+      ProductRepositoryPort products,
+      UserRepositoryPort users,
+      TenantRepositoryPort tenants,
+      ProductImportReceiptRepositoryPort receipts) {
+    return new ProductImportIntegrationUseCase(products, users, tenants, receipts);
   }
 
   @Bean
