@@ -4,7 +4,6 @@ import com.binitech.pdv.adapters.inbound.web.generated.api.ProductImportIntegrat
 import com.binitech.pdv.adapters.inbound.web.generated.model.*;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort.*;
-import com.binitech.pdv.utils.enums.Role;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,8 +57,7 @@ public class ProductImportIntegrationController implements ProductImportIntegrat
   }
 
   private ImportIdentity identity(ImportIdentityDTO source) {
-    return new ImportIdentity(
-        source.getUserId(), source.getTenantId(), Role.valueOf(source.getRole().name()));
+    return new ImportIdentity(source.getUserId(), source.getTenantId());
   }
 
   private ImportCommand command(ImportProductCommandDTO source) {

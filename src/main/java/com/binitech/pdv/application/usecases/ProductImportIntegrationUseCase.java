@@ -29,18 +29,21 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
 
   @Override
   public void authorize(ImportIdentity identity) {
-    if (identity == null
-        || identity.userId() == null
-        || identity.tenantId() == null
-        || identity.role() == null) throw denied();
+    authorizedUser(identity);
+  }
+
+  private User authorizedUser(ImportIdentity identity) {
+    if (identity == null || identity.userId() == null || identity.tenantId() == null)
+      throw denied();
     User user =
         users
             .findByIdAndTenantId(identity.userId(), identity.tenantId())
             .orElseThrow(ProductImportIntegrationUseCase::denied);
-    if (!user.isActive() || user.getRole() != identity.role()) throw denied();
+    if (!user.isActive()) throw denied();
     Tenant tenant =
         tenants.findById(identity.tenantId()).orElseThrow(ProductImportIntegrationUseCase::denied);
     if (tenant.getStatus() != TenantStatus.ACTIVE) throw denied();
+    return user;
   }
 
   @Override
@@ -58,7 +61,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       StockMode stockMode,
       Set<UpdateField> updateFields,
       List<ImportCommand> commands) {
-    authorize(identity);
+    User actor = authorizedUser(identity);
     BatchKeys keys = validateAndCollectKeys(commands);
     ProcessingState state =
         new ProcessingState(
@@ -68,7 +71,8 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
             new ArrayList<>(),
             new ArrayList<>());
     Set<UpdateField> fields = updateFields == null ? Set.of() : updateFields;
-    commands.forEach(command -> process(command, identity, mode, stockMode, fields, state));
+    commands.forEach(
+        command -> process(command, identity, actor.getRole(), mode, stockMode, fields, state));
     return persist(identity.tenantId(), state);
   }
 
@@ -105,6 +109,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
   private void process(
       ImportCommand command,
       ImportIdentity identity,
+      Role actorRole,
       ImportMode mode,
       StockMode stockMode,
       Set<UpdateField> fields,
@@ -122,7 +127,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       return;
     }
     try {
-      processProduct(command, identity, mode, stockMode, fields, state);
+      processProduct(command, identity, actorRole, mode, stockMode, fields, state);
     } catch (RuntimeException exception) {
       state
           .results()
@@ -135,6 +140,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
   private void processProduct(
       ImportCommand command,
       ImportIdentity identity,
+      Role actorRole,
       ImportMode mode,
       StockMode stockMode,
       Set<UpdateField> fields,
@@ -151,15 +157,14 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       state.pending().add(new PendingResult(command, product, ResultAction.IGNORED));
       return;
     }
-    authorizeUpdate(identity, product);
+    authorizeUpdate(identity.userId(), actorRole, product);
     update(product, command, stockMode, fields);
     state.changed().add(product);
     state.pending().add(new PendingResult(command, product, ResultAction.UPDATED));
   }
 
-  private static void authorizeUpdate(ImportIdentity identity, Product product) {
-    if (!privileged(identity.role()) && !Objects.equals(product.getUserId(), identity.userId()))
-      throw denied();
+  private static void authorizeUpdate(String userId, Role actorRole, Product product) {
+    if (!privileged(actorRole) && !Objects.equals(product.getUserId(), userId)) throw denied();
   }
 
   private List<ImportResult> persist(String tenantId, ProcessingState state) {

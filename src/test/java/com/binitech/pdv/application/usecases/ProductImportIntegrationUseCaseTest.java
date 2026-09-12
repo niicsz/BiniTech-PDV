@@ -31,7 +31,7 @@ class ProductImportIntegrationUseCaseTest {
   @BeforeEach
   void setUp() {
     useCase = new ProductImportIntegrationUseCase(products, users, tenants, receipts);
-    identity = new ImportIdentity("user-a", "tenant-a", Role.TENANT_ADMIN);
+    identity = new ImportIdentity("user-a", "tenant-a");
     User user = new User("user-a", "ana", "secret", Role.TENANT_ADMIN, "tenant-a");
     Tenant tenant = new Tenant();
     tenant.setId("tenant-a");
@@ -121,7 +121,7 @@ class ProductImportIntegrationUseCaseTest {
 
   @Test
   void operatorCannotUpdateProductOwnedByAnotherUser() {
-    identity = new ImportIdentity("user-a", "tenant-a", Role.OPERATOR);
+    identity = new ImportIdentity("user-a", "tenant-a");
     User operator = new User("user-a", "ana", "secret", Role.OPERATOR, "tenant-a");
     when(users.findByIdAndTenantId("user-a", "tenant-a")).thenReturn(Optional.of(operator));
     Product existing = product("p-1", "789", "user-b", 10);
@@ -143,7 +143,7 @@ class ProductImportIntegrationUseCaseTest {
   @Test
   void neverAcceptsTenantFromAUserThatDoesNotBelongToIt() {
     when(users.findByIdAndTenantId("user-a", "tenant-b")).thenReturn(Optional.empty());
-    ImportIdentity forged = new ImportIdentity("user-a", "tenant-b", Role.TENANT_ADMIN);
+    ImportIdentity forged = new ImportIdentity("user-a", "tenant-b");
 
     assertThrows(AccessDeniedException.class, () -> useCase.authorize(forged));
     verify(products, never()).saveAll(anyList());

@@ -865,11 +865,10 @@ components:
 
     ImportIdentityDTO:
       type: object
-      required: [userId, tenantId, role]
+      required: [userId, tenantId]
       properties:
         userId: { type: string, minLength: 1 }
         tenantId: { type: string, minLength: 1 }
-        role: { $ref: '#/components/schemas/UserRole' }
 
     ImportLookupRequestDTO:
       type: object
