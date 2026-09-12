@@ -1,6 +1,5 @@
 package com.binitech.pdv.application.ports.inbound;
 
-import com.binitech.pdv.utils.enums.Role;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
@@ -17,7 +16,7 @@ public interface ProductImportIntegrationUseCasePort {
       Set<UpdateField> updateFields,
       List<ImportCommand> commands);
 
-  record ImportIdentity(String userId, String tenantId, Role role) {}
+  record ImportIdentity(String userId, String tenantId) {}
 
   record ImportProduct(
       String id,
