@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ProductUseCaseImplTest {
@@ -132,9 +133,9 @@ class ProductUseCaseImplTest {
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
 
-      BusinessException ex =
+      AccessDeniedException ex =
           assertThrows(
-              BusinessException.class,
+              AccessDeniedException.class,
               () ->
                   productUseCase.updateProduct(
                       "p1", updated, "user2", "tenant1", Role.OPERATOR, null));
@@ -227,7 +228,7 @@ class ProductUseCaseImplTest {
       when(productRepository.findById("p1")).thenReturn(Optional.of(existing));
 
       assertThrows(
-          BusinessException.class,
+          AccessDeniedException.class,
           () -> productUseCase.deactivateProduct("p1", "user2", "tenant1", Role.OPERATOR));
     }
 
