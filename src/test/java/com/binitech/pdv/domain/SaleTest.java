@@ -133,4 +133,47 @@ class SaleTest {
 
     assertTrue(exception.getMessage().contains("Pagamento insuficiente"));
   }
+
+  @Test
+  @DisplayName("validate deve aceitar pagamento exato com centavos (2x 8,99 + 9,90 = 27,88)")
+  void validate_exactPaymentWithCents_shouldPass() {
+    Sale sale = new Sale();
+    sale.addItem(new SaleItem("p1", "Arroz", 2, 8.99, 5.5));
+    sale.addItem(new SaleItem("p2", "Feijao", 1, 9.90, 6.0));
+    sale.setPayments(List.of(new Payment(PaymentMethod.PIX, 27.88)));
+
+    sale.recalculate();
+
+    assertDoesNotThrow(sale::validate);
+    assertEquals(27.88, sale.getTotalAmount());
+    assertEquals(0.0, sale.getChange());
+  }
+
+  @Test
+  @DisplayName("validate deve aceitar pagamento dividido que fecha o total exato")
+  void validate_splitExactPayment_shouldPass() {
+    Sale sale = new Sale();
+    sale.addItem(new SaleItem("p1", "Cafe", 1, 18.90, 12.0));
+    sale.addItem(new SaleItem("p2", "Feijao", 1, 9.90, 6.0));
+    sale.setPayments(
+        List.of(new Payment(PaymentMethod.PIX, 0.1), new Payment(PaymentMethod.DEBIT_CARD, 28.7)));
+
+    sale.recalculate();
+
+    assertDoesNotThrow(sale::validate);
+    assertEquals(28.80, sale.getTotalPaid());
+  }
+
+  @Test
+  @DisplayName("validate deve recusar pagamento um centavo menor que o total")
+  void validate_oneCentShort_shouldThrow() {
+    Sale sale = new Sale();
+    sale.addItem(new SaleItem("p1", "Arroz", 2, 8.99, 5.5));
+    sale.addItem(new SaleItem("p2", "Feijao", 1, 9.90, 6.0));
+    sale.setPayments(List.of(new Payment(PaymentMethod.PIX, 27.87)));
+
+    sale.recalculate();
+
+    assertThrows(BusinessException.class, sale::validate);
+  }
 }
