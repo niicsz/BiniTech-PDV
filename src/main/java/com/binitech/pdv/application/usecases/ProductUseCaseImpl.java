@@ -2,6 +2,7 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
+import com.binitech.pdv.domain.Barcode;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 public class ProductUseCaseImpl implements ProductUseCasePort {
 
@@ -33,6 +35,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
           product.getBarcode(),
           LogSanitizer.maskId(tenantId));
     }
+    requireValidBarcode(product.getBarcode());
     if (productRepository.existsByBarcodeAndTenantId(product.getBarcode(), tenantId)) {
       if (log.isWarnEnabled()) {
         log.warn(
@@ -77,10 +80,14 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
       if (log.isWarnEnabled()) {
         log.warn("Sem permissão para alterar produto: id={}", LogSanitizer.maskId(id));
       }
-      throw new BusinessException("Você não tem permissão para alterar este produto.");
+      throw new AccessDeniedException("Você não tem permissão para alterar este produto.");
     }
 
-    if (!existing.getBarcode().equals(product.getBarcode())
+    boolean barcodeChanged = !existing.getBarcode().equals(product.getBarcode());
+    if (barcodeChanged) {
+      requireValidBarcode(product.getBarcode());
+    }
+    if (barcodeChanged
         && productRepository.existsByBarcodeAndTenantId(product.getBarcode(), tenantId)) {
       if (log.isWarnEnabled()) {
         log.warn(
@@ -123,7 +130,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
       if (log.isWarnEnabled()) {
         log.warn("Sem permissão para desativar produto: id={}", LogSanitizer.maskId(id));
       }
-      throw new BusinessException("Você não tem permissão para remover este produto.");
+      throw new AccessDeniedException("Você não tem permissão para remover este produto.");
     }
 
     existing.setActive(false);
@@ -180,6 +187,13 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
           products.size());
     }
     return products;
+  }
+
+  private void requireValidBarcode(String barcode) {
+    if (!Barcode.isValid(barcode)) {
+      throw new BusinessException(
+          "Código de barras inválido: o dígito verificador não confere. Confira o código.");
+    }
   }
 
   private Product findOwnedProduct(String id, String tenantId) {
