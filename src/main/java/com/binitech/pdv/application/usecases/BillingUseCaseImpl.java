@@ -280,7 +280,27 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   @Override
   public Optional<Subscription> getSubscriptionForTenant(String tenantId) {
-    return subscriptionRepository.findByTenantId(tenantId);
+    Optional<Subscription> existing = subscriptionRepository.findByTenantId(tenantId);
+    if (existing.isPresent()) {
+      return existing;
+    }
+    return tenantRepository
+        .findById(tenantId)
+        .filter(tenant -> hasText(tenant.getPlanId()))
+        .map(this::pendingSubscriptionFor);
+  }
+
+  private Subscription pendingSubscriptionFor(Tenant tenant) {
+    Subscription pending = new Subscription();
+    pending.setTenantId(tenant.getId());
+    pending.setPlanTier(tenant.getPlanId().toLowerCase(Locale.ROOT));
+    pending.setStatus(
+        PlanConfig.isFree(tenant.getPlanId())
+            ? SubscriptionStatus.ACTIVE
+            : SubscriptionStatus.PENDING);
+    pending.setCreatedAt(tenant.getCreatedAt());
+    pending.setUpdatedAt(tenant.getUpdatedAt());
+    return pending;
   }
 
   @Override

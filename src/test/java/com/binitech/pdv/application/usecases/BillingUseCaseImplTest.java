@@ -303,4 +303,37 @@ class BillingUseCaseImplTest {
           () -> billingUseCase.manuallyActivate("none", PaymentMethod.CASH));
     }
   }
+
+  @Nested
+  @DisplayName("getSubscriptionForTenant")
+  class GetSubscriptionForTenant {
+
+    @Test
+    @DisplayName("sem assinatura gravada deve devolver o plano do cadastro como pendente")
+    void withoutSubscription_shouldReturnPendingFromTenantPlan() {
+      Tenant tenant = new Tenant();
+      tenant.setId("t1");
+      tenant.setPlanId("starter");
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.empty());
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(tenant));
+
+      Subscription result = billingUseCase.getSubscriptionForTenant("t1").orElseThrow();
+
+      assertEquals("starter", result.getPlanTier());
+      assertEquals(SubscriptionStatus.PENDING, result.getStatus());
+      verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("com assinatura gravada deve devolvê-la sem consultar o tenant")
+    void withSubscription_shouldReturnIt() {
+      Subscription stored = new Subscription();
+      stored.setPlanTier("pro");
+      stored.setStatus(SubscriptionStatus.ACTIVE);
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.of(stored));
+
+      assertEquals(stored, billingUseCase.getSubscriptionForTenant("t1").orElseThrow());
+      verify(tenantRepository, never()).findById(any());
+    }
+  }
 }
