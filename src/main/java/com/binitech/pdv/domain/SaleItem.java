@@ -24,11 +24,11 @@ public class SaleItem {
     this.quantity = quantity;
     this.unitPrice = unitPrice;
     this.costPrice = costPrice;
-    this.subtotal = quantity * unitPrice;
+    this.subtotal = Money.multiply(unitPrice, quantity);
   }
 
   public void recalculateSubtotal() {
-    this.subtotal = this.quantity * this.unitPrice;
+    this.subtotal = Money.multiply(this.unitPrice, this.quantity);
   }
 
   public String getProductId() {

@@ -40,13 +40,14 @@ public class Sale {
   }
 
   public void recalculateTotal() {
-    this.totalAmount = items.stream().mapToDouble(SaleItem::getSubtotal).sum();
-    this.totalCost = items.stream().mapToDouble(i -> i.getCostPrice() * i.getQuantity()).sum();
+    this.totalAmount = Money.sum(items.stream().map(SaleItem::getSubtotal));
+    this.totalCost =
+        Money.sum(items.stream().map(i -> Money.multiply(i.getCostPrice(), i.getQuantity())));
   }
 
   public void calculatePayment() {
-    this.totalPaid = payments.stream().mapToDouble(Payment::getAmount).sum();
-    this.change = Math.max(0, this.totalPaid - this.totalAmount);
+    this.totalPaid = Money.sum(payments.stream().map(Payment::getAmount));
+    this.change = Math.max(0, Money.round(this.totalPaid - this.totalAmount));
   }
 
   public void recalculate() {
@@ -61,7 +62,7 @@ public class Sale {
     if (payments == null || payments.isEmpty()) {
       throw new BusinessException("A venda deve ter ao menos uma forma de pagamento.");
     }
-    if (this.totalPaid < this.totalAmount) {
+    if (Money.compare(this.totalPaid, this.totalAmount) < 0) {
       throw new BusinessException(
           String.format("Pagamento insuficiente. Total: %.2f, Pago: %.2f", totalAmount, totalPaid));
     }
