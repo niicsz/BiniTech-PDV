@@ -54,7 +54,7 @@ class ProductImportIntegrationUseCaseTest {
   }
 
   @Test
-  void createsProductForAuthenticatedTenantAndIgnoresStockByDefault() {
+  void createsProductForAuthenticatedTenantWithInitialStockFromFile() {
     when(products.findAllByBarcodesAndTenantId(Set.of("789"), "tenant-a")).thenReturn(List.of());
 
     List<ImportResult> result =
@@ -71,7 +71,7 @@ class ProductImportIntegrationUseCaseTest {
     Product created = (Product) captor.getValue().getFirst();
     assertEquals("tenant-a", created.getTenantId());
     assertEquals("user-a", created.getUserId());
-    assertEquals(0, created.getStockQuantity());
+    assertEquals(25, created.getStockQuantity());
   }
 
   @Test

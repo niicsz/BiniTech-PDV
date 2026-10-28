@@ -147,7 +147,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       ProcessingState state) {
     Product product = state.products().get(command.barcode());
     if (product == null) {
-      Product created = create(command, identity, stockMode);
+      Product created = create(command, identity);
       state.changed().add(created);
       state.products().put(created.getBarcode(), created);
       state.pending().add(new PendingResult(command, created, ResultAction.CREATED));
@@ -190,13 +190,13 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
     return state.results();
   }
 
-  private Product create(ImportCommand command, ImportIdentity identity, StockMode stockMode) {
+  private Product create(ImportCommand command, ImportIdentity identity) {
     Product product = new Product();
     product.setBarcode(command.barcode());
     product.setDescription(command.name());
     product.setPrice(command.price().doubleValue());
     product.setCostPrice(command.cost() == null ? 0 : command.cost().doubleValue());
-    product.setStockQuantity(stockMode == StockMode.IGNORE ? 0 : command.stockQuantity());
+    product.setStockQuantity(command.stockQuantity());
     product.setCategory(command.category());
     product.setActive(command.active() == null || command.active());
     product.setUserId(identity.userId());
