@@ -1,9 +1,22 @@
 package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
+import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.LoginOutcome;
+import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorSetup;
+import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorStatus;
 
 public interface AuthenticationGateway {
-  AuthResult login(String username, String password, String tenantId);
+  LoginOutcome login(String username, String password, String tenantId);
+
+  AuthResult completeTwoFactorLogin(String challengeToken, String code);
+
+  TwoFactorStatus twoFactorStatus(String accessToken);
+
+  TwoFactorSetup setupTwoFactor(String accessToken);
+
+  void enableTwoFactor(String accessToken, String code);
+
+  void disableTwoFactor(String accessToken, String code);
 
   AuthResult refresh(String refreshToken);
 

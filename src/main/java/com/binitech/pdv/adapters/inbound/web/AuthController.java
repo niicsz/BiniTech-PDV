@@ -13,7 +13,9 @@ import com.binitech.pdv.utils.enums.Role;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.time.ZoneOffset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -52,12 +54,35 @@ public class AuthController implements AuthApi {
     log.info(
         "Requisição de login recebida para usuário: {}",
         LogSanitizer.maskUsername(loginRequestDTO.getUsername()));
-    AuthUseCasePort.AuthResult result =
+    AuthUseCasePort.LoginOutcome outcome =
         authUseCase.login(
             loginRequestDTO.getUsername(),
             loginRequestDTO.getPassword(),
             loginRequestDTO.getTenantId());
-    log.info("Login realizado com sucesso");
+    return switch (outcome) {
+      case AuthUseCasePort.AuthResult result -> {
+        log.info("Login realizado com sucesso");
+        recordAccess("LOGIN", result);
+        yield ResponseEntity.ok(toDto(result));
+      }
+      case AuthUseCasePort.TwoFactorChallenge challenge -> {
+        log.info("Login aguardando código de verificação");
+        AuthResponseDTO dto = new AuthResponseDTO();
+        dto.setTwoFactorRequired(true);
+        dto.setChallengeToken(challenge.challengeToken());
+        dto.setChallengeExpiresAt(challenge.expiresAt().atOffset(ZoneOffset.UTC));
+        yield ResponseEntity.ok(dto);
+      }
+    };
+  }
+
+  @PostMapping("/api/auth/login/two-factor")
+  public ResponseEntity<AuthResponseDTO> completeTwoFactorLogin(
+      @Valid @RequestBody TwoFactorLoginRequest request) {
+    log.info("Requisição de código de verificação recebida");
+    AuthUseCasePort.AuthResult result =
+        authUseCase.completeTwoFactorLogin(request.challengeToken(), request.code());
+    log.info("Login com segundo fator realizado com sucesso");
     recordAccess("LOGIN", result);
     return ResponseEntity.ok(toDto(result));
   }
@@ -161,6 +186,7 @@ public class AuthController implements AuthApi {
     dto.setUsername(result.username());
     dto.setRole(result.role());
     dto.setTenantId(result.tenantId());
+    dto.setTwoFactorRequired(false);
     return dto;
   }
 
@@ -170,6 +196,11 @@ public class AuthController implements AuthApi {
           String newPassword) {}
 
   public record ForgotPasswordRequest(@NotBlank String username) {}
+
+  public record TwoFactorLoginRequest(
+      @NotBlank @Size(max = 200) String challengeToken,
+      @NotBlank @Pattern(regexp = "\\d{6,8}", message = "Informe o código de 6 dígitos")
+          String code) {}
 
   public record ResetPasswordRequest(
       @NotBlank String token,
