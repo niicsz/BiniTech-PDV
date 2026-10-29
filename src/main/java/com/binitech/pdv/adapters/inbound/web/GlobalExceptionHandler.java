@@ -1,9 +1,11 @@
 package com.binitech.pdv.adapters.inbound.web;
 
 import com.binitech.pdv.adapters.inbound.web.generated.model.ErrorDTO;
+import com.binitech.pdv.adapters.inbound.web.generated.model.TwoFactorErrorDTO;
 import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.domain.exception.TwoFactorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.stream.Collectors;
@@ -76,6 +78,20 @@ public class GlobalExceptionHandler {
     error.setMessage(ex.getMessage());
     error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(TwoFactorException.class)
+  public ResponseEntity<TwoFactorErrorDTO> handleTwoFactor(TwoFactorException ex) {
+    log.warn("Erro de verificação em duas etapas: {}", ex.code());
+    TwoFactorErrorDTO error = new TwoFactorErrorDTO();
+    error.setCode(ex.code());
+    error.setMessage(ex.getMessage());
+    error.setRemainingAttempts(ex.remainingAttempts());
+    if (ex.lockedUntil() != null) {
+      error.setLockedUntil(ex.lockedUntil().atOffset(ZoneOffset.UTC));
+    }
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
+    return ResponseEntity.status(ex.status()).body(error);
   }
 
   @ExceptionHandler(AuthenticationUnavailableException.class)

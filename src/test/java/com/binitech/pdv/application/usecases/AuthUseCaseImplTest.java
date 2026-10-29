@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
+import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorChallenge;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.RefreshTokenRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
@@ -49,6 +50,20 @@ class AuthUseCaseImplTest {
     stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
     assertEquals(expected, authUseCase.login("admin", "password", "tenant1"));
     verifyNoInteractions(passwordEncoder, refreshTokenRepository);
+  }
+
+  @Test
+  void login_withTwoFactorReturnsChallengeAndAuthorizesMembershipAfterCode() {
+    var challenge = new TwoFactorChallenge("challenge", java.time.Instant.now().plusSeconds(300));
+    when(authentication.login("admin", "password", "tenant1")).thenReturn(challenge);
+
+    assertEquals(challenge, authUseCase.login("admin", "password", "tenant1"));
+    verify(authentication, never()).session(any());
+
+    AuthResult expected = new AuthResult("access", "refresh", "admin", "ADMIN", "tenant1");
+    when(authentication.completeTwoFactorLogin("challenge", "123456")).thenReturn(expected);
+    stubMembership("access", "admin", Role.ADMIN, "tenant1", "u1");
+    assertEquals(expected, authUseCase.completeTwoFactorLogin("challenge", "123456"));
   }
 
   @Test

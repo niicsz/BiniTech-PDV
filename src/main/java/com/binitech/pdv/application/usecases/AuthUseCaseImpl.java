@@ -29,8 +29,36 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
   }
 
   @Override
-  public AuthResult login(String username, String password, String tenantId) {
-    return authorizeMembership(authentication.login(username, password, tenantId));
+  public LoginOutcome login(String username, String password, String tenantId) {
+    return switch (authentication.login(username, password, tenantId)) {
+      case AuthResult result -> authorizeMembership(result);
+      case TwoFactorChallenge challenge -> challenge;
+    };
+  }
+
+  @Override
+  public AuthResult completeTwoFactorLogin(String challengeToken, String code) {
+    return authorizeMembership(authentication.completeTwoFactorLogin(challengeToken, code));
+  }
+
+  @Override
+  public TwoFactorStatus twoFactorStatus(String accessToken) {
+    return authentication.twoFactorStatus(accessToken);
+  }
+
+  @Override
+  public TwoFactorSetup setupTwoFactor(String accessToken) {
+    return authentication.setupTwoFactor(accessToken);
+  }
+
+  @Override
+  public void enableTwoFactor(String accessToken, String code) {
+    authentication.enableTwoFactor(accessToken, code);
+  }
+
+  @Override
+  public void disableTwoFactor(String accessToken, String code) {
+    authentication.disableTwoFactor(accessToken, code);
   }
 
   @Override
@@ -69,7 +97,10 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
     user.setUpdatedAt(now);
     User saved =
         new IdentityProvisioningUseCase(userRepository, authentication).provision(user, password);
-    return login(saved.getUsername(), password, saved.getTenantId());
+    if (login(saved.getUsername(), password, saved.getTenantId()) instanceof AuthResult result) {
+      return result;
+    }
+    throw new BusinessException("Não foi possível iniciar a sessão do novo usuário.");
   }
 
   @Override

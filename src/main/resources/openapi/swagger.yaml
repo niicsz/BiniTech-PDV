@@ -629,6 +629,13 @@ components:
           type: string
         tenantId:
           type: string
+        twoFactorRequired:
+          type: boolean
+        challengeToken:
+          type: string
+        challengeExpiresAt:
+          type: string
+          format: date-time
 
     UserRole:
       type: string
@@ -958,6 +965,22 @@ components:
           type: string
         message:
           type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    TwoFactorErrorDTO:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        remainingAttempts:
+          type: integer
+        lockedUntil:
+          type: string
+          format: date-time
         timestamp:
           type: string
           format: date-time

@@ -78,6 +78,7 @@ public class SecurityConfig {
                 auth.requestMatchers(
                         HttpMethod.POST,
                         "/api/auth/login",
+                        "/api/auth/login/two-factor",
                         "/api/auth/refresh",
                         "/api/auth/forgot-password",
                         "/api/auth/reset-password")
