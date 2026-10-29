@@ -6,10 +6,14 @@ import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.TenantStatus;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.text.Normalizer;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -34,10 +38,16 @@ public class TenantController {
   }
 
   @PostMapping("/api/public/tenants")
-  public ResponseEntity<TenantDTO> createTenant(@Valid @RequestBody CreateTenantRequest request) {
+  public ResponseEntity<TenantDTO> createTenant(
+      @Valid @RequestBody CreateTenantRequest request, HttpServletRequest httpRequest) {
     Tenant tenant =
         tenantUseCase.createTenant(
-            request.name(), generateSlug(request.name()), request.planId(), request.billingEmail());
+            request.name(),
+            generateSlug(request.name()),
+            request.planId(),
+            request.billingEmail(),
+            new TenantUseCasePort.TermsAcceptance(
+                request.termsVersion(), ClientIpResolver.resolve(httpRequest)));
     return ResponseEntity.status(HttpStatus.CREATED).body(toDto(tenant));
   }
 
@@ -131,7 +141,9 @@ public class TenantController {
   public record CreateTenantRequest(
       @NotBlank String name,
       @NotBlank @Pattern(regexp = "starter|pro|enterprise") String planId,
-      @NotBlank @Email String billingEmail) {}
+      @NotBlank @Email String billingEmail,
+      @NotNull @AssertTrue Boolean acceptedTerms,
+      @NotBlank @Size(max = 20) String termsVersion) {}
 
   public record BlockTenantRequest(@NotBlank String reason) {}
 

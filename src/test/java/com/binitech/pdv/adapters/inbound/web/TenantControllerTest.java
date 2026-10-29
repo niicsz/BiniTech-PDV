@@ -1,5 +1,10 @@
 package com.binitech.pdv.adapters.inbound.web;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -86,5 +91,56 @@ class TenantControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"reason\":\"\"}"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void signupRecordsTermsAcceptanceWithClientIp() throws Exception {
+    Tenant tenant = new Tenant();
+    tenant.setId("tenant-1");
+    tenant.setName("Mercado do João");
+    when(tenantUseCase.createTenant(
+            eq("Mercado do João"),
+            eq("mercado-do-joao"),
+            eq("starter"),
+            eq("contato@mercado.com"),
+            any(TenantUseCasePort.TermsAcceptance.class)))
+        .thenReturn(tenant);
+
+    mockMvc
+        .perform(
+            post("/api/public/tenants")
+                .header("X-Forwarded-For", "200.10.20.30, 10.0.0.1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(signupBody("\"acceptedTerms\":true,")))
+        .andExpect(status().isCreated());
+
+    verify(tenantUseCase)
+        .createTenant(
+            "Mercado do João",
+            "mercado-do-joao",
+            "starter",
+            "contato@mercado.com",
+            new TenantUseCasePort.TermsAcceptance("2026-10-29", "200.10.20.30"));
+  }
+
+  @Test
+  void signupWithoutAcceptedTermsReturnsBadRequest() throws Exception {
+    for (String accepted : new String[] {"\"acceptedTerms\":false,", ""}) {
+      mockMvc
+          .perform(
+              post("/api/public/tenants")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(signupBody(accepted)))
+          .andExpect(status().isBadRequest());
+    }
+    verify(tenantUseCase, never())
+        .createTenant(anyString(), anyString(), anyString(), anyString(), any());
+  }
+
+  private String signupBody(String acceptedTerms) {
+    return "{\"name\":\"Mercado do João\",\"planId\":\"starter\","
+        + "\"billingEmail\":\"contato@mercado.com\","
+        + acceptedTerms
+        + "\"termsVersion\":\"2026-10-29\"}";
   }
 }

@@ -5,6 +5,7 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.AuthResponseDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.LoginRequestDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.RefreshTokenRequestDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.RegisterRequestDTO;
+import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.utils.LogSanitizer;
@@ -31,16 +32,19 @@ public class AuthController implements AuthApi {
   private final HttpServletRequest httpServletRequest;
   private final AuthenticatedUserProvider authenticatedUserProvider;
   private final PasswordResetUseCasePort passwordResetUseCase;
+  private final AccessLogUseCasePort accessLogUseCase;
 
   public AuthController(
       AuthUseCasePort authUseCase,
       HttpServletRequest httpServletRequest,
       AuthenticatedUserProvider authenticatedUserProvider,
-      PasswordResetUseCasePort passwordResetUseCase) {
+      PasswordResetUseCasePort passwordResetUseCase,
+      AccessLogUseCasePort accessLogUseCase) {
     this.authUseCase = authUseCase;
     this.httpServletRequest = httpServletRequest;
     this.authenticatedUserProvider = authenticatedUserProvider;
     this.passwordResetUseCase = passwordResetUseCase;
+    this.accessLogUseCase = accessLogUseCase;
   }
 
   @Override
@@ -54,6 +58,7 @@ public class AuthController implements AuthApi {
             loginRequestDTO.getPassword(),
             loginRequestDTO.getTenantId());
     log.info("Login realizado com sucesso");
+    recordAccess("LOGIN", result);
     return ResponseEntity.ok(toDto(result));
   }
 
@@ -72,6 +77,11 @@ public class AuthController implements AuthApi {
             registration.tenantId());
     log.info("Usuário registrado com sucesso [role={}]", result.role());
     return ResponseEntity.status(HttpStatus.CREATED).body(toDto(result));
+  }
+
+  private void recordAccess(String event, AuthUseCasePort.AuthResult result) {
+    accessLogUseCase.record(
+        event, result.username(), result.tenantId(), ClientIpResolver.resolve(httpServletRequest));
   }
 
   private RegistrationData resolveRegistration(RegisterRequestDTO request) {
@@ -106,6 +116,7 @@ public class AuthController implements AuthApi {
     AuthUseCasePort.AuthResult result =
         authUseCase.refreshToken(refreshTokenRequestDTO.getRefreshToken());
     log.info("Token renovado com sucesso");
+    recordAccess("REFRESH", result);
     return ResponseEntity.ok(toDto(result));
   }
 

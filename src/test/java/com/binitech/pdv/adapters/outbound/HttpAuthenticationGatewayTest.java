@@ -136,4 +136,15 @@ class HttpAuthenticationGatewayTest {
     assertTrue(gateway.requestRecovery("unknown").isEmpty());
     server.verify();
   }
+
+  @Test
+  void purgeTenant_callsInternalEndpoint() {
+    server
+        .expect(requestTo("http://auth:8081/api/internal/identities/purge-tenant"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(content().json("{\"tenantId\":\"tenant1\"}"))
+        .andRespond(withNoContent());
+    gateway.purgeTenant("tenant1");
+    server.verify();
+  }
 }

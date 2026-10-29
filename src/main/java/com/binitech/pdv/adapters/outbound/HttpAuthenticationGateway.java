@@ -87,6 +87,11 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
   }
 
   @Override
+  public void purgeTenant(String tenantId) {
+    post("/purge-tenant", Map.of("tenantId", tenantId));
+  }
+
+  @Override
   public java.util.Optional<RecoveryDelivery> requestRecovery(String username) {
     var response =
         invoke(

@@ -44,7 +44,11 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   }
 
   @Override
-  public Tenant createTenant(String name, String slug, String planId, String billingEmail) {
+  public Tenant createTenant(
+      String name, String slug, String planId, String billingEmail, TermsAcceptance terms) {
+    if (terms == null || terms.version() == null || terms.version().isBlank()) {
+      throw new BusinessException("É necessário aceitar os Termos de uso.");
+    }
     if (tenantRepository.existsBySlug(slug)) {
       if (log.isWarnEnabled()) {
         log.warn("Tentativa de criar tenant com slug duplicado: {}", slug);
@@ -61,6 +65,9 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
     tenant.setBillingEmail(billingEmail);
     tenant.setCreatedAt(now);
     tenant.setUpdatedAt(now);
+    tenant.setTermsAcceptedAt(now);
+    tenant.setTermsVersion(terms.version());
+    tenant.setTermsAcceptedIp(terms.ip());
 
     Tenant saved = tenantRepository.save(tenant);
     if (log.isInfoEnabled()) {

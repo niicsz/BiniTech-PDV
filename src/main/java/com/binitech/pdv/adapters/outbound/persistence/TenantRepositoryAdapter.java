@@ -66,6 +66,10 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
         .blockReason(tenant.getBlockReason())
         .createdAt(tenant.getCreatedAt())
         .updatedAt(tenant.getUpdatedAt())
+        .termsAcceptedAt(tenant.getTermsAcceptedAt())
+        .termsVersion(tenant.getTermsVersion())
+        .termsAcceptedIp(tenant.getTermsAcceptedIp())
+        .dataPurgedAt(tenant.getDataPurgedAt())
         .build();
   }
 
@@ -82,6 +86,10 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
     tenant.setBlockReason(doc.getBlockReason());
     tenant.setCreatedAt(doc.getCreatedAt());
     tenant.setUpdatedAt(doc.getUpdatedAt());
+    tenant.setTermsAcceptedAt(doc.getTermsAcceptedAt());
+    tenant.setTermsVersion(doc.getTermsVersion());
+    tenant.setTermsAcceptedIp(doc.getTermsAcceptedIp());
+    tenant.setDataPurgedAt(doc.getDataPurgedAt());
     return tenant;
   }
 }

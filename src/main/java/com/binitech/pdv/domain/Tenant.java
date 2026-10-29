@@ -18,8 +18,44 @@ public class Tenant {
   private String blockReason;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private LocalDateTime termsAcceptedAt;
+  private String termsVersion;
+  private String termsAcceptedIp;
+  private LocalDateTime dataPurgedAt;
 
   public Tenant() {}
+
+  public LocalDateTime getTermsAcceptedAt() {
+    return termsAcceptedAt;
+  }
+
+  public void setTermsAcceptedAt(LocalDateTime termsAcceptedAt) {
+    this.termsAcceptedAt = termsAcceptedAt;
+  }
+
+  public String getTermsVersion() {
+    return termsVersion;
+  }
+
+  public void setTermsVersion(String termsVersion) {
+    this.termsVersion = termsVersion;
+  }
+
+  public String getTermsAcceptedIp() {
+    return termsAcceptedIp;
+  }
+
+  public void setTermsAcceptedIp(String termsAcceptedIp) {
+    this.termsAcceptedIp = termsAcceptedIp;
+  }
+
+  public LocalDateTime getDataPurgedAt() {
+    return dataPurgedAt;
+  }
+
+  public void setDataPurgedAt(LocalDateTime dataPurgedAt) {
+    this.dataPurgedAt = dataPurgedAt;
+  }
 
   public String getId() {
     return id;
