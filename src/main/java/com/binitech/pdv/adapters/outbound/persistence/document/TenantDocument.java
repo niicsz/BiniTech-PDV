@@ -31,4 +31,8 @@ public class TenantDocument {
   private String blockReason;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+  private LocalDateTime termsAcceptedAt;
+  private String termsVersion;
+  private String termsAcceptedIp;
+  private LocalDateTime dataPurgedAt;
 }

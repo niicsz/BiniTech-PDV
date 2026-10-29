@@ -7,7 +7,8 @@ import java.util.List;
 
 public interface TenantUseCasePort {
 
-  Tenant createTenant(String name, String slug, String planId, String billingEmail);
+  Tenant createTenant(
+      String name, String slug, String planId, String billingEmail, TermsAcceptance terms);
 
   List<User> getUsersByTenant(String tenantId);
 
@@ -22,6 +23,8 @@ public interface TenantUseCasePort {
   Tenant approveTenant(String tenantId);
 
   Tenant rejectTenant(String tenantId, String reason);
+
+  record TermsAcceptance(String version, String ip) {}
 
   Tenant blockTenant(String tenantId, String reason);
 

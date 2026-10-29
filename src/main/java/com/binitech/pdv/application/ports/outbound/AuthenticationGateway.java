@@ -18,6 +18,8 @@ public interface AuthenticationGateway {
 
   void revokeSessions(String identityId);
 
+  void purgeTenant(String tenantId);
+
   java.util.Optional<RecoveryDelivery> requestRecovery(String username);
 
   void resetPassword(String token, String newPassword);

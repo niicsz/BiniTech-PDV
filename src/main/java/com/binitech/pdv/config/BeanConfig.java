@@ -2,14 +2,17 @@ package com.binitech.pdv.config;
 
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
+import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
+import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
+import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
@@ -17,16 +20,20 @@ import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositor
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.TenantDataPurgePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.application.usecases.AccessLogUseCaseImpl;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.BillingUseCaseImpl;
+import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
 import com.binitech.pdv.application.usecases.UserManagementUseCaseImpl;
+import java.time.Clock;
 import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,5 +127,23 @@ public class BeanConfig {
         springDataProductRepository,
         springDataUserRepository,
         new BillingStripeConfig(frontendUrl, stripeGateway, stripeProperties));
+  }
+
+  @Bean
+  public AccessLogUseCasePort accessLogUseCasePort(
+      AccessLogRepositoryPort accessLogRepositoryPort) {
+    return new AccessLogUseCaseImpl(accessLogRepositoryPort, Clock.systemUTC());
+  }
+
+  @Bean
+  public DataRetentionUseCasePort dataRetentionUseCasePort(
+      TenantRepositoryPort tenantRepositoryPort,
+      TenantDataPurgePort tenantDataPurgePort,
+      AuthenticationGateway authenticationGateway) {
+    return new DataRetentionUseCaseImpl(
+        tenantRepositoryPort,
+        tenantDataPurgePort,
+        authenticationGateway,
+        Clock.system(ZoneId.systemDefault()));
   }
 }

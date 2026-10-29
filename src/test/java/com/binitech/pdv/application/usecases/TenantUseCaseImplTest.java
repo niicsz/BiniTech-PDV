@@ -3,10 +3,12 @@ package com.binitech.pdv.application.usecases;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.binitech.pdv.application.ports.inbound.TenantUseCasePort.TermsAcceptance;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
@@ -34,6 +36,33 @@ class TenantUseCaseImplTest {
   void setUp() {
     tenantUseCase =
         new TenantUseCaseImpl(tenantRepository, userRepository, authentication, emailService);
+  }
+
+  @Test
+  void createTenantRecordsTermsAcceptance() {
+    when(tenantRepository.existsBySlug("mercado")).thenReturn(false);
+    when(tenantRepository.save(any(Tenant.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    Tenant created =
+        tenantUseCase.createTenant(
+            "Mercado",
+            "mercado",
+            "starter",
+            "a@b.com",
+            new TermsAcceptance("2026-10-29", "200.1.1.1"));
+
+    assertEquals("2026-10-29", created.getTermsVersion());
+    assertEquals("200.1.1.1", created.getTermsAcceptedIp());
+    assertEquals(created.getCreatedAt(), created.getTermsAcceptedAt());
+  }
+
+  @Test
+  void createTenantWithoutTermsAcceptanceIsNotAllowed() {
+    assertThrows(
+        BusinessException.class,
+        () -> tenantUseCase.createTenant("Mercado", "mercado", "starter", "a@b.com", null));
+    verify(tenantRepository, never()).save(any(Tenant.class));
   }
 
   @Test
