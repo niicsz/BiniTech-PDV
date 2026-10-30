@@ -56,10 +56,12 @@ public class AsaasWebhookController {
       return ResponseEntity.badRequest().build();
     }
 
-    log.info(
-        "Webhook Asaas recebido: event={} id={}",
-        LogSanitizer.neutralize(event.event()),
-        LogSanitizer.maskId(event.id()));
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Webhook Asaas recebido: event={} id={}",
+          LogSanitizer.neutralize(event.event()),
+          LogSanitizer.maskId(event.id()));
+    }
 
     try {
       switch (event.event()) {
@@ -70,15 +72,20 @@ public class AsaasWebhookController {
             handlePaymentFailed(event.payment());
         case "SUBSCRIPTION_DELETED", "SUBSCRIPTION_INACTIVATED" ->
             handleSubscriptionEnded(event.subscription());
-        default ->
+        default -> {
+          if (log.isInfoEnabled()) {
             log.info("Evento Asaas ignorado: event={}", LogSanitizer.neutralize(event.event()));
+          }
+        }
       }
     } catch (Exception e) {
-      log.error(
-          "Erro ao processar webhook Asaas: event={} error={}",
-          LogSanitizer.neutralize(event.event()),
-          e.getMessage(),
-          e);
+      if (log.isErrorEnabled()) {
+        log.error(
+            "Erro ao processar webhook Asaas: event={} error={}",
+            LogSanitizer.neutralize(event.event()),
+            e.getMessage(),
+            e);
+      }
     }
 
     return ResponseEntity.ok().build();
@@ -129,9 +136,11 @@ public class AsaasWebhookController {
     Optional<Subscription> subscriptionOptional =
         subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId);
     if (subscriptionOptional.isEmpty()) {
-      log.warn(
-          "Subscription não encontrada para cancelamento: subscriptionId={}",
-          LogSanitizer.maskId(asaasSubscriptionId));
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Subscription não encontrada para cancelamento: subscriptionId={}",
+            LogSanitizer.maskId(asaasSubscriptionId));
+      }
       return;
     }
 
@@ -150,10 +159,12 @@ public class AsaasWebhookController {
               tenantRepository.save(tenant);
             });
 
-    log.warn(
-        "Subscription cancelada via webhook: subscriptionId={} tenantId={}",
-        LogSanitizer.maskId(asaasSubscriptionId),
-        LogSanitizer.maskId(subscription.getTenantId()));
+    if (log.isWarnEnabled()) {
+      log.warn(
+          "Subscription cancelada via webhook: subscriptionId={} tenantId={}",
+          LogSanitizer.maskId(asaasSubscriptionId),
+          LogSanitizer.maskId(subscription.getTenantId()));
+    }
   }
 
   private boolean hasText(String value) {
