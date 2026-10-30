@@ -30,7 +30,7 @@ public class InvoiceDocument {
 
   private String subscriptionId;
 
-  @Indexed private String stripeInvoiceId;
+  @Indexed private String asaasPaymentId;
 
   private BigDecimal amount;
   private String status;

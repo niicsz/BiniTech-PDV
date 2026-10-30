@@ -64,12 +64,10 @@ management:
     readinessstate:
       enabled: true
 
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY:}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-  price-starter: ${STRIPE_PRICE_STARTER:}
-  price-pro: ${STRIPE_PRICE_PRO:}
-  price-enterprise: ${STRIPE_PRICE_ENTERPRISE:}
+asaas:
+  api-key: ${ASAAS_API_KEY:}
+  webhook-token: ${ASAAS_WEBHOOK_TOKEN:}
+  base-url: ${ASAAS_BASE_URL:https://api.asaas.com/v3}
 
 resend:
   api-key: ${RESEND_API_KEY:}

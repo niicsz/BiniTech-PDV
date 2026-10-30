@@ -1,5 +1,6 @@
 package com.binitech.pdv.adapters.outbound.persistence;
 
+import com.binitech.pdv.adapters.outbound.persistence.document.CheckoutSessionDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductImportReceiptDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
@@ -16,6 +17,7 @@ public class MongoTenantDataPurgeAdapter implements TenantDataPurgePort {
 
   private static final List<Class<?>> TENANT_COLLECTIONS =
       List.of(
+          CheckoutSessionDocument.class,
           SaleDocument.class,
           ProductDocument.class,
           ProductImportReceiptDocument.class,

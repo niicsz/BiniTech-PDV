@@ -12,9 +12,9 @@ public interface SpringDataSubscriptionRepository
 
   Optional<SubscriptionDocument> findByTenantId(String tenantId);
 
-  Optional<SubscriptionDocument> findByStripeSubscriptionId(String stripeSubscriptionId);
+  Optional<SubscriptionDocument> findByAsaasSubscriptionId(String asaasSubscriptionId);
 
-  Optional<SubscriptionDocument> findByStripeCustomerId(String stripeCustomerId);
+  Optional<SubscriptionDocument> findByAsaasCustomerId(String asaasCustomerId);
 
   List<SubscriptionDocument> findAllByStatus(String status);
 }

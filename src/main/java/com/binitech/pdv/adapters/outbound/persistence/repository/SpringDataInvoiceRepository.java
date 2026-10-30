@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SpringDataInvoiceRepository extends MongoRepository<InvoiceDocument, String> {
 
-  Optional<InvoiceDocument> findByStripeInvoiceId(String stripeInvoiceId);
+  Optional<InvoiceDocument> findByAsaasPaymentId(String asaasPaymentId);
 
   List<InvoiceDocument> findAllByTenantIdOrderByDueDateDesc(String tenantId);
 

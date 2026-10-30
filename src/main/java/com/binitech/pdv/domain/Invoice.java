@@ -11,7 +11,7 @@ public class Invoice {
   private String id;
   private String tenantId;
   private String subscriptionId;
-  private String stripeInvoiceId;
+  private String asaasPaymentId;
   private BigDecimal amount;
   private InvoiceStatus status;
   private LocalDate dueDate;
@@ -48,12 +48,12 @@ public class Invoice {
     this.subscriptionId = subscriptionId;
   }
 
-  public String getStripeInvoiceId() {
-    return stripeInvoiceId;
+  public String getAsaasPaymentId() {
+    return asaasPaymentId;
   }
 
-  public void setStripeInvoiceId(String stripeInvoiceId) {
-    this.stripeInvoiceId = stripeInvoiceId;
+  public void setAsaasPaymentId(String asaasPaymentId) {
+    this.asaasPaymentId = asaasPaymentId;
   }
 
   public BigDecimal getAmount() {

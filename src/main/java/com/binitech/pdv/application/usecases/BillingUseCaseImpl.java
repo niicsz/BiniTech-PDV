@@ -3,14 +3,16 @@ package com.binitech.pdv.application.usecases;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
+import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
-import com.binitech.pdv.config.BillingStripeConfig;
+import com.binitech.pdv.config.AsaasException;
+import com.binitech.pdv.config.AsaasGateway;
+import com.binitech.pdv.config.AsaasGateway.CheckoutSession;
+import com.binitech.pdv.config.BillingAsaasConfig;
 import com.binitech.pdv.config.PlanConfig;
 import com.binitech.pdv.config.PlanConfig.PlanLimits;
-import com.binitech.pdv.config.StripeGateway;
-import com.binitech.pdv.config.StripeProperties;
 import com.binitech.pdv.domain.Invoice;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
@@ -21,7 +23,6 @@ import com.binitech.pdv.utils.enums.InvoiceStatus;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
-import com.stripe.exception.StripeException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,8 +49,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   private final SpringDataProductRepository productRepository;
   private final SpringDataUserRepository userRepository;
   private final String frontendUrl;
-  private final StripeGateway stripeGateway;
-  private final StripeProperties stripeProperties;
+  private final AsaasGateway asaasGateway;
+  private final CheckoutSessionRepositoryPort checkoutSessionRepository;
 
   public BillingUseCaseImpl(
       SubscriptionRepositoryPort subscriptionRepository,
@@ -57,15 +58,15 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       TenantRepositoryPort tenantRepository,
       SpringDataProductRepository productRepository,
       SpringDataUserRepository userRepository,
-      BillingStripeConfig stripeConfig) {
+      BillingAsaasConfig asaasConfig) {
     this.subscriptionRepository = subscriptionRepository;
     this.invoiceRepository = invoiceRepository;
     this.tenantRepository = tenantRepository;
     this.productRepository = productRepository;
     this.userRepository = userRepository;
-    this.frontendUrl = stripeConfig.frontendUrl();
-    this.stripeGateway = stripeConfig.stripeGateway();
-    this.stripeProperties = stripeConfig.stripeProperties();
+    this.frontendUrl = asaasConfig.frontendUrl();
+    this.asaasGateway = asaasConfig.asaasGateway();
+    this.checkoutSessionRepository = asaasConfig.checkoutSessionRepository();
   }
 
   @Override
@@ -77,7 +78,6 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         subscriptionRepository.findByTenantId(tenantId).orElseGet(Subscription::new);
 
     subscription.setTenantId(tenantId);
-    subscription.setStripePriceId(stripeProperties.priceForTier(planTier));
     subscription.setPlanTier(planTier.toLowerCase(Locale.ROOT));
     subscription.setStatus(SubscriptionStatus.ACTIVE);
     subscription.setCurrentPeriodStart(today);
@@ -166,13 +166,13 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   }
 
   @Override
-  public Invoice markInvoicePaid(String stripeInvoiceId, String stripeSubscriptionId) {
+  public Invoice markInvoicePaid(String asaasPaymentId, String asaasSubscriptionId) {
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     Optional<Subscription> subscriptionOptional =
-        hasText(stripeSubscriptionId)
-            ? subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+        hasText(asaasSubscriptionId)
+            ? subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId)
             : Optional.empty();
     subscriptionOptional.ifPresent(
         subscription -> {
@@ -186,11 +186,11 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     Invoice savedInvoice = null;
     Optional<Invoice> invoiceOptional =
         findInvoiceForPaidWebhook(
-            stripeInvoiceId, subscriptionOptional.map(Subscription::getTenantId).orElse(null));
+            asaasPaymentId, subscriptionOptional.map(Subscription::getTenantId).orElse(null));
     if (invoiceOptional.isPresent()) {
       Invoice invoice = invoiceOptional.get();
-      if (hasText(stripeInvoiceId)) {
-        invoice.setStripeInvoiceId(stripeInvoiceId);
+      if (hasText(asaasPaymentId)) {
+        invoice.setAsaasPaymentId(asaasPaymentId);
       }
       invoice.setStatus(InvoiceStatus.PAID);
       invoice.setPaidAt(today);
@@ -209,21 +209,21 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (log.isInfoEnabled()) {
       log.info(
           "Pagamento de fatura processado: invoiceId={} subscriptionId={}",
-          LogSanitizer.maskId(stripeInvoiceId),
-          LogSanitizer.maskId(stripeSubscriptionId));
+          LogSanitizer.maskId(asaasPaymentId),
+          LogSanitizer.maskId(asaasSubscriptionId));
     }
     return savedInvoice;
   }
 
   @Override
-  public void recordPaymentFailure(String stripeSubscriptionId) {
+  public void recordPaymentFailure(String asaasSubscriptionId) {
     Subscription subscription =
         subscriptionRepository
-            .findByStripeSubscriptionId(stripeSubscriptionId)
+            .findByAsaasSubscriptionId(asaasSubscriptionId)
             .orElseThrow(
                 () ->
                     new ResourceNotFoundException(
-                        "Subscription", "stripeSubscriptionId", stripeSubscriptionId));
+                        "Subscription", "asaasSubscriptionId", asaasSubscriptionId));
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     subscription.setFailedPaymentCount(subscription.getFailedPaymentCount() + 1);
@@ -241,7 +241,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
     log.warn(
         "Falha de pagamento registrada: subscriptionId={} tentativas={}",
-        LogSanitizer.maskId(stripeSubscriptionId),
+        LogSanitizer.maskId(asaasSubscriptionId),
         subscription.getFailedPaymentCount());
   }
 
@@ -312,30 +312,27 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (PlanConfig.isFree(tenant.getPlanId())) {
       throw new BusinessException("Plano cortesia não requer pagamento.");
     }
-    if (!stripeGateway.isConfigured()) {
+    if (!asaasGateway.isConfigured()) {
       throw new BusinessException(
           "Pagamento online indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
-    String priceId = stripeProperties.priceForTier(tenant.getPlanId());
-    if (!hasText(priceId)) {
-      if (log.isErrorEnabled()) {
-        log.error(
-            "Plano sem price configurado no Stripe: tenantId={} plan={}",
-            LogSanitizer.maskId(tenantId),
-            LogSanitizer.neutralize(tenant.getPlanId()));
-      }
-      throw new BusinessException(
-          "Não foi possível iniciar o pagamento. " + PAYMENT_SUPPORT_MESSAGE);
-    }
+    PlanLimits limits = PlanConfig.getLimits(tenant.getPlanId());
     String baseUrl = stripTrailingSlash(frontendUrl);
     String successUrl = baseUrl + "/billing?status=success";
     String cancelUrl = baseUrl + "/billing";
     try {
-      return stripeGateway.createSubscriptionCheckoutSession(
-          tenant, priceId, successUrl, cancelUrl);
-    } catch (StripeException e) {
+      CheckoutSession checkout =
+          asaasGateway.createSubscriptionCheckout(
+              tenant,
+              capitalize(tenant.getPlanId()),
+              limits.baseMonthlyFee(),
+              successUrl,
+              cancelUrl);
+      checkoutSessionRepository.save(checkout.id(), tenant.getId());
+      return checkout.url();
+    } catch (AsaasException e) {
       log.error(
-          "Falha ao criar checkout no Stripe: tenantId={} error={}",
+          "Falha ao criar checkout no Asaas: tenantId={} error={}",
           LogSanitizer.maskId(tenantId),
           e.getMessage());
       throw new BusinessException(
@@ -350,37 +347,72 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             .findByTenantId(tenantId)
             .orElseThrow(
                 () -> new BusinessException("Nenhuma assinatura encontrada para gerenciar."));
-    if (!hasText(subscription.getStripeCustomerId())) {
+    if (!hasText(subscription.getAsaasSubscriptionId())) {
       throw new BusinessException(
           "Assinatura ainda não vinculada ao pagamento online. " + PAYMENT_SUPPORT_MESSAGE);
     }
-    if (!stripeGateway.isConfigured()) {
+    if (!asaasGateway.isConfigured()) {
       throw new BusinessException(
           "Gestão de assinatura indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
-    String returnUrl = stripTrailingSlash(frontendUrl) + "/billing";
+    Optional<String> invoiceUrl;
     try {
-      return stripeGateway.createBillingPortalSession(
-          subscription.getStripeCustomerId(), returnUrl);
-    } catch (StripeException e) {
+      invoiceUrl = asaasGateway.findOpenPaymentUrl(subscription.getAsaasSubscriptionId());
+    } catch (AsaasException e) {
       log.error(
-          "Falha ao criar portal do Stripe: tenantId={} error={}",
+          "Falha ao consultar faturas no Asaas: tenantId={} error={}",
           LogSanitizer.maskId(tenantId),
           e.getMessage());
       throw new BusinessException(
-          "Não foi possível abrir a gestão de assinatura. " + PAYMENT_SUPPORT_MESSAGE);
+          "Não foi possível abrir a fatura da assinatura. " + PAYMENT_SUPPORT_MESSAGE);
     }
+    return invoiceUrl.orElseThrow(
+        () -> new BusinessException("Nenhuma fatura em aberto no momento."));
+  }
+
+  @Override
+  public void confirmSubscriptionPayment(
+      String asaasPaymentId,
+      String asaasSubscriptionId,
+      String asaasCustomerId,
+      String checkoutSessionId) {
+    boolean knownSubscription =
+        hasText(asaasSubscriptionId)
+            && subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId).isPresent();
+    if (!knownSubscription && hasText(checkoutSessionId)) {
+      activateFromCheckoutSession(checkoutSessionId, asaasSubscriptionId, asaasCustomerId, null);
+      return;
+    }
+    markInvoicePaid(asaasPaymentId, asaasSubscriptionId);
+  }
+
+  @Override
+  public Optional<Subscription> activateFromCheckoutSession(
+      String checkoutSessionId,
+      String asaasSubscriptionId,
+      String asaasCustomerId,
+      String externalReference) {
+    if (hasText(asaasSubscriptionId)) {
+      Optional<Subscription> existing =
+          subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId);
+      if (existing.isPresent()) {
+        return existing;
+      }
+    }
+    String tenantId =
+        hasText(externalReference)
+            ? externalReference
+            : Optional.ofNullable(checkoutSessionId)
+                .flatMap(checkoutSessionRepository::findTenantId)
+                .orElse(null);
+    return activateFromCheckout(asaasSubscriptionId, asaasCustomerId, tenantId);
   }
 
   @Override
   public Optional<Subscription> activateFromCheckout(
-      String stripeSubscriptionId,
-      String stripeCustomerId,
-      String externalReference,
-      String stripePriceId) {
+      String asaasSubscriptionId, String asaasCustomerId, String externalReference) {
     if (!hasText(externalReference)) {
-      log.warn(
-          "checkout.session.completed sem client_reference_id; impossível identificar o tenant.");
+      log.warn("Checkout pago sem tenant identificável; ativação ignorada.");
       return Optional.empty();
     }
     Optional<Tenant> tenantOptional = tenantRepository.findById(externalReference);
@@ -392,18 +424,16 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     }
 
     Tenant tenant = tenantOptional.get();
-    String planTier =
-        Optional.ofNullable(stripeProperties.tierForPrice(stripePriceId))
-            .orElse(tenant.getPlanId());
+    String planTier = tenant.getPlanId();
 
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     Subscription subscription = createSubscription(tenant.getId(), planTier);
-    if (hasText(stripeSubscriptionId)) {
-      subscription.setStripeSubscriptionId(stripeSubscriptionId);
+    if (hasText(asaasSubscriptionId)) {
+      subscription.setAsaasSubscriptionId(asaasSubscriptionId);
     }
-    if (hasText(stripeCustomerId)) {
-      subscription.setStripeCustomerId(stripeCustomerId);
+    if (hasText(asaasCustomerId)) {
+      subscription.setAsaasCustomerId(asaasCustomerId);
     }
     subscription.setLastPaymentDate(today);
     subscription.setUpdatedAt(now);
@@ -414,7 +444,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     log.info(
         "Assinatura ativada via checkout: tenantId={} subscriptionId={}",
         LogSanitizer.maskId(tenant.getId()),
-        LogSanitizer.maskId(stripeSubscriptionId));
+        LogSanitizer.maskId(asaasSubscriptionId));
     return Optional.of(saved);
   }
 
@@ -477,11 +507,11 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
   }
 
-  private Optional<Invoice> findInvoiceForPaidWebhook(String stripeInvoiceId, String tenantId) {
-    if (hasText(stripeInvoiceId)) {
-      Optional<Invoice> byStripeId = invoiceRepository.findByStripeInvoiceId(stripeInvoiceId);
-      if (byStripeId.isPresent()) {
-        return byStripeId;
+  private Optional<Invoice> findInvoiceForPaidWebhook(String asaasPaymentId, String tenantId) {
+    if (hasText(asaasPaymentId)) {
+      Optional<Invoice> byPaymentId = invoiceRepository.findByAsaasPaymentId(asaasPaymentId);
+      if (byPaymentId.isPresent()) {
+        return byPaymentId;
       }
     }
     if (hasText(tenantId)) {

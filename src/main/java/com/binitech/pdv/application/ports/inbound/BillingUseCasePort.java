@@ -13,9 +13,9 @@ public interface BillingUseCasePort {
   Invoice generateMonthlyInvoice(
       String tenantId, int activeProducts, int monthlySales, int operators);
 
-  Invoice markInvoicePaid(String stripeInvoiceId, String stripeSubscriptionId);
+  Invoice markInvoicePaid(String asaasPaymentId, String asaasSubscriptionId);
 
-  void recordPaymentFailure(String stripeSubscriptionId);
+  void recordPaymentFailure(String asaasSubscriptionId);
 
   void blockOverdueTenants(int graceDays);
 
@@ -28,10 +28,19 @@ public interface BillingUseCasePort {
   String createPortalUrl(String tenantId);
 
   Optional<Subscription> activateFromCheckout(
-      String stripeSubscriptionId,
-      String stripeCustomerId,
-      String externalReference,
-      String stripePriceId);
+      String asaasSubscriptionId, String asaasCustomerId, String externalReference);
+
+  Optional<Subscription> activateFromCheckoutSession(
+      String checkoutSessionId,
+      String asaasSubscriptionId,
+      String asaasCustomerId,
+      String externalReference);
+
+  void confirmSubscriptionPayment(
+      String asaasPaymentId,
+      String asaasSubscriptionId,
+      String asaasCustomerId,
+      String checkoutSessionId);
 
   Subscription manuallyActivate(String tenantId, PaymentMethod paymentMethod);
 }

@@ -11,7 +11,7 @@ public interface InvoiceRepositoryPort {
 
   Optional<Invoice> findById(String id);
 
-  Optional<Invoice> findByStripeInvoiceId(String stripeInvoiceId);
+  Optional<Invoice> findByAsaasPaymentId(String asaasPaymentId);
 
   List<Invoice> findAllByTenantIdOrderByDueDateDesc(String tenantId);
 

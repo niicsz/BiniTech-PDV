@@ -13,9 +13,9 @@ public interface SubscriptionRepositoryPort {
 
   Optional<Subscription> findByTenantId(String tenantId);
 
-  Optional<Subscription> findByStripeSubscriptionId(String stripeSubscriptionId);
+  Optional<Subscription> findByAsaasSubscriptionId(String asaasSubscriptionId);
 
-  Optional<Subscription> findByStripeCustomerId(String stripeCustomerId);
+  Optional<Subscription> findByAsaasCustomerId(String asaasCustomerId);
 
   List<Subscription> findAllByStatus(SubscriptionStatus status);
 }
