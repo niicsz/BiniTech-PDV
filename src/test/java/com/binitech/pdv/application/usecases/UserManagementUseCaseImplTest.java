@@ -100,6 +100,43 @@ class UserManagementUseCaseImplTest {
   }
 
   @Test
+  @DisplayName("TENANT_ADMIN redefine 2FA de operador do próprio tenant")
+  void resetTwoFactor_operator_shouldCallAuth() {
+    User operator = user("operator", Role.OPERATOR, "tenant-a");
+    when(userRepository.findByIdAndTenantId(operator.getId(), "tenant-a"))
+        .thenReturn(Optional.of(operator));
+    when(authentication.resetTwoFactor(operator.getId())).thenReturn(true);
+
+    assertTrue(
+        useCase.resetTwoFactor(operator.getId(), "tenant-admin", "tenant-a", Role.TENANT_ADMIN));
+    verify(authentication).resetTwoFactor(operator.getId());
+  }
+
+  @Test
+  @DisplayName("Redefinir 2FA respeita hierarquia, tenant e própria conta")
+  void resetTwoFactor_forbiddenTargets_shouldNotCallAuth() {
+    User tenantAdmin = user("other-admin", Role.TENANT_ADMIN, "tenant-a");
+    String targetId = tenantAdmin.getId();
+    when(userRepository.findByIdAndTenantId(targetId, "tenant-a"))
+        .thenReturn(Optional.of(tenantAdmin));
+    when(userRepository.findByIdAndTenantId("user-b", "tenant-a")).thenReturn(Optional.empty());
+
+    assertThrows(
+        AccessDeniedException.class,
+        () -> useCase.resetTwoFactor(targetId, "tenant-admin", "tenant-a", Role.TENANT_ADMIN));
+    assertThrows(
+        AccessDeniedException.class,
+        () -> useCase.resetTwoFactor(targetId, targetId, "tenant-a", Role.ADMIN));
+    assertThrows(
+        ResourceNotFoundException.class,
+        () -> useCase.resetTwoFactor("user-b", "admin", "tenant-a", Role.ADMIN));
+    assertThrows(
+        AccessDeniedException.class,
+        () -> useCase.resetTwoFactor(targetId, "operator", "tenant-a", Role.OPERATOR));
+    verify(authentication, never()).resetTwoFactor(any());
+  }
+
+  @Test
   @DisplayName("Usuário sem role administrativa recebe acesso negado")
   void listUsers_asOperator_shouldBeForbidden() {
     assertThrows(AccessDeniedException.class, () -> useCase.listUsers("tenant-a", Role.OPERATOR));

@@ -13,6 +13,7 @@ import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 public class AuthUseCaseImpl implements AuthUseCasePort {
   private final UserRepositoryPort userRepository;
@@ -52,8 +53,13 @@ public class AuthUseCaseImpl implements AuthUseCasePort {
   }
 
   @Override
-  public void enableTwoFactor(String accessToken, String code) {
-    authentication.enableTwoFactor(accessToken, code);
+  public List<String> enableTwoFactor(String accessToken, String code) {
+    return authentication.enableTwoFactor(accessToken, code);
+  }
+
+  @Override
+  public List<String> regenerateRecoveryCodes(String accessToken, String code) {
+    return authentication.regenerateRecoveryCodes(accessToken, code);
   }
 
   @Override

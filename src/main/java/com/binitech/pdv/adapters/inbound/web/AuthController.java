@@ -199,7 +199,10 @@ public class AuthController implements AuthApi {
 
   public record TwoFactorLoginRequest(
       @NotBlank @Size(max = 200) String challengeToken,
-      @NotBlank @Pattern(regexp = "\\d{6,8}", message = "Informe o código de 6 dígitos")
+      @NotBlank
+          @Pattern(
+              regexp = "\\d{6,8}|[A-Za-z0-9]{5}-?[A-Za-z0-9]{5}",
+              message = "Informe o código de 6 dígitos ou um código de recuperação")
           String code) {}
 
   public record ResetPasswordRequest(

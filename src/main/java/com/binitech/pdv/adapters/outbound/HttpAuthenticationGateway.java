@@ -10,6 +10,7 @@ import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.springframework.http.MediaType;
@@ -74,7 +75,8 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
                     .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .body(StatusResponse.class));
-    return new TwoFactorStatus(response.enabled(), instant(response.lockedUntil()));
+    return new TwoFactorStatus(
+        response.enabled(), instant(response.lockedUntil()), response.recoveryCodesRemaining());
   }
 
   @Override
@@ -90,8 +92,28 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
   }
 
   @Override
-  public void enableTwoFactor(String accessToken, String code) {
-    twoFactorCode("/api/auth/two-factor/enable", accessToken, code);
+  public List<String> enableTwoFactor(String accessToken, String code) {
+    return recoveryCodes("/api/auth/two-factor/enable", accessToken, code);
+  }
+
+  @Override
+  public List<String> regenerateRecoveryCodes(String accessToken, String code) {
+    return recoveryCodes("/api/auth/two-factor/recovery-codes", accessToken, code);
+  }
+
+  private List<String> recoveryCodes(String path, String accessToken, String code) {
+    RecoveryCodesResponse response =
+        invoke(
+            () ->
+                client
+                    .post()
+                    .uri(path)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("code", code))
+                    .retrieve()
+                    .body(RecoveryCodesResponse.class));
+    return response.recoveryCodes() == null ? List.of() : response.recoveryCodes();
   }
 
   @Override
@@ -176,6 +198,21 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
   @Override
   public void revokeSessions(String id) {
     post("/revoke", Map.of("identityId", id));
+  }
+
+  @Override
+  public boolean resetTwoFactor(String identityId) {
+    TwoFactorResetResponse response =
+        invoke(
+            () ->
+                client
+                    .post()
+                    .uri("/api/internal/identities/two-factor/reset")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("identityId", identityId))
+                    .retrieve()
+                    .body(TwoFactorResetResponse.class));
+    return response.reset();
   }
 
   @Override
@@ -286,7 +323,11 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
       String challengeToken,
       String expiresAt) {}
 
-  private record StatusResponse(boolean enabled, String lockedUntil) {}
+  private record StatusResponse(boolean enabled, String lockedUntil, int recoveryCodesRemaining) {}
+
+  private record RecoveryCodesResponse(List<String> recoveryCodes) {}
+
+  private record TwoFactorResetResponse(boolean reset) {}
 
   private record AuthError(
       String code, String message, Integer remainingAttempts, String lockedUntil) {}
