@@ -111,7 +111,9 @@ class HttpAuthenticationGatewayTest {
         .expect(requestTo("http://auth:8081/api/auth/two-factor"))
         .andExpect(method(HttpMethod.GET))
         .andExpect(header("Authorization", "Bearer access"))
-        .andRespond(withSuccess("{\"enabled\":false}", MediaType.APPLICATION_JSON));
+        .andRespond(
+            withSuccess(
+                "{\"enabled\":true,\"recoveryCodesRemaining\":7}", MediaType.APPLICATION_JSON));
     server
         .expect(requestTo("http://auth:8081/api/auth/two-factor/setup"))
         .andExpect(header("Authorization", "Bearer access"))
@@ -123,11 +125,38 @@ class HttpAuthenticationGatewayTest {
         .expect(requestTo("http://auth:8081/api/auth/two-factor/enable"))
         .andExpect(header("Authorization", "Bearer access"))
         .andExpect(content().json("{\"code\":\"123456\"}"))
-        .andRespond(withNoContent());
+        .andRespond(
+            withSuccess(
+                "{\"recoveryCodes\":[\"AAAAA-BBBBB\",\"CCCCC-DDDDD\"]}",
+                MediaType.APPLICATION_JSON));
+    server
+        .expect(requestTo("http://auth:8081/api/auth/two-factor/recovery-codes"))
+        .andExpect(header("Authorization", "Bearer access"))
+        .andExpect(content().json("{\"code\":\"AAAAA-BBBBB\"}"))
+        .andRespond(
+            withSuccess("{\"recoveryCodes\":[\"EEEEE-FFFFF\"]}", MediaType.APPLICATION_JSON));
 
-    assertFalse(gateway.twoFactorStatus("access").enabled());
+    var status = gateway.twoFactorStatus("access");
+    assertTrue(status.enabled());
+    assertEquals(7, status.recoveryCodesRemaining());
     assertEquals("SHA512", gateway.setupTwoFactor("access").algorithm());
-    gateway.enableTwoFactor("access", "123456");
+    assertEquals(
+        java.util.List.of("AAAAA-BBBBB", "CCCCC-DDDDD"),
+        gateway.enableTwoFactor("access", "123456"));
+    assertEquals(
+        java.util.List.of("EEEEE-FFFFF"), gateway.regenerateRecoveryCodes("access", "AAAAA-BBBBB"));
+    server.verify();
+  }
+
+  @Test
+  void resetTwoFactor_usesInternalCredentialEndpoint() {
+    server
+        .expect(requestTo("http://auth:8081/api/internal/identities/two-factor/reset"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(content().json("{\"identityId\":\"u1\"}"))
+        .andRespond(withSuccess("{\"reset\":true}", MediaType.APPLICATION_JSON));
+
+    assertTrue(gateway.resetTwoFactor("u1"));
     server.verify();
   }
 

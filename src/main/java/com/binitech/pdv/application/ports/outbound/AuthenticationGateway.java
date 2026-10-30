@@ -4,6 +4,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.LoginOutcome;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorSetup;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorStatus;
+import java.util.List;
 
 public interface AuthenticationGateway {
   LoginOutcome login(String username, String password, String tenantId);
@@ -14,7 +15,9 @@ public interface AuthenticationGateway {
 
   TwoFactorSetup setupTwoFactor(String accessToken);
 
-  void enableTwoFactor(String accessToken, String code);
+  List<String> enableTwoFactor(String accessToken, String code);
+
+  List<String> regenerateRecoveryCodes(String accessToken, String code);
 
   void disableTwoFactor(String accessToken, String code);
 
@@ -30,6 +33,8 @@ public interface AuthenticationGateway {
   void changePassword(String identityId, String currentPassword, String newPassword);
 
   void revokeSessions(String identityId);
+
+  boolean resetTwoFactor(String identityId);
 
   void purgeTenant(String tenantId);
 

@@ -149,6 +149,25 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     return saved;
   }
 
+  @Override
+  public boolean resetTwoFactor(
+      String userId, String actorUserId, String tenantId, Role actorRole) {
+    requireTenantManager(tenantId, actorRole);
+    User target = findScopedUser(userId, tenantId);
+    requireCanManageTarget(actorUserId, actorRole, target);
+    boolean reset = authentication.resetTwoFactor(target.getId());
+    if (log.isWarnEnabled()) {
+      log.warn(
+          "Verificação em duas etapas redefinida pelo administrador: userId={} actorUserId={}"
+              + " tenantId={} reset={}",
+          LogSanitizer.maskId(target.getId()),
+          LogSanitizer.maskId(actorUserId),
+          LogSanitizer.maskId(tenantId),
+          reset);
+    }
+    return reset;
+  }
+
   private void requireTenantManager(String tenantId, Role actorRole) {
     if (tenantId == null || tenantId.isBlank()) {
       throw new AccessDeniedException("Administrador sem tenant associado.");

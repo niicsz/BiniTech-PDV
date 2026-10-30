@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -41,10 +42,17 @@ public class TwoFactorController {
   }
 
   @PostMapping("/enable")
-  public ResponseEntity<Void> enable(@Valid @RequestBody CodeRequest request) {
-    authUseCase.enableTwoFactor(accessToken(), request.code());
+  public RecoveryCodesResponse enable(@Valid @RequestBody CodeRequest request) {
+    List<String> codes = authUseCase.enableTwoFactor(accessToken(), request.code());
     log.info("Verificação em duas etapas ativada");
-    return ResponseEntity.noContent().build();
+    return new RecoveryCodesResponse(codes);
+  }
+
+  @PostMapping("/recovery-codes")
+  public RecoveryCodesResponse regenerateRecoveryCodes(@Valid @RequestBody CodeRequest request) {
+    List<String> codes = authUseCase.regenerateRecoveryCodes(accessToken(), request.code());
+    log.info("Códigos de recuperação da verificação em duas etapas gerados novamente");
+    return new RecoveryCodesResponse(codes);
   }
 
   @PostMapping("/disable")
@@ -62,7 +70,12 @@ public class TwoFactorController {
     return header.substring(7);
   }
 
+  public record RecoveryCodesResponse(List<String> recoveryCodes) {}
+
   public record CodeRequest(
-      @NotBlank @Pattern(regexp = "\\d{6,8}", message = "Informe o código de 6 dígitos")
+      @NotBlank
+          @Pattern(
+              regexp = "\\d{6,8}|[A-Za-z0-9]{5}-?[A-Za-z0-9]{5}",
+              message = "Informe o código de 6 dígitos ou um código de recuperação")
           String code) {}
 }

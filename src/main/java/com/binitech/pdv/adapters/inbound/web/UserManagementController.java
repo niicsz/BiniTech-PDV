@@ -91,6 +91,17 @@ public class UserManagementController {
     return ResponseEntity.ok(toDto(saved, actorUserId, actorRole));
   }
 
+  @PostMapping("/{id}/two-factor/reset")
+  public ResponseEntity<TwoFactorResetResponse> resetTwoFactor(@PathVariable String id) {
+    boolean reset =
+        userManagementUseCase.resetTwoFactor(
+            id,
+            authenticatedUserProvider.getUserId(),
+            authenticatedUserProvider.getTenantId(),
+            authenticatedUserProvider.getUserRole());
+    return ResponseEntity.ok(new TwoFactorResetResponse(reset));
+  }
+
   private UserDTO toDto(User user, String actorUserId, Role actorRole) {
     boolean currentUser = user.getId().equals(actorUserId);
     boolean manageable =
@@ -120,6 +131,8 @@ public class UserManagementController {
   public record UpdateUserStatusRequest(@NotNull Boolean active) {}
 
   public record UpdateUserRoleRequest(@NotNull Role role) {}
+
+  public record TwoFactorResetResponse(boolean reset) {}
 
   public record UserDTO(
       String id,

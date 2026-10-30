@@ -2,6 +2,7 @@ package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.utils.enums.Role;
 import java.time.Instant;
+import java.util.List;
 
 public interface AuthUseCasePort {
 
@@ -21,7 +22,9 @@ public interface AuthUseCasePort {
 
   TwoFactorSetup setupTwoFactor(String accessToken);
 
-  void enableTwoFactor(String accessToken, String code);
+  List<String> enableTwoFactor(String accessToken, String code);
+
+  List<String> regenerateRecoveryCodes(String accessToken, String code);
 
   void disableTwoFactor(String accessToken, String code);
 
@@ -33,7 +36,7 @@ public interface AuthUseCasePort {
 
   record TwoFactorChallenge(String challengeToken, Instant expiresAt) implements LoginOutcome {}
 
-  record TwoFactorStatus(boolean enabled, Instant lockedUntil) {}
+  record TwoFactorStatus(boolean enabled, Instant lockedUntil, int recoveryCodesRemaining) {}
 
   record TwoFactorSetup(
       String secret, String otpauthUri, String algorithm, int digits, long period) {}

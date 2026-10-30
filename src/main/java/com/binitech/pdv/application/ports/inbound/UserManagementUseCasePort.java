@@ -17,4 +17,6 @@ public interface UserManagementUseCasePort {
       String userId, boolean active, String actorUserId, String tenantId, Role actorRole);
 
   User updateRole(String userId, Role role, String actorUserId, String tenantId, Role actorRole);
+
+  boolean resetTwoFactor(String userId, String actorUserId, String tenantId, Role actorRole);
 }

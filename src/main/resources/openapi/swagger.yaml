@@ -216,6 +216,32 @@ paths:
         '403':
           description: Tentativa de atribuir privilégio não permitido
 
+  /api/users/{id}/two-factor/reset:
+    post:
+      tags: [Users]
+      summary: Redefinir a verificação em duas etapas de um usuário da hierarquia permitida
+      operationId: resetTenantUserTwoFactor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chave, códigos de recuperação e bloqueio removidos; reset=false quando o usuário não tinha 2FA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reset:
+                    type: boolean
+        '403':
+          description: Usuário fora da hierarquia permitida ou a própria conta
+        '404':
+          description: Usuário não pertence ao tenant ou não existe
+
   /api/products:
     get:
       tags: [Products]
