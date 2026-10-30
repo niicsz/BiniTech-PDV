@@ -19,6 +19,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 public class HttpAuthenticationGateway implements AuthenticationGateway {
+  private static final String IDENTITY_ID = "identityId";
+
   private final RestClient client;
 
   public HttpAuthenticationGateway(RestClient client) {
@@ -192,12 +194,12 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
   public void changePassword(String id, String currentPassword, String newPassword) {
     post(
         "/change-password",
-        Map.of("identityId", id, "currentPassword", currentPassword, "newPassword", newPassword));
+        Map.of(IDENTITY_ID, id, "currentPassword", currentPassword, "newPassword", newPassword));
   }
 
   @Override
   public void revokeSessions(String id) {
-    post("/revoke", Map.of("identityId", id));
+    post("/revoke", Map.of(IDENTITY_ID, id));
   }
 
   @Override
@@ -209,7 +211,7 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
                     .post()
                     .uri("/api/internal/identities/two-factor/reset")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("identityId", identityId))
+                    .body(Map.of(IDENTITY_ID, identityId))
                     .retrieve()
                     .body(TwoFactorResetResponse.class));
     return response.reset();
