@@ -9,9 +9,8 @@ public class Subscription {
 
   private String id;
   private String tenantId;
-  private String stripeSubscriptionId;
-  private String stripeCustomerId;
-  private String stripePriceId;
+  private String asaasSubscriptionId;
+  private String asaasCustomerId;
   private String planTier;
   private SubscriptionStatus status;
   private LocalDate currentPeriodStart;
@@ -41,28 +40,20 @@ public class Subscription {
     this.tenantId = tenantId;
   }
 
-  public String getStripeSubscriptionId() {
-    return stripeSubscriptionId;
+  public String getAsaasSubscriptionId() {
+    return asaasSubscriptionId;
   }
 
-  public void setStripeSubscriptionId(String stripeSubscriptionId) {
-    this.stripeSubscriptionId = stripeSubscriptionId;
+  public void setAsaasSubscriptionId(String asaasSubscriptionId) {
+    this.asaasSubscriptionId = asaasSubscriptionId;
   }
 
-  public String getStripeCustomerId() {
-    return stripeCustomerId;
+  public String getAsaasCustomerId() {
+    return asaasCustomerId;
   }
 
-  public void setStripeCustomerId(String stripeCustomerId) {
-    this.stripeCustomerId = stripeCustomerId;
-  }
-
-  public String getStripePriceId() {
-    return stripePriceId;
-  }
-
-  public void setStripePriceId(String stripePriceId) {
-    this.stripePriceId = stripePriceId;
+  public void setAsaasCustomerId(String asaasCustomerId) {
+    this.asaasCustomerId = asaasCustomerId;
   }
 
   public String getPlanTier() {

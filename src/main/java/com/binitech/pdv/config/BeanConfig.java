@@ -14,6 +14,7 @@ import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
+import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
@@ -117,8 +118,8 @@ public class BeanConfig {
       SpringDataProductRepository springDataProductRepository,
       SpringDataUserRepository springDataUserRepository,
       @Value("${app.frontend-url}") String frontendUrl,
-      StripeGateway stripeGateway,
-      StripeProperties stripeProperties) {
+      AsaasGateway asaasGateway,
+      CheckoutSessionRepositoryPort checkoutSessionRepositoryPort) {
     log.info("Configurando BillingUseCasePort");
     return new BillingUseCaseImpl(
         subscriptionRepositoryPort,
@@ -126,7 +127,7 @@ public class BeanConfig {
         tenantRepositoryPort,
         springDataProductRepository,
         springDataUserRepository,
-        new BillingStripeConfig(frontendUrl, stripeGateway, stripeProperties));
+        new BillingAsaasConfig(frontendUrl, asaasGateway, checkoutSessionRepositoryPort));
   }
 
   @Bean

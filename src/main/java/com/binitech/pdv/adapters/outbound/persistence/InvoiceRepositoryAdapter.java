@@ -30,8 +30,8 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
   }
 
   @Override
-  public Optional<Invoice> findByStripeInvoiceId(String stripeInvoiceId) {
-    return repository.findByStripeInvoiceId(stripeInvoiceId).map(this::toDomain);
+  public Optional<Invoice> findByAsaasPaymentId(String asaasPaymentId) {
+    return repository.findByAsaasPaymentId(asaasPaymentId).map(this::toDomain);
   }
 
   @Override
@@ -55,7 +55,7 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
         .id(i.getId())
         .tenantId(i.getTenantId())
         .subscriptionId(i.getSubscriptionId())
-        .stripeInvoiceId(i.getStripeInvoiceId())
+        .asaasPaymentId(i.getAsaasPaymentId())
         .amount(i.getAmount())
         .status(i.getStatus() != null ? i.getStatus().name() : null)
         .dueDate(i.getDueDate())
@@ -73,7 +73,7 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
     invoice.setId(d.getId());
     invoice.setTenantId(d.getTenantId());
     invoice.setSubscriptionId(d.getSubscriptionId());
-    invoice.setStripeInvoiceId(d.getStripeInvoiceId());
+    invoice.setAsaasPaymentId(d.getAsaasPaymentId());
     invoice.setAmount(d.getAmount());
     invoice.setStatus(d.getStatus() != null ? InvoiceStatus.valueOf(d.getStatus()) : null);
     invoice.setDueDate(d.getDueDate());

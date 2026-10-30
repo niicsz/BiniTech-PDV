@@ -34,13 +34,13 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
   }
 
   @Override
-  public Optional<Subscription> findByStripeSubscriptionId(String stripeSubscriptionId) {
-    return repository.findByStripeSubscriptionId(stripeSubscriptionId).map(this::toDomain);
+  public Optional<Subscription> findByAsaasSubscriptionId(String asaasSubscriptionId) {
+    return repository.findByAsaasSubscriptionId(asaasSubscriptionId).map(this::toDomain);
   }
 
   @Override
-  public Optional<Subscription> findByStripeCustomerId(String stripeCustomerId) {
-    return repository.findByStripeCustomerId(stripeCustomerId).map(this::toDomain);
+  public Optional<Subscription> findByAsaasCustomerId(String asaasCustomerId) {
+    return repository.findByAsaasCustomerId(asaasCustomerId).map(this::toDomain);
   }
 
   @Override
@@ -52,9 +52,8 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
     return SubscriptionDocument.builder()
         .id(s.getId())
         .tenantId(s.getTenantId())
-        .stripeSubscriptionId(s.getStripeSubscriptionId())
-        .stripeCustomerId(s.getStripeCustomerId())
-        .stripePriceId(s.getStripePriceId())
+        .asaasSubscriptionId(s.getAsaasSubscriptionId())
+        .asaasCustomerId(s.getAsaasCustomerId())
         .planTier(s.getPlanTier())
         .status(s.getStatus() != null ? s.getStatus().name() : null)
         .currentPeriodStart(s.getCurrentPeriodStart())
@@ -72,9 +71,8 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
     Subscription subscription = new Subscription();
     subscription.setId(d.getId());
     subscription.setTenantId(d.getTenantId());
-    subscription.setStripeSubscriptionId(d.getStripeSubscriptionId());
-    subscription.setStripeCustomerId(d.getStripeCustomerId());
-    subscription.setStripePriceId(d.getStripePriceId());
+    subscription.setAsaasSubscriptionId(d.getAsaasSubscriptionId());
+    subscription.setAsaasCustomerId(d.getAsaasCustomerId());
     subscription.setPlanTier(d.getPlanTier());
     subscription.setStatus(
         d.getStatus() != null ? SubscriptionStatus.valueOf(d.getStatus()) : null);

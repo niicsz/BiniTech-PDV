@@ -21,9 +21,8 @@ public class SubscriptionDocument {
 
   @Indexed private String tenantId;
 
-  @Indexed private String stripeSubscriptionId;
-  @Indexed private String stripeCustomerId;
-  private String stripePriceId;
+  @Indexed private String asaasSubscriptionId;
+  @Indexed private String asaasCustomerId;
   private String planTier;
   private String status;
   private LocalDate currentPeriodStart;

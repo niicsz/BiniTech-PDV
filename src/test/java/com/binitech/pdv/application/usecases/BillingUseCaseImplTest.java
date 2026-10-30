@@ -7,18 +7,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
+import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
-import com.binitech.pdv.config.BillingStripeConfig;
-import com.binitech.pdv.config.StripeGateway;
-import com.binitech.pdv.config.StripeProperties;
+import com.binitech.pdv.config.AsaasException;
+import com.binitech.pdv.config.AsaasGateway;
+import com.binitech.pdv.config.AsaasGateway.CheckoutSession;
+import com.binitech.pdv.config.BillingAsaasConfig;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -26,6 +29,7 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,8 +51,8 @@ class BillingUseCaseImplTest {
   @Mock private TenantRepositoryPort tenantRepository;
   @Mock private SpringDataProductRepository productRepository;
   @Mock private SpringDataUserRepository userRepository;
-  @Mock private StripeGateway stripeGateway;
-  @Mock private StripeProperties stripeProperties;
+  @Mock private AsaasGateway asaasGateway;
+  @Mock private CheckoutSessionRepositoryPort checkoutSessionRepository;
 
   private BillingUseCaseImpl billingUseCase;
 
@@ -61,7 +65,7 @@ class BillingUseCaseImplTest {
             tenantRepository,
             productRepository,
             userRepository,
-            new BillingStripeConfig(FRONTEND_URL, stripeGateway, stripeProperties));
+            new BillingAsaasConfig(FRONTEND_URL, asaasGateway, checkoutSessionRepository));
   }
 
   private Tenant tenant(String id, String planId, TenantStatus status) {
@@ -80,20 +84,24 @@ class BillingUseCaseImplTest {
   class CreateCheckoutUrlTests {
 
     @Test
-    @DisplayName("Deve devolver a URL da sessão de Checkout do Stripe")
-    void createCheckoutUrl_shouldReturnSessionUrl() throws Exception {
+    @DisplayName("Deve devolver a URL do Checkout do Asaas com o valor do plano")
+    void createCheckoutUrl_shouldReturnCheckoutUrl() {
       when(tenantRepository.findById("t1"))
           .thenReturn(Optional.of(tenant("t1", "pro", TenantStatus.ACTIVE)));
-      when(stripeGateway.isConfigured()).thenReturn(true);
-      when(stripeProperties.priceForTier("pro")).thenReturn("price_pro");
-      when(stripeGateway.createSubscriptionCheckoutSession(
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(asaasGateway.createSubscriptionCheckout(
               any(Tenant.class),
-              eq("price_pro"),
+              eq("Pro"),
+              eq(new BigDecimal("199.00")),
               eq("http://localhost:4200/billing?status=success"),
               eq("http://localhost:4200/billing")))
-          .thenReturn("https://checkout.stripe.com/c/sess_1");
+          .thenReturn(
+              new CheckoutSession("chk_1", "https://asaas.com/checkoutSession/show?id=chk_1"));
 
-      assertEquals("https://checkout.stripe.com/c/sess_1", billingUseCase.createCheckoutUrl("t1"));
+      assertEquals(
+          "https://asaas.com/checkoutSession/show?id=chk_1",
+          billingUseCase.createCheckoutUrl("t1"));
+      verify(checkoutSessionRepository).save("chk_1", "t1");
     }
 
     @Test
@@ -112,11 +120,11 @@ class BillingUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Sem Stripe configurado, falha explicitamente")
+    @DisplayName("Sem Asaas configurado, falha explicitamente")
     void createCheckoutUrl_notConfigured_shouldThrowBusiness() {
       when(tenantRepository.findById("t1"))
           .thenReturn(Optional.of(tenant("t1", "pro", TenantStatus.ACTIVE)));
-      when(stripeGateway.isConfigured()).thenReturn(false);
+      when(asaasGateway.isConfigured()).thenReturn(false);
       BusinessException exception =
           assertThrows(BusinessException.class, () -> billingUseCase.createCheckoutUrl("t1"));
 
@@ -124,12 +132,13 @@ class BillingUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Plano sem price orienta o usuário a procurar o suporte")
-    void createCheckoutUrl_missingPrice_shouldReferToSupport() {
+    @DisplayName("Falha no Asaas orienta o usuário a procurar o suporte")
+    void createCheckoutUrl_gatewayFailure_shouldReferToSupport() {
       when(tenantRepository.findById("t1"))
           .thenReturn(Optional.of(tenant("t1", "starter", TenantStatus.ACTIVE)));
-      when(stripeGateway.isConfigured()).thenReturn(true);
-      when(stripeProperties.priceForTier("starter")).thenReturn(null);
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(asaasGateway.createSubscriptionCheckout(any(), any(), any(), any(), any()))
+          .thenThrow(new AsaasException("falha", null));
 
       BusinessException exception =
           assertThrows(BusinessException.class, () -> billingUseCase.createCheckoutUrl("t1"));
@@ -143,21 +152,37 @@ class BillingUseCaseImplTest {
   class CreatePortalUrlTests {
 
     @Test
-    @DisplayName("Deve devolver a URL do Customer Portal")
-    void createPortalUrl_shouldReturnPortalUrl() throws Exception {
+    @DisplayName("Deve devolver a URL da fatura em aberto no Asaas")
+    void createPortalUrl_shouldReturnOpenInvoiceUrl() {
       Subscription sub = new Subscription();
       sub.setTenantId("t1");
-      sub.setStripeCustomerId("cus_1");
+      sub.setAsaasSubscriptionId("sub_1");
       when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.of(sub));
-      when(stripeGateway.isConfigured()).thenReturn(true);
-      when(stripeGateway.createBillingPortalSession("cus_1", "http://localhost:4200/billing"))
-          .thenReturn("https://billing.stripe.com/p/sess_1");
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(asaasGateway.findOpenPaymentUrl("sub_1"))
+          .thenReturn(Optional.of("https://www.asaas.com/i/123"));
 
-      assertEquals("https://billing.stripe.com/p/sess_1", billingUseCase.createPortalUrl("t1"));
+      assertEquals("https://www.asaas.com/i/123", billingUseCase.createPortalUrl("t1"));
     }
 
     @Test
-    @DisplayName("Sem customer vinculado, falha")
+    @DisplayName("Sem fatura em aberto, informa o usuário")
+    void createPortalUrl_noOpenInvoice_shouldThrow() {
+      Subscription sub = new Subscription();
+      sub.setTenantId("t1");
+      sub.setAsaasSubscriptionId("sub_1");
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.of(sub));
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(asaasGateway.findOpenPaymentUrl("sub_1")).thenReturn(Optional.empty());
+
+      BusinessException exception =
+          assertThrows(BusinessException.class, () -> billingUseCase.createPortalUrl("t1"));
+
+      assertEquals("Nenhuma fatura em aberto no momento.", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Sem assinatura Asaas vinculada, falha")
     void createPortalUrl_noCustomer_shouldThrow() {
       Subscription sub = new Subscription();
       sub.setTenantId("t1");
@@ -174,21 +199,19 @@ class BillingUseCaseImplTest {
   class ActivateFromCheckoutTests {
 
     @Test
-    @DisplayName("Deve ativar assinatura e tenant resolvendo por client_reference_id (tenantId)")
+    @DisplayName("Deve ativar assinatura e tenant resolvendo por externalReference (tenantId)")
     void activateFromCheckout_byExternalReference_shouldActivate() {
-      Tenant t = tenant("t1", "starter", TenantStatus.BLOCKED);
+      Tenant t = tenant("t1", "pro", TenantStatus.BLOCKED);
       when(tenantRepository.findById("t1")).thenReturn(Optional.of(t));
       when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.empty());
       when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
-      when(stripeProperties.tierForPrice("price_pro")).thenReturn("pro");
 
-      Optional<Subscription> result =
-          billingUseCase.activateFromCheckout("sub_1", "cus_1", "t1", "price_pro");
+      Optional<Subscription> result = billingUseCase.activateFromCheckout("sub_1", "cus_1", "t1");
 
       assertTrue(result.isPresent());
       Subscription saved = result.get();
-      assertEquals("sub_1", saved.getStripeSubscriptionId());
-      assertEquals("cus_1", saved.getStripeCustomerId());
+      assertEquals("sub_1", saved.getAsaasSubscriptionId());
+      assertEquals("cus_1", saved.getAsaasCustomerId());
       assertEquals(SubscriptionStatus.ACTIVE, saved.getStatus());
       assertEquals("pro", saved.getPlanTier());
       assertNotNull(saved.getLastPaymentDate());
@@ -199,28 +222,12 @@ class BillingUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Sem price conhecido, usa o tier atual do tenant")
-    void activateFromCheckout_unknownPrice_shouldFallbackToTenantPlan() {
-      Tenant t = tenant("t2", "enterprise", TenantStatus.BLOCKED);
-      when(tenantRepository.findById("t2")).thenReturn(Optional.of(t));
-      when(subscriptionRepository.findByTenantId("t2")).thenReturn(Optional.empty());
-      when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
-      when(stripeProperties.tierForPrice("price_x")).thenReturn(null);
-
-      Optional<Subscription> result =
-          billingUseCase.activateFromCheckout("sub_2", "cus_2", "t2", "price_x");
-
-      assertTrue(result.isPresent());
-      assertEquals("enterprise", result.get().getPlanTier());
-    }
-
-    @Test
     @DisplayName("Deve retornar vazio e não persistir quando não identifica o tenant")
     void activateFromCheckout_unresolvedTenant_shouldReturnEmpty() {
       when(tenantRepository.findById("desconhecido")).thenReturn(Optional.empty());
 
       Optional<Subscription> result =
-          billingUseCase.activateFromCheckout("sub_3", "cus_3", "desconhecido", null);
+          billingUseCase.activateFromCheckout("sub_3", "cus_3", "desconhecido");
 
       assertTrue(result.isEmpty());
       verify(subscriptionRepository, never()).save(any());
@@ -228,13 +235,67 @@ class BillingUseCaseImplTest {
     }
 
     @Test
-    @DisplayName("Sem client_reference_id, retorna vazio")
+    @DisplayName("Sem externalReference, retorna vazio")
     void activateFromCheckout_noExternalReference_shouldReturnEmpty() {
-      Optional<Subscription> result =
-          billingUseCase.activateFromCheckout("sub_4", "cus_4", null, "price_pro");
+      Optional<Subscription> result = billingUseCase.activateFromCheckout("sub_4", "cus_4", null);
 
       assertTrue(result.isEmpty());
       verify(subscriptionRepository, never()).save(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("confirmSubscriptionPayment")
+  class ConfirmSubscriptionPaymentTests {
+
+    @Test
+    @DisplayName("Primeiro pagamento do checkout ativa o tenant resolvido pela sessão salva")
+    void firstPayment_shouldActivateTenantFromCheckoutSession() {
+      Tenant t = tenant("t1", "pro", TenantStatus.PENDING_APPROVAL);
+      when(subscriptionRepository.findByAsaasSubscriptionId("sub_1")).thenReturn(Optional.empty());
+      when(checkoutSessionRepository.findTenantId("chk_1")).thenReturn(Optional.of("t1"));
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(t));
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.empty());
+      when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
+
+      billingUseCase.confirmSubscriptionPayment("pay_1", "sub_1", "cus_1", "chk_1");
+
+      ArgumentCaptor<Subscription> captor = ArgumentCaptor.forClass(Subscription.class);
+      verify(subscriptionRepository, atLeastOnce()).save(captor.capture());
+      Subscription saved = captor.getValue();
+      assertEquals("sub_1", saved.getAsaasSubscriptionId());
+      assertEquals("cus_1", saved.getAsaasCustomerId());
+      assertEquals(SubscriptionStatus.ACTIVE, saved.getStatus());
+      assertEquals(TenantStatus.ACTIVE, t.getStatus());
+      verify(invoiceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Pagamento de assinatura já vinculada marca a fatura como paga")
+    void knownSubscription_shouldMarkInvoicePaid() {
+      Subscription sub = new Subscription();
+      sub.setTenantId("t1");
+      sub.setAsaasSubscriptionId("sub_1");
+      when(subscriptionRepository.findByAsaasSubscriptionId("sub_1")).thenReturn(Optional.of(sub));
+      when(invoiceRepository.findByAsaasPaymentId("pay_2")).thenReturn(Optional.empty());
+      when(invoiceRepository.findAllByTenantIdOrderByDueDateDesc("t1")).thenReturn(List.of());
+
+      billingUseCase.confirmSubscriptionPayment("pay_2", "sub_1", "cus_1", "chk_1");
+
+      verify(checkoutSessionRepository, never()).findTenantId(any());
+      assertEquals(SubscriptionStatus.ACTIVE, sub.getStatus());
+    }
+
+    @Test
+    @DisplayName("Checkout sem sessão conhecida não ativa nada")
+    void unknownCheckoutSession_shouldNotActivate() {
+      when(subscriptionRepository.findByAsaasSubscriptionId("sub_9")).thenReturn(Optional.empty());
+      when(checkoutSessionRepository.findTenantId("chk_9")).thenReturn(Optional.empty());
+
+      billingUseCase.confirmSubscriptionPayment("pay_9", "sub_9", "cus_9", "chk_9");
+
+      verify(subscriptionRepository, never()).save(any());
+      verify(tenantRepository, never()).save(any());
     }
   }
 
@@ -248,10 +309,10 @@ class BillingUseCaseImplTest {
       Subscription sub = new Subscription();
       sub.setId("s1");
       sub.setTenantId("t1");
-      sub.setStripeSubscriptionId("sub_1");
+      sub.setAsaasSubscriptionId("sub_1");
       sub.setStatus(SubscriptionStatus.ACTIVE);
       sub.setFailedPaymentCount(0);
-      when(subscriptionRepository.findByStripeSubscriptionId("sub_1")).thenReturn(Optional.of(sub));
+      when(subscriptionRepository.findByAsaasSubscriptionId("sub_1")).thenReturn(Optional.of(sub));
       when(invoiceRepository.findAllByTenantIdOrderByDueDateDesc("t1")).thenReturn(List.of());
 
       billingUseCase.recordPaymentFailure("sub_1");
@@ -265,7 +326,7 @@ class BillingUseCaseImplTest {
     @Test
     @DisplayName("Assinatura inexistente lança 404")
     void recordPaymentFailure_unknownSubscription_shouldThrow() {
-      when(subscriptionRepository.findByStripeSubscriptionId("nope")).thenReturn(Optional.empty());
+      when(subscriptionRepository.findByAsaasSubscriptionId("nope")).thenReturn(Optional.empty());
       assertThrows(
           ResourceNotFoundException.class, () -> billingUseCase.recordPaymentFailure("nope"));
     }

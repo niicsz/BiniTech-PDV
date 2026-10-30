@@ -1,6 +1,6 @@
 # 🛒 BiniTech PDV
 
-Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), desenvolvida com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 21** no frontend. Cada lojista opera em um *tenant* isolado, com cobrança recorrente via **Stripe**.
+Plataforma **SaaS multi-tenant** de Frente de Caixa (PDV — Ponto de Venda), desenvolvida com **Arquitetura Hexagonal**, utilizando **Spring Boot 3** no backend e **Angular 21** no frontend. Cada lojista opera em um *tenant* isolado, com cobrança recorrente via **Asaas**.
 
 > Este repositório contém **apenas o backend** (API REST). O frontend Angular vive em repositório próprio e é deployado separadamente: **[niicsz/BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)**. O backend expõe a API em `/api/**` e libera o domínio do frontend via CORS (`CORS_ALLOWED_ORIGINS`).
 
@@ -51,7 +51,7 @@ O **BiniTech PDV** é uma plataforma SaaS de frente de caixa onde cada cliente (
 ### Plataforma / SaaS
 - **Auto-cadastro de lojas (tenants)** — Registro público de loja, com aprovação por um Super Admin.
 - **Ciclo de vida do tenant** — solicitações podem ser aprovadas (`ACTIVE`) ou reprovadas (`REJECTED`); tenants ativos ainda podem ser bloqueados/cancelados por inadimplência.
-- **Assinaturas e cobrança** — Planos pagos via Stripe (Checkout + Customer Portal) e cobrança diária baseada em uso.
+- **Assinaturas e cobrança** — Planos pagos via Asaas (Checkout recorrente + fatura online) e cobrança diária baseada em uso.
 - **Gestão de usuários por tenant** — `TENANT_ADMIN` registra operadores da própria loja; `SUPER_ADMIN` administra a plataforma.
 - **Recuperação de senha** — Fluxos de "esqueci minha senha" e troca de senha, com envio de e-mail assíncrono.
 
@@ -78,14 +78,14 @@ Fluxo típico:
 
 1. Lojista faz auto-cadastro via `POST /api/public/tenants` (status inicial `PENDING_APPROVAL`).
 2. Um `SUPER_ADMIN` aprova via `POST /api/admin/tenants/{id}/approve` — dispara e-mail de aprovação (RabbitMQ).
-3. O tenant assina um plano (Stripe Checkout) e passa a `ACTIVE`.
+3. O tenant assina um plano (Asaas Checkout) e passa a `ACTIVE`.
 4. Inadimplência ou cancelamento move o tenant para `BLOCKED`/`CANCELLED`.
 
 ---
 
 ## 💳 Billing e Planos
 
-A cobrança é feita via **Stripe** (Checkout Sessions + Customer Portal + Webhooks). A `Subscription` espelha o estado da assinatura do Stripe, e cada ciclo gera uma `Invoice`.
+A cobrança é feita via **Asaas** (Checkout com assinatura recorrente + faturas + Webhooks). O valor de cada plano vem do `PlanConfig`. A `Subscription` espelha o estado da assinatura do Asaas, e cada ciclo gera uma `Invoice`.
 
 ### Planos (`PlanConfig`)
 
@@ -96,7 +96,7 @@ A cobrança é feita via **Stripe** (Checkout Sessions + Customer Portal + Webho
 | `enterprise` | R$ 349,00 | 2000 | 5000 | 10 |
 | `free` | R$ 0,00 | ilimitado | ilimitado | ilimitado |
 
-> O plano `free` é uma cortesia vitalícia (sem limites). Os demais são cobrados via Stripe. O limite de operadores é validado no backend antes de cada cadastro; o administrador da loja não consome uma vaga de operador.
+> O plano `free` é uma cortesia vitalícia (sem limites). Os demais são cobrados via Asaas. O limite de operadores é validado no backend antes de cada cadastro; o administrador da loja não consome uma vaga de operador.
 
 ### Cobrança por excedente
 
@@ -115,7 +115,7 @@ Quando o uso ultrapassa os limites do plano, a fatura soma um valor de excedente
 
 ### Processos
 
-- **Stripe Webhooks** (`POST /webhooks/stripe`) — Sincronizam pagamentos, falhas e cancelamentos vindos do Stripe.
+- **Asaas Webhooks** (`POST /webhooks/asaas`) — Sincronizam pagamentos, atrasos e cancelamentos vindos do Asaas (autenticados pelo header `asaas-access-token`).
 - **DailyBillingJob** — Job agendado (`@Scheduled`, diário à meia-noite) que avalia o uso, gera faturas e aplica bloqueios por inadimplência.
 
 ---
@@ -134,7 +134,7 @@ Quando o uso ultrapassa os limites do plano, a fatura soma um valor de excedente
 | Spring AMQP (RabbitMQ) | 3.2.x |
 | Spring Boot Mail | — |
 | Spring Boot Actuator | — |
-| Stripe Java SDK | 29.2.0 |
+| Asaas API | v3 (REST via `RestClient`) |
 | SLF4J / Logback | — |
 | JWT (jjwt) | 0.12.6 |
 | BouncyCastle (Argon2) | 1.84 |
@@ -181,7 +181,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 ┌────────────────────────────▼─────────────────────────────────┐
 │                       Adapters (Inbound)                      │
 │  AuthController │ ProductController │ SaleController           │
-│  TenantController │ BillingController │ StripeWebhookController │
+│  TenantController │ BillingController │ AsaasWebhookController  │
 │  EmailEventConsumer (RabbitMQ)                                 │
 │  GlobalExceptionHandler │ WebMapper │ AuthenticatedUserProvider│
 ├───────────────────────────────────────────────────────────────┤
@@ -203,7 +203,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
 │                       Config / Security                      │
 │  SecurityConfig │ JwtTokenProvider │ JwtAuthenticationFilter   │
 │  TenantValidationFilter │ TokenBlacklistService │ RedisCache   │
-│  StripeGateway │ BillingStripeConfig │ PlanConfig │ DailyBilling│
+│  AsaasGateway │ BillingAsaasConfig │ PlanConfig │ DailyBilling  │
 │  RabbitMQConfig │ CorsConfig │ DataInitializer                 │
 └──────────┬──────────────────┬──────────────────┬──────────────┘
            │                  │                  │
@@ -213,7 +213,7 @@ O projeto segue a **Arquitetura Hexagonal (Ports & Adapters)**, separando claram
     └─────────────┘   └────────────────┘  └────────────────┘
                               │
                        ┌──────▼──────┐
-                       │   Stripe    │
+                       │    Asaas    │
                        │  (billing)  │
                        └─────────────┘
 ```
@@ -236,7 +236,7 @@ com.binitech.pdv
 ├── adapters/
 │   ├── inbound/
 │   │   ├── web/       (Auth, Product, Sale, Tenant, Billing,
-│   │   │               StripeWebhook Controllers, AuthenticatedUserProvider,
+│   │   │               AsaasWebhook Controllers, AuthenticatedUserProvider,
 │   │   │               GlobalExceptionHandler, mapper/WebMapper)
 │   │   └── EmailEventConsumer        (consumidor RabbitMQ)
 │   └── outbound/
@@ -246,7 +246,7 @@ com.binitech.pdv
 ├── config/
 │   ├── SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter
 │   ├── TenantValidationFilter, TokenBlacklistService, RedisCacheConfig
-│   ├── StripeGateway, StripeProperties, BillingStripeConfig, PlanConfig, DailyBillingJob
+│   ├── AsaasGateway, AsaasProperties, BillingAsaasConfig, PlanConfig, DailyBillingJob
 │   ├── RabbitMQConfig, CorsConfig, BeanConfig, DataInitializer
 │   ├── PepperedPasswordEncoder
 │   └── DotenvEnvironmentPostProcessor
@@ -263,7 +263,7 @@ com.binitech.pdv
 - **Docker** e **Docker Compose** (para MongoDB e RabbitMQ)
 - **Redis** acessível (instância local ou container separado)
 - **Maven** (ou use o wrapper `mvnw` incluído)
-- (Opcional) Conta **Stripe** (test mode) e conta **Resend** para billing e e-mails
+- (Opcional) Conta **Asaas** (sandbox) e conta **Resend** para billing e e-mails
 
 ---
 
@@ -325,7 +325,7 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `AUTH_READ_TIMEOUT` | Tempo máximo de resposta do serviço de autenticação | `5s` |
 | `ADMIN_USERNAME` | Username do **super admin** previamente provisionado | — (obrigatório) |
 | `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS — domínio público do frontend (em dev, `http://localhost:4200`) | — (obrigatório) |
-| `APP_FRONTEND_URL` | URL pública do frontend (usada em links de e-mail e retorno do Stripe) | `http://localhost:4200` |
+| `APP_FRONTEND_URL` | URL pública do frontend (usada em links de e-mail e retorno do Asaas) | `http://localhost:4200` |
 
 ### RabbitMQ
 
@@ -343,15 +343,15 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 | `RESEND_API_KEY` | Chave de API do Resend (vazia desabilita o envio real) | — |
 | `RESEND_FROM` | Remetente, em um domínio verificado no Resend | `BiniTech PDV <onboarding@resend.dev>` |
 
-### Stripe (billing)
+### Asaas (billing)
 
-| Variável | Descrição |
-|---|---|
-| `STRIPE_SECRET_KEY` | Chave secreta da API do Stripe |
-| `STRIPE_WEBHOOK_SECRET` | Secret de validação dos webhooks |
-| `STRIPE_PRICE_STARTER` | ID do *price* do plano Starter |
-| `STRIPE_PRICE_PRO` | ID do *price* do plano Pro |
-| `STRIPE_PRICE_ENTERPRISE` | ID do *price* do plano Enterprise |
+| Variável | Descrição | Padrão |
+|---|---|---|
+| `ASAAS_API_KEY` | Chave de API do Asaas (`$aact_...`) | — |
+| `ASAAS_WEBHOOK_TOKEN` | Token (32–255 caracteres) cadastrado no webhook do Asaas e conferido no header `asaas-access-token` | — |
+| `ASAAS_BASE_URL` | URL da API (`https://api-sandbox.asaas.com/v3` no sandbox) | `https://api.asaas.com/v3` |
+
+No painel do Asaas, cadastre o webhook apontando para `POST /webhooks/asaas` com os eventos `CHECKOUT_PAID`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `SUBSCRIPTION_DELETED` e `SUBSCRIPTION_INACTIVATED`.
 
 ---
 
@@ -457,9 +457,9 @@ A API é documentada via **OpenAPI 3.0** (gerado a partir de `swagger.yaml`) e a
 |---|---|---|---|
 | `GET` | `/api/billing/subscription` | Assinatura atual do tenant | Autenticado |
 | `GET` | `/api/billing/invoices` | Faturas do tenant | Autenticado |
-| `GET` | `/api/billing/checkout` | Iniciar checkout do Stripe | Autenticado |
-| `GET` | `/api/billing/portal` | Abrir o Customer Portal do Stripe | Autenticado |
-| `POST` | `/webhooks/stripe` | Webhook do Stripe (eventos de pagamento) | Público (assinado) |
+| `GET` | `/api/billing/checkout` | Iniciar checkout do Asaas | Autenticado |
+| `GET` | `/api/billing/portal` | Abrir a fatura em aberto no Asaas | Autenticado |
+| `POST` | `/webhooks/asaas` | Webhook do Asaas (eventos de pagamento) | Público (token) |
 
 ### Usuários do tenant
 
@@ -568,7 +568,7 @@ O utilitário `LogSanitizer` mascara automaticamente dados sensíveis antes de q
 | **Exception Handler** (`GlobalExceptionHandler`) | `WARN` — negócio/validação/not found/acesso negado; `ERROR` — erros internos |
 | **Use Cases** | `INFO` — operações; `WARN` — validações/duplicatas; `DEBUG` — consultas |
 | **Security** (`JwtAuthenticationFilter`, `JwtTokenProvider`) | `WARN` — tokens inválidos/expirados; `DEBUG` — fluxo de autenticação |
-| **Billing / Mensageria** (`DailyBillingJob`, `StripeWebhookController`, `EmailEventConsumer`) | `INFO` — eventos processados; `WARN`/`ERROR` — falhas |
+| **Billing / Mensageria** (`DailyBillingJob`, `AsaasWebhookController`, `EmailEventConsumer`) | `INFO` — eventos processados; `WARN`/`ERROR` — falhas |
 
 ### Frontend (Console estruturado)
 
@@ -610,13 +610,13 @@ A build falha automaticamente se alguma dependência possuir CVE com score ≥ 8
 src/test/java/com/binitech/pdv/
 ├── adapters/inbound/web/
 │   ├── GlobalExceptionHandlerTest
-│   └── StripeWebhookControllerTest
+│   └── AsaasWebhookControllerTest
 ├── application/usecases/
 │   ├── AuthUseCaseImplTest, ProductUseCaseImplTest
 │   ├── SaleUseCaseImplTest, BillingUseCaseImplTest
 ├── config/
 │   ├── JwtAuthenticationFilterTest, JwtTokenProviderTest
-│   ├── PepperedPasswordEncoderTest, PlanConfigTest, StripePropertiesTest
+│   ├── PepperedPasswordEncoderTest, PlanConfigTest, AsaasPropertiesTest
 ├── domain/
 │   ├── ProductTest, SaleTest, SaleItemTest, RefreshTokenTest
 └── integration/
@@ -686,7 +686,7 @@ pdv/
 │   │   │   ├── domain/         # Entidades de domínio e exceções
 │   │   │   ├── application/    # Portas (inbound/outbound) e casos de uso
 │   │   │   ├── adapters/       # Controllers, Repositories, Mappers, Mensageria
-│   │   │   ├── config/         # Security, JWT, Redis, Stripe, RabbitMQ, Tenant, Beans
+│   │   │   ├── config/         # Security, JWT, Redis, Asaas, RabbitMQ, Tenant, Beans
 │   │   │   └── utils/          # LogSanitizer, Enums
 │   │   └── resources/
 │   │       ├── application.yaml
