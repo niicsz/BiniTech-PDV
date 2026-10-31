@@ -12,6 +12,7 @@ public class Subscription {
   private String asaasSubscriptionId;
   private String asaasCustomerId;
   private String planTier;
+  private String billingType;
   private SubscriptionStatus status;
   private LocalDate currentPeriodStart;
   private LocalDate currentPeriodEnd;
@@ -62,6 +63,14 @@ public class Subscription {
 
   public void setPlanTier(String planTier) {
     this.planTier = planTier;
+  }
+
+  public String getBillingType() {
+    return billingType;
+  }
+
+  public void setBillingType(String billingType) {
+    this.billingType = billingType;
   }
 
   public SubscriptionStatus getStatus() {

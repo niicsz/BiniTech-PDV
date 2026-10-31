@@ -27,6 +27,10 @@ public interface BillingUseCasePort {
 
   String createPortalUrl(String tenantId);
 
+  String createPixCheckoutUrl(String tenantId);
+
+  void blockExpiredPixSubscriptions(int graceDays);
+
   Optional<Subscription> activateFromCheckout(
       String asaasSubscriptionId, String asaasCustomerId, String externalReference);
 

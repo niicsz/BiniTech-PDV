@@ -87,6 +87,8 @@ Fluxo típico:
 
 A cobrança é feita via **Asaas** (Checkout com assinatura recorrente + faturas + Webhooks). O valor de cada plano vem do `PlanConfig`. A `Subscription` espelha o estado da assinatura do Asaas, e cada ciclo gera uma `Invoice`.
 
+Também é possível pagar a mensalidade via **Pix**: o Asaas só aceita Pix em cobrança avulsa, então cada pagamento é um Checkout `DETACHED` que libera 30 dias (somados ao período atual se ainda estiver em dia). A conta Asaas precisa ter uma chave Pix cadastrada. O `DailyBillingJob` bloqueia o tenant quando a mensalidade Pix vence há mais de 3 dias.
+
 ### Planos (`PlanConfig`)
 
 | Plano | Mensalidade base | Máx. produtos | Máx. vendas/mês | Máx. operadores |

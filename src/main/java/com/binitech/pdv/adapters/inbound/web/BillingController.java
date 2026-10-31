@@ -49,6 +49,12 @@ public class BillingController {
     return ResponseEntity.ok(new UrlDTO(url));
   }
 
+  @GetMapping("/checkout/pix")
+  public ResponseEntity<UrlDTO> getPixCheckoutUrl() {
+    String url = billingUseCase.createPixCheckoutUrl(authenticatedUserProvider.getTenantId());
+    return ResponseEntity.ok(new UrlDTO(url));
+  }
+
   @GetMapping("/portal")
   public ResponseEntity<UrlDTO> getPortalUrl() {
     String url = billingUseCase.createPortalUrl(authenticatedUserProvider.getTenantId());
@@ -62,6 +68,7 @@ public class BillingController {
         subscription.getAsaasSubscriptionId(),
         subscription.getAsaasCustomerId(),
         subscription.getPlanTier(),
+        subscription.getBillingType(),
         subscription.getStatus() != null ? subscription.getStatus().name() : null,
         subscription.getCurrentPeriodStart(),
         subscription.getCurrentPeriodEnd(),
@@ -96,6 +103,7 @@ public class BillingController {
       String asaasSubscriptionId,
       String asaasCustomerId,
       String planTier,
+      String billingType,
       String status,
       LocalDate currentPeriodStart,
       LocalDate currentPeriodEnd,

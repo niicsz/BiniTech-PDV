@@ -130,6 +130,23 @@ class AsaasWebhookControllerTest {
   }
 
   @Test
+  @DisplayName("PAYMENT_RECEIVED de checkout Pix avulso confirma pela sessão do checkout")
+  void paymentReceivedDetachedPix_shouldConfirmByCheckoutSession() {
+    when(asaasGateway.isValidWebhookToken(TOKEN)).thenReturn(true);
+
+    controller()
+        .handleWebhook(
+            event(
+                "PAYMENT_RECEIVED",
+                null,
+                new AsaasPayment("pay_9", "cus_1", null, "PIX", "chk_pix"),
+                null),
+            TOKEN);
+
+    verify(billingUseCase).confirmSubscriptionPayment("pay_9", null, "cus_1", "chk_pix");
+  }
+
+  @Test
   @DisplayName("PAYMENT_OVERDUE registra falha de pagamento")
   void paymentOverdue_shouldRecordFailure() {
     when(asaasGateway.isValidWebhookToken(TOKEN)).thenReturn(true);

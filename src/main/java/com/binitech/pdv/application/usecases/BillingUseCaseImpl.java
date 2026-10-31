@@ -40,6 +40,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   private static final Logger log = LoggerFactory.getLogger(BillingUseCaseImpl.class);
   private static final String PAYMENT_SUPPORT_MESSAGE =
       "Entre em contato com o suporte para realizar o pagamento.";
+  private static final String BILLING_TYPE_PIX = "PIX";
+  private static final String BILLING_TYPE_CREDIT_CARD = "CREDIT_CARD";
+  private static final int BILLING_PERIOD_DAYS = 30;
   private static final List<String> MONTH_NAMES =
       List.of("Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez");
 
@@ -341,6 +344,75 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   }
 
   @Override
+  public String createPixCheckoutUrl(String tenantId) {
+    Tenant tenant =
+        tenantRepository
+            .findById(tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+    if (PlanConfig.isFree(tenant.getPlanId())) {
+      throw new BusinessException("Plano cortesia não requer pagamento.");
+    }
+    if (!asaasGateway.isConfigured()) {
+      throw new BusinessException(
+          "Pagamento via Pix indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
+    }
+    BigDecimal amount =
+        findLatestInvoiceByTenantAndStatuses(tenantId, InvoiceStatus.OVERDUE, InvoiceStatus.PENDING)
+            .map(Invoice::getAmount)
+            .orElseGet(() -> PlanConfig.getLimits(tenant.getPlanId()).baseMonthlyFee());
+    String baseUrl = stripTrailingSlash(frontendUrl);
+    try {
+      CheckoutSession checkout =
+          asaasGateway.createPixCheckout(
+              tenant,
+              capitalize(tenant.getPlanId()),
+              amount,
+              baseUrl + "/billing?status=success",
+              baseUrl + "/billing");
+      checkoutSessionRepository.save(checkout.id(), tenant.getId(), BILLING_TYPE_PIX);
+      return checkout.url();
+    } catch (AsaasException e) {
+      log.error(
+          "Falha ao criar checkout Pix no Asaas: tenantId={} error={}",
+          LogSanitizer.maskId(tenantId),
+          e.getMessage());
+      throw new BusinessException("Não foi possível gerar o Pix. " + PAYMENT_SUPPORT_MESSAGE);
+    }
+  }
+
+  @Override
+  public void blockExpiredPixSubscriptions(int graceDays) {
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDate cutoffDate = today.minusDays(graceDays);
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+    for (Subscription subscription :
+        subscriptionRepository.findAllByStatus(SubscriptionStatus.ACTIVE)) {
+      if (!BILLING_TYPE_PIX.equals(subscription.getBillingType())
+          || subscription.getCurrentPeriodEnd() == null
+          || !subscription.getCurrentPeriodEnd().isBefore(cutoffDate)) {
+        continue;
+      }
+      subscription.setStatus(SubscriptionStatus.PAST_DUE);
+      subscription.setUpdatedAt(now);
+      subscriptionRepository.save(subscription);
+      tenantRepository
+          .findById(subscription.getTenantId())
+          .filter(tenant -> tenant.getStatus() == TenantStatus.ACTIVE)
+          .ifPresent(
+              tenant -> {
+                tenant.setStatus(TenantStatus.BLOCKED);
+                tenant.setBlockedAt(today);
+                tenant.setBlockReason("Mensalidade via Pix vencida");
+                tenant.setUpdatedAt(now);
+                tenantRepository.save(tenant);
+                log.warn(
+                    "Tenant bloqueado por mensalidade Pix vencida: tenantId={}",
+                    LogSanitizer.maskId(tenant.getId()));
+              });
+    }
+  }
+
+  @Override
   public String createPortalUrl(String tenantId) {
     Subscription subscription =
         subscriptionRepository
@@ -392,6 +464,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       String asaasSubscriptionId,
       String asaasCustomerId,
       String externalReference) {
+    if (isPixCheckout(checkoutSessionId)) {
+      return activateFromPixCheckout(checkoutSessionId);
+    }
     if (hasText(asaasSubscriptionId)) {
       Optional<Subscription> existing =
           subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId);
@@ -406,6 +481,66 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
                 .flatMap(checkoutSessionRepository::findTenantId)
                 .orElse(null);
     return activateFromCheckout(asaasSubscriptionId, asaasCustomerId, tenantId);
+  }
+
+  private boolean isPixCheckout(String checkoutSessionId) {
+    return hasText(checkoutSessionId)
+        && checkoutSessionRepository
+            .findBillingType(checkoutSessionId)
+            .filter(BILLING_TYPE_PIX::equals)
+            .isPresent();
+  }
+
+  private Optional<Subscription> activateFromPixCheckout(String checkoutSessionId) {
+    Optional<Tenant> tenantOptional =
+        checkoutSessionRepository
+            .findTenantId(checkoutSessionId)
+            .flatMap(tenantRepository::findById);
+    if (tenantOptional.isEmpty()) {
+      log.warn("Checkout Pix pago sem tenant identificável; ativação ignorada.");
+      return Optional.empty();
+    }
+    Tenant tenant = tenantOptional.get();
+    if (!checkoutSessionRepository.markPaid(checkoutSessionId)) {
+      return subscriptionRepository.findByTenantId(tenant.getId());
+    }
+
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+    Subscription subscription =
+        subscriptionRepository.findByTenantId(tenant.getId()).orElseGet(Subscription::new);
+    LocalDate periodEnd = subscription.getCurrentPeriodEnd();
+    LocalDate periodStart =
+        subscription.getStatus() == SubscriptionStatus.ACTIVE
+                && periodEnd != null
+                && periodEnd.isAfter(today)
+            ? periodEnd
+            : today;
+
+    subscription.setTenantId(tenant.getId());
+    subscription.setPlanTier(tenant.getPlanId().toLowerCase(Locale.ROOT));
+    subscription.setBillingType(BILLING_TYPE_PIX);
+    subscription.setStatus(SubscriptionStatus.ACTIVE);
+    subscription.setCurrentPeriodStart(periodStart);
+    subscription.setCurrentPeriodEnd(periodStart.plusDays(BILLING_PERIOD_DAYS));
+    subscription.setNextBillingDate(periodStart.plusDays(BILLING_PERIOD_DAYS));
+    subscription.setLastPaymentDate(today);
+    subscription.setFailedPaymentCount(0);
+    subscription.setCancelledAt(null);
+    if (subscription.getCreatedAt() == null) {
+      subscription.setCreatedAt(now);
+    }
+    subscription.setUpdatedAt(now);
+    Subscription saved = subscriptionRepository.save(subscription);
+
+    settleOpenInvoices(tenant.getId(), today, now);
+    activateTenant(tenant, now);
+
+    log.info(
+        "Mensalidade paga via Pix: tenantId={} validaAte={}",
+        LogSanitizer.maskId(tenant.getId()),
+        saved.getCurrentPeriodEnd());
+    return Optional.of(saved);
   }
 
   @Override
@@ -435,6 +570,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (hasText(asaasCustomerId)) {
       subscription.setAsaasCustomerId(asaasCustomerId);
     }
+    subscription.setBillingType(BILLING_TYPE_CREDIT_CARD);
     subscription.setLastPaymentDate(today);
     subscription.setUpdatedAt(now);
     Subscription saved = subscriptionRepository.save(subscription);
@@ -460,11 +596,14 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
     Subscription subscription = createSubscription(tenantId, tenant.getPlanId());
-    subscription.setLastPaymentDate(LocalDate.now(ZoneId.systemDefault()));
+    subscription.setBillingType(null);
+    subscription.setLastPaymentDate(today);
     subscription.setUpdatedAt(now);
     Subscription saved = subscriptionRepository.save(subscription);
 
+    settleOpenInvoices(tenantId, today, now);
     activateTenant(tenant, now);
 
     log.info(
@@ -472,6 +611,21 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         LogSanitizer.maskId(tenantId),
         paymentMethod);
     return saved;
+  }
+
+  private void settleOpenInvoices(String tenantId, LocalDate today, LocalDateTime now) {
+    invoiceRepository.findAllByTenantIdOrderByDueDateDesc(tenantId).stream()
+        .filter(
+            invoice ->
+                invoice.getStatus() == InvoiceStatus.PENDING
+                    || invoice.getStatus() == InvoiceStatus.OVERDUE)
+        .forEach(
+            invoice -> {
+              invoice.setStatus(InvoiceStatus.PAID);
+              invoice.setPaidAt(today);
+              invoice.setUpdatedAt(now);
+              invoiceRepository.save(invoice);
+            });
   }
 
   private void unblockTenant(String tenantId, LocalDateTime now) {

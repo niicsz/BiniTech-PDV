@@ -22,14 +22,18 @@ import com.binitech.pdv.config.AsaasException;
 import com.binitech.pdv.config.AsaasGateway;
 import com.binitech.pdv.config.AsaasGateway.CheckoutSession;
 import com.binitech.pdv.config.BillingAsaasConfig;
+import com.binitech.pdv.domain.Invoice;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.utils.enums.InvoiceStatus;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -395,6 +399,153 @@ class BillingUseCaseImplTest {
 
       assertEquals(stored, billingUseCase.getSubscriptionForTenant("t1").orElseThrow());
       verify(tenantRepository, never()).findById(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("Pix avulso")
+  class PixTests {
+
+    @Test
+    @DisplayName("Deve criar checkout Pix com o valor do plano e registrar a sessão como PIX")
+    void createPixCheckoutUrl_shouldUsePlanFeeAndStoreSession() {
+      Tenant t = tenant("t1", "starter", TenantStatus.ACTIVE);
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(t));
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(invoiceRepository.findAllByTenantIdOrderByDueDateDesc("t1")).thenReturn(List.of());
+      when(asaasGateway.createPixCheckout(
+              eq(t), eq("Starter"), eq(new BigDecimal("99.00")), any(), any()))
+          .thenReturn(
+              new CheckoutSession("chk_pix", "https://asaas.com/checkoutSession/show?id=chk_pix"));
+
+      String url = billingUseCase.createPixCheckoutUrl("t1");
+
+      assertEquals("https://asaas.com/checkoutSession/show?id=chk_pix", url);
+      verify(checkoutSessionRepository).save("chk_pix", "t1", "PIX");
+    }
+
+    @Test
+    @DisplayName("Deve cobrar no Pix o valor da fatura em aberto")
+    void createPixCheckoutUrl_shouldUseOpenInvoiceAmount() {
+      Tenant t = tenant("t1", "starter", TenantStatus.BLOCKED);
+      Invoice overdue = new Invoice();
+      overdue.setStatus(InvoiceStatus.OVERDUE);
+      overdue.setAmount(new BigDecimal("129.00"));
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(t));
+      when(asaasGateway.isConfigured()).thenReturn(true);
+      when(invoiceRepository.findAllByTenantIdOrderByDueDateDesc("t1"))
+          .thenReturn(List.of(overdue));
+      when(asaasGateway.createPixCheckout(eq(t), any(), eq(new BigDecimal("129.00")), any(), any()))
+          .thenReturn(new CheckoutSession("chk_pix", "url"));
+
+      billingUseCase.createPixCheckoutUrl("t1");
+
+      verify(asaasGateway)
+          .createPixCheckout(eq(t), any(), eq(new BigDecimal("129.00")), any(), any());
+    }
+
+    @Test
+    @DisplayName("Plano cortesia não gera Pix")
+    void createPixCheckoutUrl_freePlan_shouldThrow() {
+      when(tenantRepository.findById("t1"))
+          .thenReturn(Optional.of(tenant("t1", "free", TenantStatus.ACTIVE)));
+      assertThrows(BusinessException.class, () -> billingUseCase.createPixCheckoutUrl("t1"));
+      verify(asaasGateway, never()).createPixCheckout(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Pagamento do checkout Pix ativa 30 dias, quita faturas e desbloqueia o tenant")
+    void pixCheckoutPaid_shouldActivatePeriodSettleInvoicesAndUnblock() {
+      Tenant t = tenant("t1", "pro", TenantStatus.BLOCKED);
+      Invoice overdue = new Invoice();
+      overdue.setStatus(InvoiceStatus.OVERDUE);
+      when(checkoutSessionRepository.findBillingType("chk_pix")).thenReturn(Optional.of("PIX"));
+      when(checkoutSessionRepository.findTenantId("chk_pix")).thenReturn(Optional.of("t1"));
+      when(checkoutSessionRepository.markPaid("chk_pix")).thenReturn(true);
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(t));
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.empty());
+      when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
+      when(invoiceRepository.findAllByTenantIdOrderByDueDateDesc("t1"))
+          .thenReturn(List.of(overdue));
+
+      Subscription result =
+          billingUseCase.activateFromCheckoutSession("chk_pix", null, "cus_1", null).orElseThrow();
+
+      LocalDate today = LocalDate.now(ZoneId.systemDefault());
+      assertEquals("PIX", result.getBillingType());
+      assertEquals(SubscriptionStatus.ACTIVE, result.getStatus());
+      assertEquals(today.plusDays(30), result.getCurrentPeriodEnd());
+      assertEquals(InvoiceStatus.PAID, overdue.getStatus());
+      assertEquals(TenantStatus.ACTIVE, t.getStatus());
+    }
+
+    @Test
+    @DisplayName("Pix pago antes do vencimento soma 30 dias ao fim do período atual")
+    void pixCheckoutPaid_activeSubscription_shouldExtendFromPeriodEnd() {
+      LocalDate today = LocalDate.now(ZoneId.systemDefault());
+      Subscription current = new Subscription();
+      current.setTenantId("t1");
+      current.setStatus(SubscriptionStatus.ACTIVE);
+      current.setCurrentPeriodEnd(today.plusDays(5));
+      when(checkoutSessionRepository.findBillingType("chk_pix")).thenReturn(Optional.of("PIX"));
+      when(checkoutSessionRepository.findTenantId("chk_pix")).thenReturn(Optional.of("t1"));
+      when(checkoutSessionRepository.markPaid("chk_pix")).thenReturn(true);
+      when(tenantRepository.findById("t1"))
+          .thenReturn(Optional.of(tenant("t1", "pro", TenantStatus.ACTIVE)));
+      when(subscriptionRepository.findByTenantId("t1")).thenReturn(Optional.of(current));
+      when(subscriptionRepository.save(any(Subscription.class))).thenAnswer(returnsFirstArg());
+
+      Subscription result =
+          billingUseCase.activateFromCheckoutSession("chk_pix", null, null, null).orElseThrow();
+
+      assertEquals(today.plusDays(35), result.getCurrentPeriodEnd());
+    }
+
+    @Test
+    @DisplayName("Webhook repetido do mesmo checkout Pix não estende o período de novo")
+    void pixCheckoutPaid_duplicate_shouldNotExtendAgain() {
+      when(checkoutSessionRepository.findBillingType("chk_pix")).thenReturn(Optional.of("PIX"));
+      when(checkoutSessionRepository.findTenantId("chk_pix")).thenReturn(Optional.of("t1"));
+      when(checkoutSessionRepository.markPaid("chk_pix")).thenReturn(false);
+      when(tenantRepository.findById("t1"))
+          .thenReturn(Optional.of(tenant("t1", "pro", TenantStatus.ACTIVE)));
+
+      billingUseCase.activateFromCheckoutSession("chk_pix", null, null, null);
+
+      verify(subscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve bloquear somente assinaturas Pix vencidas além da carência")
+    void blockExpiredPixSubscriptions_shouldBlockOnlyExpiredPix() {
+      LocalDate today = LocalDate.now(ZoneId.systemDefault());
+      Subscription expiredPix = new Subscription();
+      expiredPix.setTenantId("t1");
+      expiredPix.setBillingType("PIX");
+      expiredPix.setStatus(SubscriptionStatus.ACTIVE);
+      expiredPix.setCurrentPeriodEnd(today.minusDays(4));
+      Subscription recentPix = new Subscription();
+      recentPix.setTenantId("t2");
+      recentPix.setBillingType("PIX");
+      recentPix.setStatus(SubscriptionStatus.ACTIVE);
+      recentPix.setCurrentPeriodEnd(today.minusDays(2));
+      Subscription manual = new Subscription();
+      manual.setTenantId("t3");
+      manual.setStatus(SubscriptionStatus.ACTIVE);
+      manual.setCurrentPeriodEnd(today.minusDays(60));
+      Tenant t1 = tenant("t1", "pro", TenantStatus.ACTIVE);
+      when(subscriptionRepository.findAllByStatus(SubscriptionStatus.ACTIVE))
+          .thenReturn(List.of(expiredPix, recentPix, manual));
+      when(tenantRepository.findById("t1")).thenReturn(Optional.of(t1));
+
+      billingUseCase.blockExpiredPixSubscriptions(3);
+
+      assertEquals(SubscriptionStatus.PAST_DUE, expiredPix.getStatus());
+      assertEquals(SubscriptionStatus.ACTIVE, recentPix.getStatus());
+      assertEquals(SubscriptionStatus.ACTIVE, manual.getStatus());
+      assertEquals(TenantStatus.BLOCKED, t1.getStatus());
+      verify(tenantRepository, never()).findById("t2");
+      verify(tenantRepository, never()).findById("t3");
     }
   }
 }

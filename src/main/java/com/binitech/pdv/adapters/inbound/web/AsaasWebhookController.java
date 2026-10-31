@@ -111,7 +111,8 @@ public class AsaasWebhookController {
   }
 
   private void handlePaymentPaid(AsaasPayment payment) {
-    if (payment == null || !hasText(payment.subscription())) {
+    if (payment == null
+        || (!hasText(payment.subscription()) && !hasText(payment.checkoutSession()))) {
       return;
     }
     billingUseCase.confirmSubscriptionPayment(
