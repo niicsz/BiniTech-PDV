@@ -69,6 +69,14 @@ asaas:
   webhook-token: ${ASAAS_WEBHOOK_TOKEN:}
   base-url: ${ASAAS_BASE_URL:https://api.asaas.com/v3}
 
+notaas:
+  org-token: ${NOTAAS_ORG_TOKEN:}
+  base-url: ${NOTAAS_BASE_URL:https://platform.notaas.com.br/api/v1}
+  environment: ${NOTAAS_ENVIRONMENT:2}
+
+fiscal:
+  encryption-key: ${FISCAL_ENCRYPTION_KEY:}
+
 resend:
   api-key: ${RESEND_API_KEY:}
   from: ${RESEND_FROM:BiniTech PDV <onboarding@resend.dev>}

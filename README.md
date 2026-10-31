@@ -355,6 +355,17 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 
 No painel do Asaas, cadastre o webhook apontando para `POST /webhooks/asaas` com os eventos `CHECKOUT_PAID`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `SUBSCRIPTION_DELETED` e `SUBSCRIPTION_INACTIVATED`.
 
+### NFC-e (Notaas)
+
+| Variável | Descrição | Padrão |
+|---|---|---|
+| `NOTAAS_ORG_TOKEN` | Organization Token do Notaas (`ntaas_org_...`) com os escopos `projects:read`, `projects:write`, `api_keys:manage` e `certificates:write` (vazio desabilita a NFC-e) | — |
+| `NOTAAS_ENVIRONMENT` | `2` = homologação (sem valor fiscal), `1` = produção | `2` |
+| `NOTAAS_BASE_URL` | URL da API do Notaas | `https://platform.notaas.com.br/api/v1` |
+| `FISCAL_ENCRYPTION_KEY` | Chave AES-256 em Base64 (32 bytes) usada para criptografar a chave de emissão de cada loja | — |
+
+Cada loja vira um projeto no Notaas com o próprio CNPJ, CSC e certificado A1. A emissão usa `POST /nfe/emitir` com `modelo: 65` e o PDV consulta o status até a SEFAZ responder. A NFC-e está disponível para empresas do Simples Nacional e MEI.
+
 ---
 
 ## 🔑 Autenticação e Autorização

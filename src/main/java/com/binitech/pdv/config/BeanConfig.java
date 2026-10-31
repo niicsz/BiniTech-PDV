@@ -6,6 +6,7 @@ import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
+import com.binitech.pdv.application.ports.inbound.FiscalUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
@@ -16,6 +17,9 @@ import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
+import com.binitech.pdv.application.ports.outbound.FiscalDocumentRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.FiscalEmitterPort;
+import com.binitech.pdv.application.ports.outbound.FiscalProfileRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -28,6 +32,7 @@ import com.binitech.pdv.application.usecases.AccessLogUseCaseImpl;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.BillingUseCaseImpl;
 import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
+import com.binitech.pdv.application.usecases.FiscalUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
@@ -146,5 +151,29 @@ public class BeanConfig {
         tenantDataPurgePort,
         authenticationGateway,
         Clock.system(ZoneId.systemDefault()));
+  }
+
+  @Bean
+  public FiscalUseCasePort fiscalUseCasePort(
+      FiscalProfileRepositoryPort fiscalProfileRepositoryPort,
+      FiscalDocumentRepositoryPort fiscalDocumentRepositoryPort,
+      FiscalEmitterPort fiscalEmitterPort,
+      SaleUseCasePort saleUseCasePort,
+      ProductRepositoryPort productRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      @Value("${fiscal.encryption-key:}") String encryptionKey) {
+    SecretCipher secretCipher = encryptionKey.isBlank() ? null : new SecretCipher(encryptionKey);
+    if (secretCipher == null) {
+      log.warn("FISCAL_ENCRYPTION_KEY ausente; emissão de NFC-e desabilitada.");
+    }
+    return new FiscalUseCaseImpl(
+        fiscalProfileRepositoryPort,
+        fiscalDocumentRepositoryPort,
+        fiscalEmitterPort,
+        saleUseCasePort,
+        productRepositoryPort,
+        tenantRepositoryPort,
+        secretCipher,
+        Clock.system(ZoneId.of("America/Sao_Paulo")));
   }
 }

@@ -1,9 +1,13 @@
 package com.binitech.pdv.adapters.outbound.persistence.mapper;
 
+import com.binitech.pdv.adapters.outbound.persistence.document.FiscalDocumentDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.FiscalProfileDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.PaymentDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleItemDocument;
+import com.binitech.pdv.domain.FiscalDocument;
+import com.binitech.pdv.domain.FiscalProfile;
 import com.binitech.pdv.domain.Payment;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
@@ -17,6 +21,14 @@ import org.mapstruct.Named;
 public interface PersistenceMapper {
 
   ProductDocument toDocument(Product product);
+
+  FiscalProfileDocument toDocument(FiscalProfile profile);
+
+  FiscalProfile toDomain(FiscalProfileDocument document);
+
+  FiscalDocumentDocument toDocument(FiscalDocument document);
+
+  FiscalDocument toDomain(FiscalDocumentDocument document);
 
   Product toDomain(ProductDocument document);
 
