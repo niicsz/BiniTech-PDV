@@ -55,6 +55,7 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
         .asaasSubscriptionId(s.getAsaasSubscriptionId())
         .asaasCustomerId(s.getAsaasCustomerId())
         .planTier(s.getPlanTier())
+        .billingType(s.getBillingType())
         .status(s.getStatus() != null ? s.getStatus().name() : null)
         .currentPeriodStart(s.getCurrentPeriodStart())
         .currentPeriodEnd(s.getCurrentPeriodEnd())
@@ -74,6 +75,7 @@ public class SubscriptionRepositoryAdapter implements SubscriptionRepositoryPort
     subscription.setAsaasSubscriptionId(d.getAsaasSubscriptionId());
     subscription.setAsaasCustomerId(d.getAsaasCustomerId());
     subscription.setPlanTier(d.getPlanTier());
+    subscription.setBillingType(d.getBillingType());
     subscription.setStatus(
         d.getStatus() != null ? SubscriptionStatus.valueOf(d.getStatus()) : null);
     subscription.setCurrentPeriodStart(d.getCurrentPeriodStart());

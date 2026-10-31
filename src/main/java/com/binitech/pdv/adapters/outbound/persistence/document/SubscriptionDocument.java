@@ -24,6 +24,7 @@ public class SubscriptionDocument {
   @Indexed private String asaasSubscriptionId;
   @Indexed private String asaasCustomerId;
   private String planTier;
+  private String billingType;
   private String status;
   private LocalDate currentPeriodStart;
   private LocalDate currentPeriodEnd;

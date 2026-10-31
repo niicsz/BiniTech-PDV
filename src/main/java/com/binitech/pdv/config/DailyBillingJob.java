@@ -23,6 +23,7 @@ public class DailyBillingJob {
     log.info("DailyBillingJob iniciado");
     try {
       billingUseCase.blockOverdueTenants(GRACE_DAYS);
+      billingUseCase.blockExpiredPixSubscriptions(GRACE_DAYS);
       log.info("DailyBillingJob concluído com sucesso");
     } catch (Exception e) {
       log.error("Erro no DailyBillingJob: {}", e.getMessage(), e);

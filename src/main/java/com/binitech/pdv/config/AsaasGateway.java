@@ -1,6 +1,7 @@
 package com.binitech.pdv.config;
 
 import com.binitech.pdv.domain.Tenant;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -66,7 +67,7 @@ public class AsaasGateway {
   public CheckoutSession createSubscriptionCheckout(
       Tenant tenant, String planName, BigDecimal value, String successUrl, String cancelUrl) {
     String firstDueDate = LocalDateTime.now(businessZone).plusMinutes(5).format(DUE_DATE_FORMAT);
-    CheckoutRequest request =
+    return createCheckout(
         new CheckoutRequest(
             List.of("CREDIT_CARD"),
             List.of("RECURRENT"),
@@ -79,7 +80,28 @@ public class AsaasGateway {
                     "Assinatura mensal do plano " + planName + " — " + tenant.getName(),
                     1,
                     value)),
-            new SubscriptionRule("MONTHLY", firstDueDate));
+            new SubscriptionRule("MONTHLY", firstDueDate)));
+  }
+
+  public CheckoutSession createPixCheckout(
+      Tenant tenant, String planName, BigDecimal value, String successUrl, String cancelUrl) {
+    return createCheckout(
+        new CheckoutRequest(
+            List.of("PIX"),
+            List.of("DETACHED"),
+            CHECKOUT_MINUTES_TO_EXPIRE,
+            tenant.getId(),
+            new Callback(successUrl, cancelUrl, cancelUrl),
+            List.of(
+                new Item(
+                    "BiniTech PDV " + planName,
+                    "Mensalidade do plano " + planName + " (Pix) — " + tenant.getName(),
+                    1,
+                    value)),
+            null));
+  }
+
+  private CheckoutSession createCheckout(CheckoutRequest request) {
     try {
       CheckoutResponse response =
           client
@@ -175,6 +197,7 @@ public class AsaasGateway {
 
   public record CheckoutSession(String id, String url) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   record CheckoutRequest(
       List<String> billingTypes,
       List<String> chargeTypes,

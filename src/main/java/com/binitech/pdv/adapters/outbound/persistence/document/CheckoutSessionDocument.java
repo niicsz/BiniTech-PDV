@@ -17,5 +17,7 @@ public class CheckoutSessionDocument {
 
   @Id private String id;
   private String tenantId;
+  private String billingType;
   private Instant createdAt;
+  private Instant paidAt;
 }
