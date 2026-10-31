@@ -308,10 +308,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   @Override
   public String createCheckoutUrl(String tenantId) {
-    Tenant tenant =
-        tenantRepository
-            .findById(tenantId)
-            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+    Tenant tenant = findTenant(tenantId);
     if (PlanConfig.isFree(tenant.getPlanId())) {
       throw new BusinessException("Plano cortesia não requer pagamento.");
     }
@@ -345,10 +342,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   @Override
   public String createPixCheckoutUrl(String tenantId) {
-    Tenant tenant =
-        tenantRepository
-            .findById(tenantId)
-            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+    Tenant tenant = findTenant(tenantId);
     if (PlanConfig.isFree(tenant.getPlanId())) {
       throw new BusinessException("Plano cortesia não requer pagamento.");
     }
@@ -536,10 +530,12 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     settleOpenInvoices(tenant.getId(), today, now);
     activateTenant(tenant, now);
 
-    log.info(
-        "Mensalidade paga via Pix: tenantId={} validaAte={}",
-        LogSanitizer.maskId(tenant.getId()),
-        saved.getCurrentPeriodEnd());
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Mensalidade paga via Pix: tenantId={} validaAte={}",
+          LogSanitizer.maskId(tenant.getId()),
+          saved.getCurrentPeriodEnd());
+    }
     return Optional.of(saved);
   }
 
@@ -590,10 +586,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       throw new BusinessException(
           "A liberação manual aceita somente pagamento em dinheiro ou Pix.");
     }
-    Tenant tenant =
-        tenantRepository
-            .findById(tenantId)
-            .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+    Tenant tenant = findTenant(tenantId);
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
@@ -611,6 +604,12 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         LogSanitizer.maskId(tenantId),
         paymentMethod);
     return saved;
+  }
+
+  private Tenant findTenant(String tenantId) {
+    return tenantRepository
+        .findById(tenantId)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
   }
 
   private void settleOpenInvoices(String tenantId, LocalDate today, LocalDateTime now) {
