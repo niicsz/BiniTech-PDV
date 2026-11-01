@@ -16,6 +16,7 @@ public class SaleReturn {
   private RefundMethod refundMethod;
   private String reason;
   private boolean restocked;
+  private boolean fiscalPending;
 
   public String getId() {
     return id;
@@ -87,5 +88,13 @@ public class SaleReturn {
 
   public void setRestocked(boolean restocked) {
     this.restocked = restocked;
+  }
+
+  public boolean isFiscalPending() {
+    return fiscalPending;
+  }
+
+  public void setFiscalPending(boolean fiscalPending) {
+    this.fiscalPending = fiscalPending;
   }
 }

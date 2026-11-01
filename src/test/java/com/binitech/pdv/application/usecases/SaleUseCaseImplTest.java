@@ -447,6 +447,24 @@ class SaleUseCaseImplTest {
     }
 
     @Test
+    @DisplayName("Com serviço fiscal, a devolução sai pendente e é publicada após gravar")
+    void publishesReturnToFiscal() {
+      SaleFiscalPublisher fiscal = mock(SaleFiscalPublisher.class);
+      SaleUseCaseImpl withFiscal =
+          new SaleUseCaseImpl(saleRepository, productRepository, BUSINESS_ZONE, fiscal);
+      Sale sale = storedSale();
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+      when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
+      doThrow(new IllegalStateException("rabbit fora")).when(fiscal).publishReturn(any(), any());
+      SaleReturnRequest request = request(false);
+
+      Sale result = withFiscal.registerReturn("s1", request, "admin", "tenant1", Role.TENANT_ADMIN);
+
+      assertTrue(result.getReturns().get(0).isFiscalPending());
+      verify(fiscal).publishReturn(sale, result.getReturns().get(0));
+    }
+
+    @Test
     @DisplayName("Venda devolvida por completo não pode ser marcada como paga")
     void returnedSaleCannotBePaid() {
       Sale sale = storedSale();

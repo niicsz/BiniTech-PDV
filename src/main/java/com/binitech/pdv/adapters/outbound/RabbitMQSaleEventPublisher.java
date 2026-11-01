@@ -3,6 +3,7 @@ package com.binitech.pdv.adapters.outbound;
 import com.binitech.pdv.application.ports.outbound.SaleEventPublisherPort;
 import com.binitech.pdv.config.RabbitMQConfig;
 import com.binitech.pdv.domain.SaleCompletedEvent;
+import com.binitech.pdv.domain.SaleReturnedEvent;
 import com.binitech.pdv.utils.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,20 +27,29 @@ public class RabbitMQSaleEventPublisher implements SaleEventPublisherPort {
 
   @Override
   public boolean publishCompleted(SaleCompletedEvent event) {
+    return publish(RabbitMQConfig.SALE_COMPLETED_KEY, event, event.saleId());
+  }
+
+  @Override
+  public boolean publishReturned(SaleReturnedEvent event) {
+    return publish(RabbitMQConfig.SALE_RETURNED_KEY, event, event.saleId());
+  }
+
+  private boolean publish(String routingKey, Object event, String saleId) {
     try {
       return Boolean.TRUE.equals(
           rabbitTemplate.invoke(
               operations -> {
-                operations.convertAndSend(
-                    RabbitMQConfig.SALES_EXCHANGE, RabbitMQConfig.SALE_COMPLETED_KEY, event);
+                operations.convertAndSend(RabbitMQConfig.SALES_EXCHANGE, routingKey, event);
                 operations.waitForConfirmsOrDie(CONFIRM_TIMEOUT_MS);
                 return true;
               }));
     } catch (AmqpException | IllegalStateException e) {
       if (log.isWarnEnabled()) {
         log.warn(
-            "Venda não publicada para o serviço fiscal (vai tentar de novo): saleId={} erro={}",
-            LogSanitizer.maskId(event.saleId()),
+            "Evento {} não publicado para o serviço fiscal (vai tentar de novo): saleId={} erro={}",
+            routingKey,
+            LogSanitizer.maskId(saleId),
             e.getMessage());
       }
       return false;

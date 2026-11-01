@@ -336,6 +336,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
             UUID.randomUUID().toString(),
             userId,
             LocalDateTime.now(ZoneId.systemDefault()));
+    saleReturn.setFiscalPending(fiscalPublisher != null);
 
     if (!saleRepository.appendReturn(sale, expectedVersion)) {
       if (log.isWarnEnabled()) {
@@ -349,6 +350,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     if (saleReturn.isRestocked()) {
       restock(saleReturn, tenantId);
     }
+    publishReturnToFiscal(sale, saleReturn);
     if (log.isInfoEnabled()) {
       log.info(
           "Devolução registrada: venda={} valor={} forma={} estoque={}",
@@ -358,6 +360,22 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
           saleReturn.isRestocked());
     }
     return sale;
+  }
+
+  private void publishReturnToFiscal(Sale sale, SaleReturn saleReturn) {
+    if (fiscalPublisher == null) {
+      return;
+    }
+    try {
+      fiscalPublisher.publishReturn(sale, saleReturn);
+    } catch (RuntimeException e) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Devolução salva, envio ao serviço fiscal fica para o reenvio: venda={} erro={}",
+            LogSanitizer.maskId(sale.getId()),
+            e.getMessage());
+      }
+    }
   }
 
   private void restock(SaleReturn saleReturn, String tenantId) {
