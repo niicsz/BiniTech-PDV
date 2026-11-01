@@ -40,6 +40,7 @@ import java.time.Clock;
 import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -89,12 +90,12 @@ public class BeanConfig {
 
   @Bean
   public SaleFiscalPublisher saleFiscalPublisher(
-      SaleEventPublisherPort saleEventPublisherPort,
+      ObjectProvider<SaleEventPublisherPort> saleEventPublisherPort,
       SaleRepositoryPort saleRepositoryPort,
       ProductRepositoryPort productRepositoryPort,
       @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
     return new SaleFiscalPublisher(
-        saleEventPublisherPort,
+        saleEventPublisherPort.getIfAvailable(() -> event -> true),
         saleRepositoryPort,
         productRepositoryPort,
         ZoneId.of(businessTimeZone));
