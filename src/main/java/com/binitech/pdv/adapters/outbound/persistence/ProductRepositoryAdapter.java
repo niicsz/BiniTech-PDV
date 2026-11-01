@@ -1,5 +1,6 @@
 package com.binitech.pdv.adapters.outbound.persistence;
 
+import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.mapper.PersistenceMapper;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -9,25 +10,105 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.bson.Document;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
+import org.springframework.data.mongodb.core.aggregation.AggregationUpdate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProductRepositoryAdapter implements ProductRepositoryPort {
 
   private static final String FIELD_DESCRIPTION = "description";
+  private static final String FIELD_STOCK = "stockQuantity";
+  private static final String FIELD_TENANT = "tenantId";
 
   private final SpringDataProductRepository repository;
   private final PersistenceMapper mapper;
+  private final MongoTemplate mongo;
 
   public ProductRepositoryAdapter(
-      SpringDataProductRepository repository, PersistenceMapper mapper) {
+      SpringDataProductRepository repository, PersistenceMapper mapper, MongoTemplate mongo) {
     this.repository = repository;
     this.mapper = mapper;
+    this.mongo = mongo;
+  }
+
+  @Override
+  @Caching(
+      evict = {
+        @CacheEvict(value = "product_by_id", key = "#productId"),
+        @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "product_by_barcode_tenant", allEntries = true),
+        @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_by_tenant", allEntries = true),
+        @CacheEvict(value = "products_all", allEntries = true)
+      })
+  public boolean decreaseStock(String productId, String tenantId, int quantity) {
+    Query query =
+        Query.query(
+            Criteria.where("_id")
+                .is(productId)
+                .and(FIELD_TENANT)
+                .is(tenantId)
+                .and(FIELD_STOCK)
+                .gte(quantity));
+    return mongo
+            .updateFirst(query, new Update().inc(FIELD_STOCK, -quantity), ProductDocument.class)
+            .getModifiedCount()
+        == 1;
+  }
+
+  @Override
+  @Caching(
+      evict = {
+        @CacheEvict(value = "product_by_id", key = "#productId"),
+        @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "product_by_barcode_tenant", allEntries = true),
+        @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_by_tenant", allEntries = true),
+        @CacheEvict(value = "products_all", allEntries = true)
+      })
+  public int decreaseStockUpTo(String productId, String tenantId, int quantity) {
+    AggregationExpression floorAtZero =
+        context ->
+            new Document(
+                "$max",
+                List.of(0, new Document("$subtract", List.of("$" + FIELD_STOCK, quantity))));
+    ProductDocument before =
+        mongo.findAndModify(
+            Query.query(Criteria.where("_id").is(productId).and(FIELD_TENANT).is(tenantId)),
+            AggregationUpdate.update().set(FIELD_STOCK).toValue(floorAtZero),
+            FindAndModifyOptions.options().returnNew(false),
+            ProductDocument.class);
+    return before == null ? 0 : Math.clamp(before.getStockQuantity(), 0, quantity);
+  }
+
+  @Override
+  @Caching(
+      evict = {
+        @CacheEvict(value = "product_by_id", key = "#productId"),
+        @CacheEvict(value = "product_by_barcode", allEntries = true),
+        @CacheEvict(value = "product_by_barcode_tenant", allEntries = true),
+        @CacheEvict(value = "products_by_user", allEntries = true),
+        @CacheEvict(value = "products_by_tenant", allEntries = true),
+        @CacheEvict(value = "products_all", allEntries = true)
+      })
+  public boolean increaseStock(String productId, String tenantId, int quantity) {
+    Query query = Query.query(Criteria.where("_id").is(productId).and(FIELD_TENANT).is(tenantId));
+    return mongo
+            .updateFirst(query, new Update().inc(FIELD_STOCK, quantity), ProductDocument.class)
+            .getModifiedCount()
+        == 1;
   }
 
   @Override

@@ -2,6 +2,7 @@ package com.binitech.pdv.application.usecases;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -83,7 +84,7 @@ class SaleUseCaseImplTest {
       Sale sale = createValidSale("p1", 2);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(product));
-      when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(productRepository.decreaseStock("p1", "tenant1", 2)).thenReturn(true);
       when(saleRepository.save(any(Sale.class)))
           .thenAnswer(
               inv -> {
@@ -97,9 +98,9 @@ class SaleUseCaseImplTest {
       assertNotNull(result.getId());
       assertEquals("user1", result.getUserId());
       assertEquals("tenant1", result.getTenantId());
-      assertEquals(8, product.getStockQuantity());
       verify(productRepository, times(1)).findById("p1");
-      verify(productRepository).save(product);
+      verify(productRepository).decreaseStock("p1", "tenant1", 2);
+      verify(productRepository, never()).save(any());
       verify(saleRepository).save(sale);
     }
 
@@ -111,7 +112,7 @@ class SaleUseCaseImplTest {
       sale.setSkipStockValidation(true);
 
       when(productRepository.findById("p1")).thenReturn(Optional.of(product));
-      when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(productRepository.decreaseStockUpTo("p1", "tenant1", 5)).thenReturn(1);
       when(saleRepository.save(any(Sale.class)))
           .thenAnswer(
               inv -> {
@@ -123,7 +124,67 @@ class SaleUseCaseImplTest {
       Sale result = saleUseCase.createSale(sale, "user1", "tenant1");
 
       assertNotNull(result.getId());
-      assertEquals(0, product.getStockQuantity());
+      verify(productRepository).decreaseStockUpTo("p1", "tenant1", 5);
+      verify(productRepository, never()).decreaseStock(any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("Itens repetidos do mesmo produto viram uma baixa só")
+    void createSale_mergesRepeatedProduct() {
+      Product product = createProduct("p1", "tenant1", true, 10);
+      Sale sale = createValidSale("p1", 2);
+      SaleItem again = new SaleItem();
+      again.setProductId("p1");
+      again.setQuantity(3);
+      sale.getItems().add(again);
+      sale.setPayments(new ArrayList<>(List.of(new Payment(PaymentMethod.CASH, 50.0))));
+      when(productRepository.findById("p1")).thenReturn(Optional.of(product));
+      when(productRepository.decreaseStock("p1", "tenant1", 5)).thenReturn(true);
+      when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
+
+      saleUseCase.createSale(sale, "user1", "tenant1");
+
+      verify(productRepository).decreaseStock("p1", "tenant1", 5);
+    }
+
+    @Test
+    @DisplayName("Se outra venda levar o estoque no meio, devolve o que já baixou e não grava")
+    void createSale_whenStockTakenConcurrently_releasesAndFails() {
+      Product first = createProduct("p1", "tenant1", true, 10);
+      Product second = createProduct("p2", "tenant1", true, 10);
+      Sale sale = createValidSale("p1", 2);
+      SaleItem other = new SaleItem();
+      other.setProductId("p2");
+      other.setQuantity(1);
+      sale.getItems().add(other);
+      sale.setPayments(new ArrayList<>(List.of(new Payment(PaymentMethod.CASH, 30.0))));
+      when(productRepository.findById("p1")).thenReturn(Optional.of(first));
+      when(productRepository.findById("p2")).thenReturn(Optional.of(second));
+      when(productRepository.decreaseStock("p1", "tenant1", 2)).thenReturn(true);
+      when(productRepository.decreaseStock("p2", "tenant1", 1)).thenReturn(false);
+
+      BusinessException ex =
+          assertThrows(
+              BusinessException.class, () -> saleUseCase.createSale(sale, "user1", "tenant1"));
+
+      assertTrue(ex.getMessage().contains("Estoque insuficiente para 'Produto p2'"));
+      verify(productRepository).increaseStock("p1", "tenant1", 2);
+      verify(saleRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Se gravar a venda falhar, o estoque baixado volta")
+    void createSale_whenSaveFails_releasesStock() {
+      Product product = createProduct("p1", "tenant1", true, 10);
+      Sale sale = createValidSale("p1", 2);
+      when(productRepository.findById("p1")).thenReturn(Optional.of(product));
+      when(productRepository.decreaseStock("p1", "tenant1", 2)).thenReturn(true);
+      when(saleRepository.save(any(Sale.class))).thenThrow(new IllegalStateException("mongo fora"));
+
+      assertThrows(
+          IllegalStateException.class, () -> saleUseCase.createSale(sale, "user1", "tenant1"));
+
+      verify(productRepository).increaseStock("p1", "tenant1", 2);
     }
 
     @Test
@@ -375,10 +436,9 @@ class SaleUseCaseImplTest {
     @DisplayName("Registra a devolução, grava com a versão esperada e repõe o estoque")
     void registersAndRestocks() {
       Sale sale = storedSale();
-      Product product = createProduct("p1", "tenant1", true, 4);
       when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
       when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
-      when(productRepository.findById("p1")).thenReturn(Optional.of(product));
+      when(productRepository.increaseStock("p1", "tenant1", 2)).thenReturn(true);
 
       Sale result =
           saleUseCase.registerReturn("s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN);
@@ -387,8 +447,8 @@ class SaleUseCaseImplTest {
       assertEquals(20.0, result.getReturnedAmount());
       assertEquals(1, result.getReturnsVersion());
       assertEquals("admin", result.getReturns().get(0).getUserId());
-      assertEquals(6, product.getStockQuantity());
-      verify(productRepository).save(product);
+      verify(productRepository).increaseStock("p1", "tenant1", 2);
+      verify(productRepository, never()).save(any());
     }
 
     @Test
@@ -409,11 +469,12 @@ class SaleUseCaseImplTest {
       Sale sale = storedSale();
       when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
       when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
-      when(productRepository.findById("p1"))
-          .thenReturn(Optional.of(createProduct("p1", "outra", true, 1)));
+      when(productRepository.increaseStock("p1", "tenant1", 2)).thenReturn(false);
 
-      saleUseCase.registerReturn("s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN);
+      Sale result =
+          saleUseCase.registerReturn("s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN);
 
+      assertEquals(SaleStatus.PARTIALLY_RETURNED, result.getStatus());
       verify(productRepository, never()).save(any());
     }
 
