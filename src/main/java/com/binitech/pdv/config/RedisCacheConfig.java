@@ -24,16 +24,18 @@ public class RedisCacheConfig implements CachingConfigurer {
 
   private static final Logger log = LoggerFactory.getLogger(RedisCacheConfig.class);
 
-  private static final String CACHE_VERSION = "v2";
+  private static final String CACHE_VERSION = "v3";
 
-  @Bean
-  public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+  static GenericJackson2JsonRedisSerializer cacheSerializer() {
     ObjectMapper cacheObjectMapper = new ObjectMapper();
     cacheObjectMapper.activateDefaultTypingAsProperty(
         LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL, "@class");
+    return new GenericJackson2JsonRedisSerializer(cacheObjectMapper);
+  }
 
-    GenericJackson2JsonRedisSerializer serializer =
-        new GenericJackson2JsonRedisSerializer(cacheObjectMapper);
+  @Bean
+  public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+    GenericJackson2JsonRedisSerializer serializer = cacheSerializer();
 
     RedisCacheConfiguration defaultConfig =
         RedisCacheConfiguration.defaultCacheConfig()
