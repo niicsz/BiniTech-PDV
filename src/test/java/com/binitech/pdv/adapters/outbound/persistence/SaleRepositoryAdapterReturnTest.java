@@ -25,6 +25,8 @@ import org.bson.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -93,5 +95,20 @@ class SaleRepositoryAdapterReturnTest {
     verify(mongo).updateFirst(query.capture(), any(Update.class), eq(SaleDocument.class));
     assertThat(saved).isFalse();
     assertThat(query.getValue().getQueryObject().toJson()).contains("\"returnsVersion\": 3");
+  }
+
+  @Test
+  @DisplayName("Paginação de vendas desempata pelo _id para não repetir nem pular vendas")
+  void stablePagination() {
+    SpringDataSaleRepository repository = mock(SpringDataSaleRepository.class);
+    when(repository.findAllByTenantId(eq("t1"), any(Pageable.class))).thenReturn(List.of());
+    new SaleRepositoryAdapter(repository, new PersistenceMapperImpl(), mongo)
+        .findAllByTenantId("t1", 2, 50);
+
+    ArgumentCaptor<Pageable> page = ArgumentCaptor.forClass(Pageable.class);
+    verify(repository).findAllByTenantId(eq("t1"), page.capture());
+    assertThat(page.getValue().getSort())
+        .containsExactly(Sort.Order.desc("timestamp"), Sort.Order.desc("_id"));
+    assertThat(page.getValue().getPageNumber()).isEqualTo(2);
   }
 }

@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
 public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   private static final String FIELD_TIMESTAMP = "timestamp";
+  private static final Sort NEWEST_FIRST =
+      Sort.by(Sort.Order.desc(FIELD_TIMESTAMP), Sort.Order.desc("_id"));
   private static final String FIELD_RETURNS_VERSION = "returnsVersion";
   private static final String FIELD_RETURNS_FISCAL_PENDING = "returns.fiscalPending";
 
@@ -105,18 +107,14 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   @Override
   public List<Sale> findAll(int page, int size) {
-    return repository
-        .findAll(PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
-        .stream()
+    return repository.findAll(PageRequest.of(page, size, NEWEST_FIRST)).stream()
         .map(mapper::toDomain)
         .toList();
   }
 
   @Override
   public List<Sale> findAllByUserId(String userId, int page, int size) {
-    return repository
-        .findAllByUserId(userId, PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
-        .stream()
+    return repository.findAllByUserId(userId, PageRequest.of(page, size, NEWEST_FIRST)).stream()
         .map(mapper::toDomain)
         .toList();
   }
@@ -141,10 +139,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   @Override
   public List<Sale> findAllByTenantId(String tenantId, int page, int size) {
-    return repository
-        .findAllByTenantId(
-            tenantId, PageRequest.of(page, size, Sort.by(FIELD_TIMESTAMP).descending()))
-        .stream()
+    return repository.findAllByTenantId(tenantId, PageRequest.of(page, size, NEWEST_FIRST)).stream()
         .map(mapper::toDomain)
         .toList();
   }
