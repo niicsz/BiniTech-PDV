@@ -73,10 +73,11 @@ class SaleRepositoryAdapterReturnTest {
     assertThat((List<Object>) versionCondition(query.getValue()).get("$in"))
         .containsExactly(null, 0);
     Document set = (Document) update.getValue().getUpdateObject().get("$set");
-    assertThat(set).containsEntry("status", "RETURNED");
-    assertThat(set).containsEntry("returnedAmount", 20.0);
-    assertThat(set).containsEntry("returnedCost", 12.0);
-    assertThat(set).containsEntry("returnsVersion", 1);
+    assertThat(set)
+        .containsEntry("status", "RETURNED")
+        .containsEntry("returnedAmount", 20.0)
+        .containsEntry("returnedCost", 12.0)
+        .containsEntry("returnsVersion", 1);
     assertThat((List<?>) set.get("returns")).hasSize(1);
   }
 
