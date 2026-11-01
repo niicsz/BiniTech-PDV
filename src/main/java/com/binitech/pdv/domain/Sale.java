@@ -20,6 +20,8 @@ public class Sale {
   private String tenantId;
   private String customerName;
   private String customerPhone;
+  private String customerCpf;
+  private boolean fiscalPending;
   private boolean skipStockValidation;
   private boolean paid;
 
@@ -162,6 +164,22 @@ public class Sale {
 
   public void setCustomerPhone(String customerPhone) {
     this.customerPhone = customerPhone;
+  }
+
+  public String getCustomerCpf() {
+    return customerCpf;
+  }
+
+  public void setCustomerCpf(String customerCpf) {
+    this.customerCpf = customerCpf;
+  }
+
+  public boolean isFiscalPending() {
+    return fiscalPending;
+  }
+
+  public void setFiscalPending(boolean fiscalPending) {
+    this.fiscalPending = fiscalPending;
   }
 
   public boolean isSkipStockValidation() {

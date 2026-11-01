@@ -17,6 +17,9 @@ public class Product implements Serializable {
   private String userId;
   private String tenantId;
   private String category;
+  private String ncm;
+  private String cfop;
+  private String csosn;
 
   public Product() {
     this.active = true;
@@ -32,6 +35,30 @@ public class Product implements Serializable {
 
   public void increaseStock(int quantity) {
     this.stockQuantity += quantity;
+  }
+
+  public String getNcm() {
+    return ncm;
+  }
+
+  public void setNcm(String ncm) {
+    this.ncm = ncm;
+  }
+
+  public String getCfop() {
+    return cfop;
+  }
+
+  public void setCfop(String cfop) {
+    this.cfop = cfop;
+  }
+
+  public String getCsosn() {
+    return csosn;
+  }
+
+  public void setCsosn(String csosn) {
+    this.csosn = csosn;
   }
 
   public String getId() {

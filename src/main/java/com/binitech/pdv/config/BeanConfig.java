@@ -19,6 +19,7 @@ import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.SaleEventPublisherPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantDataPurgePort;
@@ -31,6 +32,7 @@ import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
+import com.binitech.pdv.application.usecases.SaleFiscalPublisher;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
 import com.binitech.pdv.application.usecases.UserManagementUseCaseImpl;
@@ -75,10 +77,27 @@ public class BeanConfig {
   public SaleUseCasePort saleUseCasePort(
       SaleRepositoryPort saleRepositoryPort,
       ProductRepositoryPort productRepositoryPort,
-      @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
+      @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone,
+      SaleFiscalPublisher saleFiscalPublisher) {
     log.info("Configurando SaleUseCasePort");
     return new SaleUseCaseImpl(
-        saleRepositoryPort, productRepositoryPort, ZoneId.of(businessTimeZone));
+        saleRepositoryPort,
+        productRepositoryPort,
+        ZoneId.of(businessTimeZone),
+        saleFiscalPublisher);
+  }
+
+  @Bean
+  public SaleFiscalPublisher saleFiscalPublisher(
+      SaleEventPublisherPort saleEventPublisherPort,
+      SaleRepositoryPort saleRepositoryPort,
+      ProductRepositoryPort productRepositoryPort,
+      @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
+    return new SaleFiscalPublisher(
+        saleEventPublisherPort,
+        saleRepositoryPort,
+        productRepositoryPort,
+        ZoneId.of(businessTimeZone));
   }
 
   @Bean

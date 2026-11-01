@@ -41,5 +41,7 @@ public class SaleDocument {
   private String tenantId;
   private String customerName;
   private String customerPhone;
+  private String customerCpf;
+  private boolean fiscalPending;
   private boolean paid;
 }

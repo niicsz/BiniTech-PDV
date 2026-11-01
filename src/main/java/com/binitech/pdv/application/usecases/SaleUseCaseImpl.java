@@ -32,14 +32,24 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   private final SaleRepositoryPort saleRepository;
   private final ProductRepositoryPort productRepository;
   private final ZoneId businessZone;
+  private final SaleFiscalPublisher fiscalPublisher;
 
   public SaleUseCaseImpl(
       SaleRepositoryPort saleRepository,
       ProductRepositoryPort productRepository,
       ZoneId businessZone) {
+    this(saleRepository, productRepository, businessZone, null);
+  }
+
+  public SaleUseCaseImpl(
+      SaleRepositoryPort saleRepository,
+      ProductRepositoryPort productRepository,
+      ZoneId businessZone,
+      SaleFiscalPublisher fiscalPublisher) {
     this.saleRepository = saleRepository;
     this.productRepository = productRepository;
     this.businessZone = businessZone;
+    this.fiscalPublisher = fiscalPublisher;
   }
 
   @Override
@@ -64,8 +74,11 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.setUserId(userId);
     sale.setTenantId(tenantId);
     sale.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
+    sale.setCustomerCpf(digitsOrNull(sale.getCustomerCpf()));
+    sale.setFiscalPending(fiscalPublisher != null);
 
     Sale saved = saleRepository.save(sale);
+    publishToFiscal(saved, productsById);
     if (log.isInfoEnabled()) {
       log.info(
           "Venda criada com sucesso: id={} total={}",
@@ -73,6 +86,30 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
           saved.getTotalAmount());
     }
     return saved;
+  }
+
+  private void publishToFiscal(Sale saved, Map<String, Product> productsById) {
+    if (fiscalPublisher == null) {
+      return;
+    }
+    try {
+      fiscalPublisher.publish(saved, productsById);
+    } catch (RuntimeException e) {
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Venda salva, envio ao serviço fiscal fica para o reenvio: id={} erro={}",
+            LogSanitizer.maskId(saved.getId()),
+            e.getMessage());
+      }
+    }
+  }
+
+  private static String digitsOrNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    String digits = value.replaceAll("\\D", "");
+    return digits.isEmpty() ? null : digits;
   }
 
   private Map<String, Product> loadProductsForSale(List<SaleItem> items) {

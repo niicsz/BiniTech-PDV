@@ -748,6 +748,18 @@ components:
           type: boolean
         category:
           type: string
+        ncm:
+          type: string
+          pattern: '^\d{8}$'
+          description: NCM do produto (8 dígitos), usado na NFC-e
+        cfop:
+          type: string
+          pattern: '^\d{4}$'
+          description: CFOP de venda (4 dígitos), usado na NFC-e
+        csosn:
+          type: string
+          pattern: '^\d{3}$'
+          description: CSOSN do ICMS (Simples Nacional/MEI), usado na NFC-e
         userId:
           type: string
           readOnly: true
@@ -779,6 +791,18 @@ components:
           minimum: 0
         category:
           type: string
+        ncm:
+          type: string
+          pattern: '^\d{8}$'
+          description: NCM do produto (8 dígitos), usado na NFC-e
+        cfop:
+          type: string
+          pattern: '^\d{4}$'
+          description: CFOP de venda (4 dígitos), usado na NFC-e
+        csosn:
+          type: string
+          pattern: '^\d{3}$'
+          description: CSOSN do ICMS (Simples Nacional/MEI), usado na NFC-e
         active:
           type: boolean
 
@@ -816,6 +840,8 @@ components:
         customerName:
           type: string
         customerPhone:
+          type: string
+        customerCpf:
           type: string
         paid:
           type: boolean
@@ -859,6 +885,9 @@ components:
           type: string
         customerPhone:
           type: string
+        customerCpf:
+          type: string
+          description: CPF do consumidor para a NFC-e (opcional)
         skipStockValidation:
           type: boolean
 
