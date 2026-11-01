@@ -16,6 +16,15 @@ public class AuthenticatedUserProvider {
     return (String) auth.getPrincipal();
   }
 
+  public String getUsername() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null) {
+      return null;
+    }
+    Object credentials = auth.getCredentials();
+    return credentials instanceof String username ? username : null;
+  }
+
   public String getTenantId() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null) {
