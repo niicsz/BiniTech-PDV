@@ -164,7 +164,7 @@ public class Sale {
     return items.stream()
         .map(SaleItem::getProductId)
         .distinct()
-        .allMatch(id -> returnedQuantity(id) >= soldQuantity(id));
+        .allMatch(productId -> returnedQuantity(productId) >= soldQuantity(productId));
   }
 
   private static String blankToNull(String value) {

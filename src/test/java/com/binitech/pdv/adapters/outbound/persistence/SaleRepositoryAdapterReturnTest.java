@@ -69,14 +69,14 @@ class SaleRepositoryAdapterReturnTest {
     ArgumentCaptor<Update> update = ArgumentCaptor.forClass(Update.class);
     verify(mongo).updateFirst(query.capture(), update.capture(), eq(SaleDocument.class));
     assertThat(saved).isTrue();
-    assertThat(query.getValue().getQueryObject().get("_id")).isEqualTo("s1");
+    assertThat(query.getValue().getQueryObject()).containsEntry("_id", "s1");
     assertThat((List<Object>) versionCondition(query.getValue()).get("$in"))
         .containsExactly(null, 0);
     Document set = (Document) update.getValue().getUpdateObject().get("$set");
-    assertThat(set.get("status")).isEqualTo("RETURNED");
-    assertThat(set.get("returnedAmount")).isEqualTo(20.0);
-    assertThat(set.get("returnedCost")).isEqualTo(12.0);
-    assertThat(set.get("returnsVersion")).isEqualTo(1);
+    assertThat(set).containsEntry("status", "RETURNED");
+    assertThat(set).containsEntry("returnedAmount", 20.0);
+    assertThat(set).containsEntry("returnedCost", 12.0);
+    assertThat(set).containsEntry("returnsVersion", 1);
     assertThat((List<?>) set.get("returns")).hasSize(1);
   }
 

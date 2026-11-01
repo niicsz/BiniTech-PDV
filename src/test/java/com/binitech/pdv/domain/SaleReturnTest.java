@@ -73,9 +73,10 @@ class SaleReturnTest {
     assertEquals(49.9, sale.getReturnedAmount());
     assertEquals(30.0, sale.getReturnedCost());
     assertEquals(2, sale.getReturns().size());
+    SaleReturnRequest afterFullReturn = request(Map.of("p1", 1), RefundMethod.PIX);
     BusinessException again =
         assertThrows(
-            BusinessException.class, () -> register(sale, Map.of("p1", 1), RefundMethod.PIX));
+            BusinessException.class, () -> sale.registerReturn(afterFullReturn, "r", "u", NOW));
     assertTrue(again.getMessage().contains("devolvida por completo"));
   }
 
@@ -85,9 +86,9 @@ class SaleReturnTest {
     Sale sale = sale(PaymentMethod.CASH, false);
     register(sale, Map.of("p1", 2), RefundMethod.CASH);
 
+    SaleReturnRequest tooMany = request(Map.of("p1", 2), RefundMethod.CASH);
     BusinessException error =
-        assertThrows(
-            BusinessException.class, () -> register(sale, Map.of("p1", 2), RefundMethod.CASH));
+        assertThrows(BusinessException.class, () -> sale.registerReturn(tooMany, "r", "u", NOW));
 
     assertTrue(error.getMessage().contains("Disponível: 1"));
     assertEquals(1, sale.getReturns().size());
@@ -98,11 +99,14 @@ class SaleReturnTest {
   void rejectsInvalidRequests() {
     Sale sale = sale(PaymentMethod.CASH, false);
 
-    assertThrows(
-        BusinessException.class, () -> register(sale, Map.of("outro", 1), RefundMethod.CASH));
-    assertThrows(BusinessException.class, () -> register(sale, Map.of("p1", 0), RefundMethod.CASH));
-    assertThrows(BusinessException.class, () -> register(sale, Map.of(), RefundMethod.CASH));
-    assertThrows(BusinessException.class, () -> register(sale, Map.of("p1", 1), null));
+    SaleReturnRequest notInSale = request(Map.of("outro", 1), RefundMethod.CASH);
+    assertThrows(BusinessException.class, () -> sale.registerReturn(notInSale, "r", "u", NOW));
+    SaleReturnRequest zeroQuantity = request(Map.of("p1", 0), RefundMethod.CASH);
+    assertThrows(BusinessException.class, () -> sale.registerReturn(zeroQuantity, "r", "u", NOW));
+    SaleReturnRequest noItems = request(Map.of(), RefundMethod.CASH);
+    assertThrows(BusinessException.class, () -> sale.registerReturn(noItems, "r", "u", NOW));
+    SaleReturnRequest noRefundMethod = request(Map.of("p1", 1), null);
+    assertThrows(BusinessException.class, () -> sale.registerReturn(noRefundMethod, "r", "u", NOW));
     assertEquals(SaleStatus.COMPLETED, sale.getStatus());
   }
 
@@ -110,18 +114,19 @@ class SaleReturnTest {
   @DisplayName("Fiado em aberto só aceita abater o débito; venda paga não aceita abatimento")
   void crediarioRules() {
     Sale open = sale(PaymentMethod.CREDIARIO, false);
-    assertThrows(BusinessException.class, () -> register(open, Map.of("p1", 1), RefundMethod.CASH));
+    SaleReturnRequest cashOnOpenDebt = request(Map.of("p1", 1), RefundMethod.CASH);
+    assertThrows(BusinessException.class, () -> open.registerReturn(cashOnOpenDebt, "r", "u", NOW));
     SaleReturn deducted = register(open, Map.of("p1", 1), RefundMethod.DEBT_DEDUCTION);
     assertEquals(RefundMethod.DEBT_DEDUCTION, deducted.getRefundMethod());
 
     Sale paid = sale(PaymentMethod.CREDIARIO, true);
+    SaleReturnRequest deductionOnPaidSale = request(Map.of("p1", 1), RefundMethod.DEBT_DEDUCTION);
     assertThrows(
-        BusinessException.class,
-        () -> register(paid, Map.of("p1", 1), RefundMethod.DEBT_DEDUCTION));
+        BusinessException.class, () -> paid.registerReturn(deductionOnPaidSale, "r", "u", NOW));
     Sale cash = sale(PaymentMethod.CASH, false);
+    SaleReturnRequest deductionOnCashSale = request(Map.of("p1", 1), RefundMethod.DEBT_DEDUCTION);
     assertThrows(
-        BusinessException.class,
-        () -> register(cash, Map.of("p1", 1), RefundMethod.DEBT_DEDUCTION));
+        BusinessException.class, () -> cash.registerReturn(deductionOnCashSale, "r", "u", NOW));
   }
 
   @Test
