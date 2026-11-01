@@ -44,4 +44,9 @@ public class SaleDocument {
   private String customerCpf;
   private boolean fiscalPending;
   private boolean paid;
+  private List<SaleReturnDocument> returns;
+  private double returnedAmount;
+  private double returnedCost;
+  private String status;
+  private Integer returnsVersion;
 }

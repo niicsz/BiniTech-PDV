@@ -2,6 +2,7 @@ package com.binitech.pdv.adapters.inbound.web;
 
 import com.binitech.pdv.adapters.inbound.web.generated.api.SalesApi;
 import com.binitech.pdv.adapters.inbound.web.generated.model.CreateSaleDTO;
+import com.binitech.pdv.adapters.inbound.web.generated.model.CreateSaleReturnDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.SaleDTO;
 import com.binitech.pdv.adapters.inbound.web.mapper.WebMapper;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
@@ -85,6 +86,21 @@ public class SaleController implements SalesApi {
       log.info("Retornando {} venda(s) em débito", debtors.size());
     }
     return ResponseEntity.ok(webMapper.toSaleDtoList(debtors));
+  }
+
+  @Override
+  public ResponseEntity<SaleDTO> registerSaleReturn(String id, CreateSaleReturnDTO dto) {
+    if (log.isInfoEnabled()) {
+      log.info("Registrando devolução: venda={}", LogSanitizer.maskId(id));
+    }
+    Sale updated =
+        saleUseCase.registerReturn(
+            id,
+            webMapper.toDomain(dto),
+            userProvider.getUserId(),
+            userProvider.getTenantId(),
+            userProvider.getUserRole());
+    return ResponseEntity.status(HttpStatus.CREATED).body(webMapper.toDto(updated));
   }
 
   @Override

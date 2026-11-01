@@ -10,6 +10,8 @@ public interface SaleRepositoryPort {
 
   Sale save(Sale sale);
 
+  boolean appendReturn(Sale sale, int expectedReturnsVersion);
+
   List<Sale> findFiscalPending(int limit);
 
   void markFiscalPublished(String id);
