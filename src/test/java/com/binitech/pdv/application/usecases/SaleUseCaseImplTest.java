@@ -423,29 +423,27 @@ class SaleUseCaseImplTest {
       Sale sale = storedSale();
       when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
       when(saleRepository.appendReturn(sale, 0)).thenReturn(false);
+      SaleReturnRequest request = request(true);
 
       assertThrows(
           BusinessException.class,
-          () ->
-              saleUseCase.registerReturn(
-                  "s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN));
+          () -> saleUseCase.registerReturn("s1", request, "admin", "tenant1", Role.TENANT_ADMIN));
       verifyNoInteractions(productRepository);
     }
 
     @Test
     @DisplayName("Operador não registra devolução e venda de outra loja não aparece")
     void permissions() {
+      SaleReturnRequest request = request(true);
       assertThrows(
           AccessDeniedException.class,
-          () -> saleUseCase.registerReturn("s1", request(true), "op", "tenant1", Role.OPERATOR));
+          () -> saleUseCase.registerReturn("s1", request, "op", "tenant1", Role.OPERATOR));
       verifyNoInteractions(saleRepository);
 
       when(saleRepository.findById("s1")).thenReturn(Optional.of(storedSale()));
       assertThrows(
           ResourceNotFoundException.class,
-          () ->
-              saleUseCase.registerReturn(
-                  "s1", request(true), "admin", "tenant2", Role.TENANT_ADMIN));
+          () -> saleUseCase.registerReturn("s1", request, "admin", "tenant2", Role.TENANT_ADMIN));
     }
 
     @Test

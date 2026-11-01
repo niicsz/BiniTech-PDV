@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   private static final String FIELD_TIMESTAMP = "timestamp";
+  private static final String FIELD_RETURNS_VERSION = "returnsVersion";
 
   private final SpringDataSaleRepository repository;
   private final PersistenceMapper mapper;
@@ -54,8 +55,8 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   public boolean appendReturn(Sale sale, int expectedReturnsVersion) {
     Criteria version =
         expectedReturnsVersion == 0
-            ? Criteria.where("returnsVersion").in(null, 0)
-            : Criteria.where("returnsVersion").is(expectedReturnsVersion);
+            ? Criteria.where(FIELD_RETURNS_VERSION).in(null, 0)
+            : Criteria.where(FIELD_RETURNS_VERSION).is(expectedReturnsVersion);
     Query query = Query.query(Criteria.where("_id").is(sale.getId()).andOperator(version));
     Update update =
         new Update()
@@ -63,7 +64,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
             .set("returnedAmount", sale.getReturnedAmount())
             .set("returnedCost", sale.getReturnedCost())
             .set("status", sale.getStatus().name())
-            .set("returnsVersion", expectedReturnsVersion + 1);
+            .set(FIELD_RETURNS_VERSION, expectedReturnsVersion + 1);
     return mongo.updateFirst(query, update, SaleDocument.class).getModifiedCount() == 1;
   }
 
