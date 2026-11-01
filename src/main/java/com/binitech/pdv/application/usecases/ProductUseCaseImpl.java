@@ -105,6 +105,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     existing.setCostPrice(product.getCostPrice());
     existing.setStockQuantity(product.getStockQuantity());
     existing.setCategory(product.getCategory());
+    existing.setNcm(product.getNcm());
+    existing.setCfop(product.getCfop());
+    existing.setCsosn(product.getCsosn());
     if (activeOverride != null) {
       existing.setActive(activeOverride);
     }

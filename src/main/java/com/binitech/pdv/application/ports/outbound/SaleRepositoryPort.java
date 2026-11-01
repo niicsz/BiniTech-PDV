@@ -10,6 +10,10 @@ public interface SaleRepositoryPort {
 
   Sale save(Sale sale);
 
+  List<Sale> findFiscalPending(int limit);
+
+  void markFiscalPublished(String id);
+
   Optional<Sale> findById(String id);
 
   List<Sale> findByTimestampBetween(LocalDateTime start, LocalDateTime end);

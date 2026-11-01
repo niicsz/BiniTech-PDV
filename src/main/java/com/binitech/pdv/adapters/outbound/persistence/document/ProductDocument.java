@@ -36,4 +36,7 @@ public class ProductDocument {
   private String userId;
   private String tenantId;
   private String category;
+  private String ncm;
+  private String cfop;
+  private String csosn;
 }

@@ -17,10 +17,17 @@ public class RabbitMQConfig {
   public static final String EMAIL_EXCHANGE = "email.exchange";
   public static final String EMAIL_QUEUE = "email.queue";
   public static final String EMAIL_ROUTING_KEY = "email.approval";
+  public static final String SALES_EXCHANGE = "binitech.sales";
+  public static final String SALE_COMPLETED_KEY = "sale.completed";
 
   @Bean
   public TopicExchange emailExchange() {
     return new TopicExchange(EMAIL_EXCHANGE, true, false);
+  }
+
+  @Bean
+  public TopicExchange salesExchange() {
+    return new TopicExchange(SALES_EXCHANGE, true, false);
   }
 
   @Bean

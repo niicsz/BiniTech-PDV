@@ -1,5 +1,6 @@
 package com.binitech.pdv.adapters.outbound.persistence;
 
+import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
 import com.binitech.pdv.adapters.outbound.persistence.mapper.PersistenceMapper;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataSaleRepository;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
@@ -10,6 +11,10 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,10 +24,30 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   private final SpringDataSaleRepository repository;
   private final PersistenceMapper mapper;
+  private final MongoTemplate mongo;
 
-  public SaleRepositoryAdapter(SpringDataSaleRepository repository, PersistenceMapper mapper) {
+  public SaleRepositoryAdapter(
+      SpringDataSaleRepository repository, PersistenceMapper mapper, MongoTemplate mongo) {
     this.repository = repository;
     this.mapper = mapper;
+    this.mongo = mongo;
+  }
+
+  @Override
+  public List<Sale> findFiscalPending(int limit) {
+    Query query =
+        Query.query(Criteria.where("fiscalPending").is(true))
+            .with(Sort.by(Sort.Direction.ASC, FIELD_TIMESTAMP))
+            .limit(limit);
+    return mongo.find(query, SaleDocument.class).stream().map(mapper::toDomain).toList();
+  }
+
+  @Override
+  public void markFiscalPublished(String id) {
+    mongo.updateFirst(
+        Query.query(Criteria.where("_id").is(id)),
+        Update.update("fiscalPending", false),
+        SaleDocument.class);
   }
 
   @Override
