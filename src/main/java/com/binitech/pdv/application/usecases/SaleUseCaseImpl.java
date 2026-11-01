@@ -6,10 +6,13 @@ import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
+import com.binitech.pdv.domain.SaleReturn;
+import com.binitech.pdv.domain.SaleReturnRequest;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.SaleStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,8 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 public class SaleUseCaseImpl implements SaleUseCasePort {
@@ -304,12 +309,75 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       throw new ResourceNotFoundException("Venda", "id", id);
     }
 
+    if (sale.getStatus() == SaleStatus.RETURNED) {
+      throw new BusinessException("Esta venda foi devolvida por completo e não tem débito.");
+    }
+
     sale.setPaid(true);
     Sale saved = saleRepository.save(sale);
     if (log.isInfoEnabled()) {
       log.info("Venda marcada como paga com sucesso: id={}", LogSanitizer.maskId(saved.getId()));
     }
     return saved;
+  }
+
+  @Override
+  public Sale registerReturn(
+      String id, SaleReturnRequest request, String userId, String tenantId, Role role) {
+    if (!isPrivileged(role)) {
+      log.warn("Devolução negada para papel sem permissão: role={}", role);
+      throw new AccessDeniedException("Só o administrador da loja pode registrar devoluções.");
+    }
+    Sale sale = findOwnedSale(id, tenantId);
+    int expectedVersion = sale.getReturnsVersion();
+    SaleReturn saleReturn =
+        sale.registerReturn(
+            request,
+            UUID.randomUUID().toString(),
+            userId,
+            LocalDateTime.now(ZoneId.systemDefault()));
+
+    if (!saleRepository.appendReturn(sale, expectedVersion)) {
+      if (log.isWarnEnabled()) {
+        log.warn("Devolução concorrente na mesma venda: id={}", LogSanitizer.maskId(id));
+      }
+      throw new BusinessException(
+          "Esta venda acabou de receber outra devolução. Abra a venda de novo e confira.");
+    }
+    sale.setReturnsVersion(expectedVersion + 1);
+
+    if (saleReturn.isRestocked()) {
+      restock(saleReturn, tenantId);
+    }
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Devolução registrada: venda={} valor={} forma={} estoque={}",
+          LogSanitizer.maskId(id),
+          saleReturn.getRefundAmount(),
+          saleReturn.getRefundMethod(),
+          saleReturn.isRestocked());
+    }
+    return sale;
+  }
+
+  private void restock(SaleReturn saleReturn, String tenantId) {
+    for (SaleItem item : saleReturn.getItems()) {
+      productRepository
+          .findById(item.getProductId())
+          .filter(product -> Objects.equals(product.getTenantId(), tenantId))
+          .ifPresentOrElse(
+              product -> {
+                product.increaseStock(item.getQuantity());
+                productRepository.save(product);
+              },
+              () -> {
+                if (log.isWarnEnabled()) {
+                  log.warn(
+                      "Produto da devolução não existe mais, estoque não reposto: productId={}",
+                      LogSanitizer.maskId(item.getProductId()));
+                }
+              });
+    }
   }
 
   private Sale findOwnedSale(String id, String tenantId) {

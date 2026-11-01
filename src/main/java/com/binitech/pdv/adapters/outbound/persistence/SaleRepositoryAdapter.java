@@ -51,6 +51,23 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   }
 
   @Override
+  public boolean appendReturn(Sale sale, int expectedReturnsVersion) {
+    Criteria version =
+        expectedReturnsVersion == 0
+            ? Criteria.where("returnsVersion").in(null, 0)
+            : Criteria.where("returnsVersion").is(expectedReturnsVersion);
+    Query query = Query.query(Criteria.where("_id").is(sale.getId()).andOperator(version));
+    Update update =
+        new Update()
+            .set("returns", sale.getReturns().stream().map(mapper::toDocument).toList())
+            .set("returnedAmount", sale.getReturnedAmount())
+            .set("returnedCost", sale.getReturnedCost())
+            .set("status", sale.getStatus().name())
+            .set("returnsVersion", expectedReturnsVersion + 1);
+    return mongo.updateFirst(query, update, SaleDocument.class).getModifiedCount() == 1;
+  }
+
+  @Override
   public Sale save(Sale sale) {
     var document = mapper.toDocument(sale);
     var saved = repository.save(document);

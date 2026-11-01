@@ -19,10 +19,11 @@ public interface SpringDataSaleRepository extends MongoRepository<SaleDocument, 
   List<SaleDocument> findByTimestampBetweenAndUserId(
       LocalDateTime start, LocalDateTime end, String userId);
 
-  @Query("{ 'payments.method': 'CREDIARIO', 'paid': false }")
+  @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'status': { '$ne': 'RETURNED' } }")
   List<SaleDocument> findDebtors();
 
-  @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'userId': ?0 }")
+  @Query(
+      "{ 'payments.method': 'CREDIARIO', 'paid': false, 'status': { '$ne': 'RETURNED' }, 'userId': ?0 }")
   List<SaleDocument> findDebtorsByUserId(String userId);
 
   List<SaleDocument> findAllByTenantId(String tenantId, Pageable pageable);
@@ -31,7 +32,8 @@ public interface SpringDataSaleRepository extends MongoRepository<SaleDocument, 
   List<SaleDocument> findByTimestampRangeAndTenantId(
       Instant startInclusive, Instant endExclusive, String tenantId);
 
-  @Query("{ 'payments.method': 'CREDIARIO', 'paid': false, 'tenantId': ?0 }")
+  @Query(
+      "{ 'payments.method': 'CREDIARIO', 'paid': false, 'status': { '$ne': 'RETURNED' }, 'tenantId': ?0 }")
   List<SaleDocument> findDebtorsByTenantId(String tenantId);
 
   long countByTenantIdAndTimestampBetween(String tenantId, LocalDateTime start, LocalDateTime end);

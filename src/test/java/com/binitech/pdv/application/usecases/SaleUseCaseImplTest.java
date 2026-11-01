@@ -10,15 +10,19 @@ import com.binitech.pdv.domain.Payment;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
+import com.binitech.pdv.domain.SaleReturnRequest;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.RefundMethod;
 import com.binitech.pdv.utils.enums.Role;
+import com.binitech.pdv.utils.enums.SaleStatus;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class SaleUseCaseImplTest {
@@ -345,6 +350,115 @@ class SaleUseCaseImplTest {
       assertThrows(
           ResourceNotFoundException.class,
           () -> saleUseCase.markAsPaid("s1", "user2", "tenant1", Role.OPERATOR));
+    }
+  }
+
+  @Nested
+  @DisplayName("registerReturn")
+  class RegisterReturnTests {
+
+    private Sale storedSale() {
+      Sale sale = new Sale();
+      sale.setId("s1");
+      sale.setTenantId("tenant1");
+      sale.setItems(new ArrayList<>(List.of(new SaleItem("p1", "Produto p1", 3, 10.0, 5.0))));
+      sale.recalculateTotal();
+      sale.setPayments(new ArrayList<>(List.of(new Payment(PaymentMethod.CASH, 30.0))));
+      return sale;
+    }
+
+    private SaleReturnRequest request(boolean restock) {
+      return new SaleReturnRequest(Map.of("p1", 2), RefundMethod.CASH, "Defeito", restock);
+    }
+
+    @Test
+    @DisplayName("Registra a devolução, grava com a versão esperada e repõe o estoque")
+    void registersAndRestocks() {
+      Sale sale = storedSale();
+      Product product = createProduct("p1", "tenant1", true, 4);
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+      when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
+      when(productRepository.findById("p1")).thenReturn(Optional.of(product));
+
+      Sale result =
+          saleUseCase.registerReturn("s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN);
+
+      assertEquals(SaleStatus.PARTIALLY_RETURNED, result.getStatus());
+      assertEquals(20.0, result.getReturnedAmount());
+      assertEquals(1, result.getReturnsVersion());
+      assertEquals("admin", result.getReturns().get(0).getUserId());
+      assertEquals(6, product.getStockQuantity());
+      verify(productRepository).save(product);
+    }
+
+    @Test
+    @DisplayName("Sem repor estoque, os produtos não são tocados")
+    void withoutRestock() {
+      Sale sale = storedSale();
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+      when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
+
+      saleUseCase.registerReturn("s1", request(false), "admin", "tenant1", Role.ADMIN);
+
+      verifyNoInteractions(productRepository);
+    }
+
+    @Test
+    @DisplayName("Produto apagado ou de outra loja não recebe estoque")
+    void skipsMissingOrForeignProduct() {
+      Sale sale = storedSale();
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+      when(saleRepository.appendReturn(sale, 0)).thenReturn(true);
+      when(productRepository.findById("p1"))
+          .thenReturn(Optional.of(createProduct("p1", "outra", true, 1)));
+
+      saleUseCase.registerReturn("s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN);
+
+      verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Devolução concorrente na mesma venda é recusada sem mexer no estoque")
+    void concurrentReturn() {
+      Sale sale = storedSale();
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+      when(saleRepository.appendReturn(sale, 0)).thenReturn(false);
+
+      assertThrows(
+          BusinessException.class,
+          () ->
+              saleUseCase.registerReturn(
+                  "s1", request(true), "admin", "tenant1", Role.TENANT_ADMIN));
+      verifyNoInteractions(productRepository);
+    }
+
+    @Test
+    @DisplayName("Operador não registra devolução e venda de outra loja não aparece")
+    void permissions() {
+      assertThrows(
+          AccessDeniedException.class,
+          () -> saleUseCase.registerReturn("s1", request(true), "op", "tenant1", Role.OPERATOR));
+      verifyNoInteractions(saleRepository);
+
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(storedSale()));
+      assertThrows(
+          ResourceNotFoundException.class,
+          () ->
+              saleUseCase.registerReturn(
+                  "s1", request(true), "admin", "tenant2", Role.TENANT_ADMIN));
+    }
+
+    @Test
+    @DisplayName("Venda devolvida por completo não pode ser marcada como paga")
+    void returnedSaleCannotBePaid() {
+      Sale sale = storedSale();
+      sale.setStatus(SaleStatus.RETURNED);
+      when(saleRepository.findById("s1")).thenReturn(Optional.of(sale));
+
+      assertThrows(
+          BusinessException.class,
+          () -> saleUseCase.markAsPaid("s1", "admin", "tenant1", Role.TENANT_ADMIN));
+      verify(saleRepository, never()).save(any());
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.ports.inbound;
 
 import com.binitech.pdv.domain.Sale;
+import com.binitech.pdv.domain.SaleReturnRequest;
 import com.binitech.pdv.utils.enums.Role;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,4 +23,7 @@ public interface SaleUseCasePort {
   List<Sale> listDebtors(String tenantId);
 
   Sale markAsPaid(String id, String userId, String tenantId, Role role);
+
+  Sale registerReturn(
+      String id, SaleReturnRequest request, String userId, String tenantId, Role role);
 }

@@ -591,6 +591,53 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/sales/{id}/returns:
+    post:
+      tags: [Sales]
+      summary: Registrar a devolução total ou parcial de uma venda
+      description: >-
+        Só o administrador da loja pode registrar devoluções. Os itens podem voltar ao estoque
+        e o reembolso fica registrado na forma escolhida. Em venda no fiado ainda não paga,
+        o reembolso é o abatimento do débito.
+      operationId: registerSaleReturn
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSaleReturnDTO'
+      responses:
+        '201':
+          description: Devolução registrada; devolve a venda atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaleDTO'
+        '400':
+          description: Itens, quantidades ou forma de reembolso inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '403':
+          description: Usuário sem permissão para devoluções
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '404':
+          description: Venda não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
   /api/sales/debtors:
     get:
       tags: [Sales]
@@ -876,6 +923,82 @@ components:
           type: string
         paid:
           type: boolean
+        status:
+          $ref: '#/components/schemas/SaleStatusEnum'
+        returnedAmount:
+          type: number
+          format: double
+        returnedCost:
+          type: number
+          format: double
+        returns:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleReturnDTO'
+
+    SaleStatusEnum:
+      type: string
+      enum:
+        - COMPLETED
+        - PARTIALLY_RETURNED
+        - RETURNED
+
+    RefundMethodEnum:
+      type: string
+      enum:
+        - CASH
+        - PIX
+        - CREDIT_CARD
+        - DEBIT_CARD
+        - DEBT_DEDUCTION
+
+    SaleReturnDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        userId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleItemDTO'
+        refundAmount:
+          type: number
+          format: double
+        refundCost:
+          type: number
+          format: double
+        refundMethod:
+          $ref: '#/components/schemas/RefundMethodEnum'
+        reason:
+          type: string
+        restocked:
+          type: boolean
+
+    CreateSaleReturnDTO:
+      type: object
+      required:
+        - items
+        - refundMethod
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/CreateSaleItemDTO'
+        refundMethod:
+          $ref: '#/components/schemas/RefundMethodEnum'
+        reason:
+          type: string
+          maxLength: 255
+        restock:
+          type: boolean
+          default: true
 
     SaleItemDTO:
       type: object

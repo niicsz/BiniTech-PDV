@@ -4,10 +4,12 @@ import com.binitech.pdv.adapters.outbound.persistence.document.PaymentDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleItemDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.SaleReturnDocument;
 import com.binitech.pdv.domain.Payment;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
+import com.binitech.pdv.domain.SaleReturn;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -26,6 +28,10 @@ public interface PersistenceMapper {
   Sale toDomain(SaleDocument document);
 
   SaleItemDocument toDocument(SaleItem item);
+
+  SaleReturnDocument toDocument(SaleReturn saleReturn);
+
+  SaleReturn toDomain(SaleReturnDocument document);
 
   SaleItem toDomain(SaleItemDocument document);
 
