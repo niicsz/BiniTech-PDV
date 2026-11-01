@@ -32,7 +32,7 @@ class ProductRepositoryAdapterCacheTest {
     when(repository.findAllByUserId(eq("u1"), any(Pageable.class))).thenReturn(List.of(document));
     when(repository.findAll(any(Pageable.class)))
         .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(document)));
-    ProductRepositoryAdapter adapter = new ProductRepositoryAdapter(repository, mapper);
+    ProductRepositoryAdapter adapter = new ProductRepositoryAdapter(repository, mapper, null);
 
     for (List<Product> cached :
         List.of(
