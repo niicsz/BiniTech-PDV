@@ -35,11 +35,11 @@ public class SaleController implements SalesApi {
   @Override
   public ResponseEntity<SaleDTO> createSale(CreateSaleDTO createSaleDTO) {
     int itemCount = createSaleDTO.getItems() != null ? createSaleDTO.getItems().size() : 0;
-    log.info("Criando venda com {} item(ns)", itemCount);
+    log.debug("Criando venda com {} item(ns)", itemCount);
     Sale sale = webMapper.toDomain(createSaleDTO);
     Sale created =
         saleUseCase.createSale(sale, userProvider.getUserId(), userProvider.getTenantId());
-    log.info(
+    log.debug(
         "Venda criada com sucesso: id={} total={}",
         LogSanitizer.maskId(created.getId()),
         created.getTotalAmount());
@@ -63,7 +63,7 @@ public class SaleController implements SalesApi {
       sales = saleUseCase.listAll(tenantId, page, size);
     }
 
-    log.info("Retornando {} venda(s)", sales.size());
+    log.debug("Retornando {} venda(s)", sales.size());
     return ResponseEntity.ok(webMapper.toSaleDtoList(sales));
   }
 

@@ -38,8 +38,8 @@ public class ProductController implements ProductsApi {
       log.debug("Listando produtos para role={}", userProvider.getUserRole());
     }
     List<Product> products = productUseCase.listAll(userProvider.getTenantId(), page, size);
-    if (log.isInfoEnabled()) {
-      log.info("Retornando {} produto(s)", products.size());
+    if (log.isDebugEnabled()) {
+      log.debug("Retornando {} produto(s)", products.size());
     }
     return ResponseEntity.ok(webMapper.toProductDtoList(products));
   }

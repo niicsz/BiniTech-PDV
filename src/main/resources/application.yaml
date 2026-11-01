@@ -31,6 +31,7 @@ auth:
   service-url: ${AUTH_SERVICE_URL:http://localhost:8081}
   connect-timeout: ${AUTH_CONNECT_TIMEOUT:2s}
   read-timeout: ${AUTH_READ_TIMEOUT:5s}
+  session-cache-ttl: ${AUTH_SESSION_CACHE_TTL:30s}
 
 product-import:
   service-key: ${PRODUCT_IMPORT_SERVICE_KEY}
