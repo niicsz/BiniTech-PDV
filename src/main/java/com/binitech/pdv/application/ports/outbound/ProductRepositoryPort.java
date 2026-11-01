@@ -36,4 +36,10 @@ public interface ProductRepositoryPort {
   boolean existsByBarcodeAndTenantId(String barcode, String tenantId);
 
   long countActiveByTenantId(String tenantId);
+
+  boolean decreaseStock(String productId, String tenantId, int quantity);
+
+  int decreaseStockUpTo(String productId, String tenantId, int quantity);
+
+  boolean increaseStock(String productId, String tenantId, int quantity);
 }

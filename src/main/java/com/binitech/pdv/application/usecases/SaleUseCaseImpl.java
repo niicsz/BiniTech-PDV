@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,16 +74,20 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.recalculate();
     sale.validate();
 
-    decreaseStockForItems(sale, productsById);
-    productsById.values().forEach(productRepository::save);
-
     sale.setUserId(userId);
     sale.setTenantId(tenantId);
     sale.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
     sale.setCustomerCpf(digitsOrNull(sale.getCustomerCpf()));
     sale.setFiscalPending(fiscalPublisher != null);
 
-    Sale saved = saleRepository.save(sale);
+    Map<String, Integer> reserved = reserveStock(sale, productsById, tenantId);
+    Sale saved;
+    try {
+      saved = saleRepository.save(sale);
+    } catch (RuntimeException e) {
+      releaseStock(reserved, tenantId);
+      throw e;
+    }
     publishToFiscal(saved, productsById);
     if (log.isInfoEnabled()) {
       log.info(
@@ -247,33 +252,44 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     return saleRepository.findAllByTenantId(tenantId, sanitizedPage, sanitizedSize);
   }
 
-  private void decreaseStockForItems(Sale sale, Map<String, Product> productsById) {
+  private Map<String, Integer> reserveStock(
+      Sale sale, Map<String, Product> productsById, String tenantId) {
+    Map<String, Integer> requested = new LinkedHashMap<>();
     for (SaleItem item : sale.getItems()) {
-      Product product = productsById.get(item.getProductId());
-      if (sale.isSkipStockValidation()) {
-        int available = product.getStockQuantity();
-        int toDecrease = Math.min(available, item.getQuantity());
-        if (toDecrease > 0) {
-          product.decreaseStock(toDecrease);
-          if (log.isInfoEnabled()) {
-            log.info(
-                "Estoque decrementado (skip validation): productId={} decrementado={} restante={}",
-                LogSanitizer.maskId(product.getId()),
-                toDecrease,
-                product.getStockQuantity());
-          }
-        }
-      } else {
-        product.decreaseStock(item.getQuantity());
-        if (log.isInfoEnabled()) {
-          log.info(
-              "Estoque decrementado: productId={} quantidade={} restante={}",
-              LogSanitizer.maskId(product.getId()),
-              item.getQuantity(),
-              product.getStockQuantity());
-        }
-      }
+      requested.merge(item.getProductId(), item.getQuantity(), Integer::sum);
     }
+    Map<String, Integer> reserved = new LinkedHashMap<>();
+    for (Map.Entry<String, Integer> entry : requested.entrySet()) {
+      String productId = entry.getKey();
+      int quantity = entry.getValue();
+      if (sale.isSkipStockValidation()) {
+        int decreased = productRepository.decreaseStockUpTo(productId, tenantId, quantity);
+        if (decreased > 0) {
+          reserved.put(productId, decreased);
+        }
+        continue;
+      }
+      if (!productRepository.decreaseStock(productId, tenantId, quantity)) {
+        releaseStock(reserved, tenantId);
+        if (log.isWarnEnabled()) {
+          log.warn(
+              "Estoque esgotado durante a venda: productId={} solicitado={}",
+              LogSanitizer.maskId(productId),
+              quantity);
+        }
+        throw new BusinessException(
+            String.format(
+                "Estoque insuficiente para '%s': outra venda acabou de usar o estoque.",
+                productsById.get(productId).getDescription()));
+      }
+      reserved.put(productId, quantity);
+    }
+    return reserved;
+  }
+
+  private void releaseStock(Map<String, Integer> reserved, String tenantId) {
+    reserved.forEach(
+        (productId, quantity) -> productRepository.increaseStock(productId, tenantId, quantity));
   }
 
   private int sanitizePage(Integer page) {
@@ -380,21 +396,13 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
 
   private void restock(SaleReturn saleReturn, String tenantId) {
     for (SaleItem item : saleReturn.getItems()) {
-      productRepository
-          .findById(item.getProductId())
-          .filter(product -> Objects.equals(product.getTenantId(), tenantId))
-          .ifPresentOrElse(
-              product -> {
-                product.increaseStock(item.getQuantity());
-                productRepository.save(product);
-              },
-              () -> {
-                if (log.isWarnEnabled()) {
-                  log.warn(
-                      "Produto da devolução não existe mais, estoque não reposto: productId={}",
-                      LogSanitizer.maskId(item.getProductId()));
-                }
-              });
+      boolean restocked =
+          productRepository.increaseStock(item.getProductId(), tenantId, item.getQuantity());
+      if (!restocked && log.isWarnEnabled()) {
+        log.warn(
+            "Produto da devolução não existe mais, estoque não reposto: productId={}",
+            LogSanitizer.maskId(item.getProductId()));
+      }
     }
   }
 
