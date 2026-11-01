@@ -25,6 +25,10 @@ public class SaleFiscalOutboxJob {
       if (published > 0 && log.isInfoEnabled()) {
         log.info("Vendas reenviadas ao serviço fiscal: {}", published);
       }
+      int returns = publisher.publishPendingReturns(BATCH);
+      if (returns > 0 && log.isInfoEnabled()) {
+        log.info("Devoluções reenviadas ao serviço fiscal: {}", returns);
+      }
     } catch (RuntimeException e) {
       log.error("Falha ao reenviar vendas ao serviço fiscal: {}", e.getMessage(), e);
     }

@@ -16,6 +16,10 @@ public interface SaleRepositoryPort {
 
   void markFiscalPublished(String id);
 
+  List<Sale> findReturnFiscalPending(int limit);
+
+  void markReturnFiscalPublished(String saleId, String returnId);
+
   Optional<Sale> findById(String id);
 
   List<Sale> findByTimestampBetween(LocalDateTime start, LocalDateTime end);

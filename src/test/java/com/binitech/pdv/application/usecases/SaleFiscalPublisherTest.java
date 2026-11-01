@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,7 +18,11 @@ import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleCompletedEvent;
 import com.binitech.pdv.domain.SaleItem;
+import com.binitech.pdv.domain.SaleReturn;
+import com.binitech.pdv.domain.SaleReturnRequest;
+import com.binitech.pdv.domain.SaleReturnedEvent;
 import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.RefundMethod;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -134,5 +139,80 @@ class SaleFiscalPublisherTest {
 
     assertNull(event.items().get(0).ncm());
     assertEquals("Refrigerante", event.items().get(0).description());
+  }
+
+  private Sale saleWithReturns() {
+    Sale sale = sale();
+    sale.registerReturn(
+        new SaleReturnRequest(Map.of("p1", 1), RefundMethod.PIX, "Defeito", true),
+        "r1",
+        "u1",
+        LocalDateTime.of(2026, 11, 1, 10, 0));
+    sale.registerReturn(
+        new SaleReturnRequest(Map.of("p1", 1), RefundMethod.PIX, null, true),
+        "r2",
+        "u1",
+        LocalDateTime.of(2026, 11, 1, 11, 0));
+    sale.getReturns().forEach(r -> r.setFiscalPending(true));
+    return sale;
+  }
+
+  @Test
+  @DisplayName("Publica a devolução com dados fiscais e marca só ela como enviada")
+  void publishesReturn() {
+    Sale sale = saleWithReturns();
+    SaleReturn first = sale.getReturns().get(0);
+    when(productRepository.findById("p1")).thenReturn(Optional.of(product()));
+    when(eventPublisher.publishReturned(any())).thenReturn(true);
+
+    publisher.publishReturn(sale, first);
+
+    ArgumentCaptor<SaleReturnedEvent> event = ArgumentCaptor.forClass(SaleReturnedEvent.class);
+    verify(eventPublisher).publishReturned(event.capture());
+    SaleReturnedEvent sent = event.getValue();
+    assertEquals("r1", sent.returnId());
+    assertEquals("s1", sent.saleId());
+    assertEquals("52998224725", sent.consumerCpf());
+    assertEquals("Defeito", sent.reason());
+    assertEquals("2026-11-01T13:00:00Z", sent.occurredAt().toString());
+    assertEquals("22021000", sent.items().get(0).ncm());
+    assertEquals("5102", sent.items().get(0).cfop());
+    assertEquals(new BigDecimal("5.50"), sent.items().get(0).total());
+    assertFalse(sent.fullReturn());
+    verify(saleRepository).markReturnFiscalPublished("s1", "r1");
+    assertFalse(first.isFiscalPending());
+    assertTrue(sale.getReturns().get(1).isFiscalPending());
+  }
+
+  @Test
+  @DisplayName("A devolução que completa a venda vai marcada como total")
+  void lastReturnIsFull() {
+    Sale sale = saleWithReturns();
+    when(productRepository.findById("p1")).thenReturn(Optional.empty());
+
+    assertFalse(publisher.toReturnEvent(sale, sale.getReturns().get(0)).fullReturn());
+    assertTrue(publisher.toReturnEvent(sale, sale.getReturns().get(1)).fullReturn());
+  }
+
+  @Test
+  @DisplayName("Falha no RabbitMQ mantém a devolução pendente; o reenvio publica as pendentes")
+  void returnOutbox() {
+    Sale sale = saleWithReturns();
+    when(productRepository.findById("p1")).thenReturn(Optional.of(product()));
+    when(eventPublisher.publishReturned(any())).thenReturn(false);
+
+    publisher.publishReturn(sale, sale.getReturns().get(0));
+    verify(saleRepository, never()).markReturnFiscalPublished(any(), any());
+    assertTrue(sale.getReturns().get(0).isFiscalPending());
+
+    when(eventPublisher.publishReturned(any())).thenReturn(true);
+    when(saleRepository.findReturnFiscalPending(200)).thenReturn(List.of(sale));
+    assertEquals(2, publisher.publishPendingReturns(200));
+    verify(saleRepository).markReturnFiscalPublished("s1", "r1");
+    verify(saleRepository).markReturnFiscalPublished("s1", "r2");
+
+    sale.getReturns().get(0).setFiscalPending(false);
+    publisher.publishReturn(sale, sale.getReturns().get(0));
+    verify(eventPublisher, times(3)).publishReturned(any());
   }
 }

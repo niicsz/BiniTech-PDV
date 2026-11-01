@@ -95,7 +95,7 @@ public class BeanConfig {
       ProductRepositoryPort productRepositoryPort,
       @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
     return new SaleFiscalPublisher(
-        saleEventPublisherPort.getIfAvailable(() -> event -> true),
+        saleEventPublisherPort.getIfAvailable(NoOpSaleEventPublisher::new),
         saleRepositoryPort,
         productRepositoryPort,
         ZoneId.of(businessTimeZone));

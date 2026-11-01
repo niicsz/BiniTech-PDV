@@ -22,4 +22,5 @@ public class SaleReturnDocument {
   private String refundMethod;
   private String reason;
   private boolean restocked;
+  private boolean fiscalPending;
 }

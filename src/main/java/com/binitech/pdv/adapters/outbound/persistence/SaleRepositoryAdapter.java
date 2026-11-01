@@ -22,6 +22,7 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
 
   private static final String FIELD_TIMESTAMP = "timestamp";
   private static final String FIELD_RETURNS_VERSION = "returnsVersion";
+  private static final String FIELD_RETURNS_FISCAL_PENDING = "returns.fiscalPending";
 
   private final SpringDataSaleRepository repository;
   private final PersistenceMapper mapper;
@@ -48,6 +49,23 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
     mongo.updateFirst(
         Query.query(Criteria.where("_id").is(id)),
         Update.update("fiscalPending", false),
+        SaleDocument.class);
+  }
+
+  @Override
+  public List<Sale> findReturnFiscalPending(int limit) {
+    Query query =
+        Query.query(Criteria.where(FIELD_RETURNS_FISCAL_PENDING).is(true))
+            .with(Sort.by(Sort.Direction.ASC, FIELD_TIMESTAMP))
+            .limit(limit);
+    return mongo.find(query, SaleDocument.class).stream().map(mapper::toDomain).toList();
+  }
+
+  @Override
+  public void markReturnFiscalPublished(String saleId, String returnId) {
+    mongo.updateFirst(
+        Query.query(Criteria.where("_id").is(saleId).and("returns._id").is(returnId)),
+        Update.update("returns.$.fiscalPending", false),
         SaleDocument.class);
   }
 

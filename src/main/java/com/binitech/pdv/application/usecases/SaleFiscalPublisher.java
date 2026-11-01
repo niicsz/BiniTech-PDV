@@ -8,6 +8,8 @@ import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleCompletedEvent;
 import com.binitech.pdv.domain.SaleItem;
+import com.binitech.pdv.domain.SaleReturn;
+import com.binitech.pdv.domain.SaleReturnedEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZoneId;
@@ -52,6 +54,66 @@ public class SaleFiscalPublisher {
       }
     }
     return published;
+  }
+
+  public void publishReturn(Sale sale, SaleReturn saleReturn) {
+    if (sale.getId() == null || !saleReturn.isFiscalPending()) {
+      return;
+    }
+    if (publisher.publishReturned(toReturnEvent(sale, saleReturn))) {
+      saleRepository.markReturnFiscalPublished(sale.getId(), saleReturn.getId());
+      saleReturn.setFiscalPending(false);
+    }
+  }
+
+  public int publishPendingReturns(int limit) {
+    int published = 0;
+    for (Sale sale : saleRepository.findReturnFiscalPending(limit)) {
+      for (SaleReturn saleReturn : sale.getReturns()) {
+        if (!saleReturn.isFiscalPending()) {
+          continue;
+        }
+        publishReturn(sale, saleReturn);
+        if (!saleReturn.isFiscalPending()) {
+          published++;
+        }
+      }
+    }
+    return published;
+  }
+
+  SaleReturnedEvent toReturnEvent(Sale sale, SaleReturn saleReturn) {
+    List<SaleCompletedEvent.Item> items =
+        saleReturn.getItems().stream().map(item -> toItem(item, Map.of())).toList();
+    return new SaleReturnedEvent(
+        sale.getTenantId(),
+        sale.getId(),
+        saleReturn.getId(),
+        saleReturn.getTimestamp() == null
+            ? null
+            : saleReturn.getTimestamp().atZone(businessZone).toInstant(),
+        isFullAfter(sale, saleReturn),
+        saleReturn.getReason(),
+        sale.getCustomerCpf(),
+        sale.getCustomerName(),
+        items);
+  }
+
+  private static boolean isFullAfter(Sale sale, SaleReturn saleReturn) {
+    int position = sale.getReturns().indexOf(saleReturn);
+    List<SaleReturn> upToThis =
+        position < 0 ? sale.getReturns() : sale.getReturns().subList(0, position + 1);
+    return sale.getItems().stream()
+        .map(SaleItem::getProductId)
+        .distinct()
+        .allMatch(
+            productId ->
+                upToThis.stream()
+                        .flatMap(r -> r.getItems().stream())
+                        .filter(i -> productId.equals(i.getProductId()))
+                        .mapToInt(SaleItem::getQuantity)
+                        .sum()
+                    >= sale.soldQuantity(productId));
   }
 
   SaleCompletedEvent toEvent(Sale sale, Map<String, Product> knownProducts) {

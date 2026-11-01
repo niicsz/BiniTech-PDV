@@ -19,6 +19,7 @@ public class RabbitMQConfig {
   public static final String EMAIL_ROUTING_KEY = "email.approval";
   public static final String SALES_EXCHANGE = "binitech.sales";
   public static final String SALE_COMPLETED_KEY = "sale.completed";
+  public static final String SALE_RETURNED_KEY = "sale.returned";
 
   @Bean
   public TopicExchange emailExchange() {
