@@ -96,6 +96,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Dados do usuário autenticado (papel e loja segundo o PDV)
+      description: >-
+        Usado pelos serviços internos (como o BiniTech Fiscal) para saber o papel do usuário.
+        O papel vem do cadastro de usuários do PDV, que é a fonte oficial de permissões.
+      operationId: currentUser
+      responses:
+        '200':
+          description: Usuário autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserDTO'
+        '401':
+          description: Sessão ausente, inválida ou usuário inativo
+
   /api/auth/logout:
     post:
       tags: [Auth]
@@ -666,6 +684,19 @@ components:
     UserRole:
       type: string
       enum: [SUPER_ADMIN, ADMIN, TENANT_ADMIN, OPERATOR]
+
+    CurrentUserDTO:
+      type: object
+      required: [userId, username, role]
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        tenantId:
+          type: string
 
     UserDTO:
       type: object

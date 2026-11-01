@@ -2,9 +2,11 @@ package com.binitech.pdv.adapters.inbound.web;
 
 import com.binitech.pdv.adapters.inbound.web.generated.api.AuthApi;
 import com.binitech.pdv.adapters.inbound.web.generated.model.AuthResponseDTO;
+import com.binitech.pdv.adapters.inbound.web.generated.model.CurrentUserDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.LoginRequestDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.RefreshTokenRequestDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.RegisterRequestDTO;
+import com.binitech.pdv.adapters.inbound.web.generated.model.UserRole;
 import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
@@ -166,6 +168,16 @@ public class AuthController implements AuthApi {
     log.info("Requisição de confirmação de redefinição de senha recebida");
     passwordResetUseCase.resetPassword(request.token(), request.newPassword());
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<CurrentUserDTO> currentUser() {
+    return ResponseEntity.ok(
+        new CurrentUserDTO()
+            .userId(authenticatedUserProvider.getUserId())
+            .username(authenticatedUserProvider.getUsername())
+            .role(UserRole.fromValue(authenticatedUserProvider.getUserRole().name()))
+            .tenantId(authenticatedUserProvider.getTenantId()));
   }
 
   @Override
