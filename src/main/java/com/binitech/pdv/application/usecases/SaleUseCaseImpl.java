@@ -61,8 +61,8 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   @Override
   @Transactional
   public Sale createSale(Sale sale, String userId, String tenantId) {
-    if (log.isInfoEnabled()) {
-      log.info(
+    if (log.isDebugEnabled()) {
+      log.debug(
           "Criando venda com {} item(ns) para tenantId={}",
           sale.getItems().size(),
           LogSanitizer.maskId(tenantId));
@@ -89,8 +89,8 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       throw e;
     }
     publishToFiscal(saved, productsById);
-    if (log.isInfoEnabled()) {
-      log.info(
+    if (log.isDebugEnabled()) {
+      log.debug(
           "Venda criada com sucesso: id={} total={}",
           LogSanitizer.maskId(saved.getId()),
           saved.getTotalAmount());

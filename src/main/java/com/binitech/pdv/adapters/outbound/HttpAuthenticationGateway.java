@@ -9,9 +9,17 @@ import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
@@ -21,10 +29,40 @@ import org.springframework.web.client.RestClientResponseException;
 public class HttpAuthenticationGateway implements AuthenticationGateway {
   private static final String IDENTITY_ID = "identityId";
 
+  private static final int MAX_CACHED_SESSIONS = 50_000;
+
   private final RestClient client;
+  private final Cache<String, SessionIdentity> sessions;
 
   public HttpAuthenticationGateway(RestClient client) {
+    this(client, Duration.ZERO);
+  }
+
+  public HttpAuthenticationGateway(RestClient client, Duration sessionCacheTtl) {
     this.client = client;
+    this.sessions =
+        sessionCacheTtl.isZero() || sessionCacheTtl.isNegative()
+            ? null
+            : Caffeine.newBuilder()
+                .expireAfterWrite(sessionCacheTtl)
+                .maximumSize(MAX_CACHED_SESSIONS)
+                .build();
+  }
+
+  private static String sessionKey(String accessToken) {
+    try {
+      byte[] digest =
+          MessageDigest.getInstance("SHA-256").digest(accessToken.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(digest);
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 indisponível", e);
+    }
+  }
+
+  private void forgetSessions(Predicate<SessionIdentity> matcher) {
+    if (sessions != null) {
+      sessions.asMap().values().removeIf(matcher);
+    }
   }
 
   @Override
@@ -162,6 +200,9 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public void logout(String accessToken) {
+    if (sessions != null) {
+      sessions.invalidate(sessionKey(accessToken));
+    }
     invoke(
         () ->
             client
@@ -174,6 +215,22 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public SessionIdentity session(String accessToken) {
+    if (sessions == null) {
+      return fetchSession(accessToken);
+    }
+    String key = sessionKey(accessToken);
+    SessionIdentity cached = sessions.getIfPresent(key);
+    if (cached != null) {
+      return cached;
+    }
+    SessionIdentity identity = fetchSession(accessToken);
+    if (identity != null) {
+      sessions.put(key, identity);
+    }
+    return identity;
+  }
+
+  private SessionIdentity fetchSession(String accessToken) {
     return invoke(
         () ->
             client
@@ -192,6 +249,7 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public void changePassword(String id, String currentPassword, String newPassword) {
+    forgetSessions(identity -> id.equals(identity.userId()));
     post(
         "/change-password",
         Map.of(IDENTITY_ID, id, "currentPassword", currentPassword, "newPassword", newPassword));
@@ -199,11 +257,13 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public void revokeSessions(String id) {
+    forgetSessions(identity -> id.equals(identity.userId()));
     post("/revoke", Map.of(IDENTITY_ID, id));
   }
 
   @Override
   public boolean resetTwoFactor(String identityId) {
+    forgetSessions(identity -> identityId.equals(identity.userId()));
     TwoFactorResetResponse response =
         invoke(
             () ->
@@ -219,6 +279,7 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public void purgeTenant(String tenantId) {
+    forgetSessions(identity -> tenantId.equals(identity.tenantId()));
     post("/purge-tenant", Map.of("tenantId", tenantId));
   }
 
