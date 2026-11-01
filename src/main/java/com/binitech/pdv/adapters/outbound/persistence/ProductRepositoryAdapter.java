@@ -4,9 +4,11 @@ import com.binitech.pdv.adapters.outbound.persistence.mapper.PersistenceMapper;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.domain.Product;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -82,7 +84,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         .findAll(PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
-        .toList();
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   @Override
@@ -111,7 +113,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
         .findAllByUserId(userId, PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
-        .toList();
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   @Override
@@ -136,7 +138,7 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
             tenantId, PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
         .stream()
         .map(mapper::toDomain)
-        .toList();
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   @Override
