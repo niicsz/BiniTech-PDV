@@ -18,8 +18,15 @@ public class RabbitMQConfig {
   public static final String EMAIL_QUEUE = "email.queue";
   public static final String EMAIL_ROUTING_KEY = "email.approval";
   public static final String SALES_EXCHANGE = "binitech.sales";
+  public static final String OBSERVABILITY_EXCHANGE = "binitech.observability";
+  public static final String SLOW_REQUEST_KEY = "request.slow";
   public static final String SALE_COMPLETED_KEY = "sale.completed";
   public static final String SALE_RETURNED_KEY = "sale.returned";
+
+  @Bean
+  public TopicExchange observabilityExchange() {
+    return new TopicExchange(OBSERVABILITY_EXCHANGE, true, false);
+  }
 
   @Bean
   public TopicExchange emailExchange() {
