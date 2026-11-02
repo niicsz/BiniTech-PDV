@@ -25,20 +25,20 @@ class SlowRequestMonitorTest {
   @Test
   @DisplayName("Abaixo de 1 s não publica nada")
   void ignoresFastRequests() {
-    assertFalse(monitor.record("GET", "/api/products", 200, 999));
+    assertFalse(monitor.register("GET", "/api/products", 200, 999));
     assertTrue(published.isEmpty());
   }
 
   @Test
   @DisplayName("Publica a primeira lenta e soma as repetidas da mesma rota até a janela passar")
   void throttlesPerRoute() {
-    assertTrue(monitor.record("POST", "/api/sales", 201, 1500));
-    assertFalse(monitor.record("POST", "/api/sales", 201, 2000));
-    assertFalse(monitor.record("POST", "/api/sales", 201, 1800));
-    assertTrue(monitor.record("GET", "/api/products", 200, 1200));
+    assertTrue(monitor.register("POST", "/api/sales", 201, 1500));
+    assertFalse(monitor.register("POST", "/api/sales", 201, 2000));
+    assertFalse(monitor.register("POST", "/api/sales", 201, 1800));
+    assertTrue(monitor.register("GET", "/api/products", 200, 1200));
 
     clock.advance(Duration.ofSeconds(11));
-    assertTrue(monitor.record("POST", "/api/sales", 503, 4000));
+    assertTrue(monitor.register("POST", "/api/sales", 503, 4000));
 
     assertEquals(3, published.size());
     SlowRequestEvent first = published.get(0);

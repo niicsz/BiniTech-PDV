@@ -27,7 +27,7 @@ public class SlowRequestMonitor {
     this.window = window;
   }
 
-  public boolean record(String method, String path, int status, long durationMs) {
+  public boolean register(String method, String path, int status, long durationMs) {
     if (durationMs < thresholdMs) {
       return false;
     }
