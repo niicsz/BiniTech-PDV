@@ -54,7 +54,7 @@ public class RequestTimingFilter extends OncePerRequestFilter {
     Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
     String path = pattern == null ? UNMATCHED : pattern.toString();
     try {
-      monitor.record(request.getMethod(), path, response.getStatus(), durationMs);
+      monitor.register(request.getMethod(), path, response.getStatus(), durationMs);
     } catch (RuntimeException e) {
       log.warn("Falha ao registrar requisição lenta {} {}: {}", request.getMethod(), path, e.getMessage());
     }
