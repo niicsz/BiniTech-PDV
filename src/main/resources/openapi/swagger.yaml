@@ -869,11 +869,14 @@ components:
         username:
           type: string
           minLength: 1
+          maxLength: 254
         password:
           type: string
           minLength: 1
+          maxLength: 1024
         tenantId:
           type: string
+          maxLength: 64
 
     RegisterRequestDTO:
       type: object
@@ -885,11 +888,14 @@ components:
         username:
           type: string
           minLength: 3
+          maxLength: 254
         password:
           type: string
           minLength: 6
+          maxLength: 128
         tenantId:
           type: string
+          maxLength: 64
         role:
           type: string
           enum:
@@ -905,6 +911,7 @@ components:
       properties:
         refreshToken:
           type: string
+          maxLength: 512
 
     AuthResponseDTO:
       type: object
@@ -1055,22 +1062,28 @@ components:
         barcode:
           type: string
           minLength: 1
+          maxLength: 64
         description:
           type: string
           minLength: 1
+          maxLength: 200
         price:
           type: number
           format: double
           minimum: 0.01
+          maximum: 1000000
         costPrice:
           type: number
           format: double
           minimum: 0
+          maximum: 1000000
         stockQuantity:
           type: integer
           minimum: 0
+          maximum: 10000000
         category:
           type: string
+          maxLength: 100
         ncm:
           type: string
           pattern: '^\d{8}$'
@@ -1235,18 +1248,23 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/CreateSaleItemDTO'
+          maxItems: 500
         payments:
           type: array
           minItems: 1
           items:
             $ref: '#/components/schemas/PaymentDTO'
+          maxItems: 10
         customerName:
           type: string
+          maxLength: 120
         customerPhone:
           type: string
+          maxLength: 20
         customerCpf:
           type: string
           description: CPF do consumidor para a NFC-e (opcional)
+          maxLength: 14
         skipStockValidation:
           type: boolean
 
@@ -1258,9 +1276,11 @@ components:
       properties:
         productId:
           type: string
+          maxLength: 64
         quantity:
           type: integer
           minimum: 1
+          maximum: 100000
 
     PaymentDTO:
       type: object
@@ -1274,6 +1294,7 @@ components:
           type: number
           format: double
           minimum: 0.01
+          maximum: 10000000
 
     PaymentMethodEnum:
       type: string
@@ -1288,8 +1309,8 @@ components:
       type: object
       required: [userId, tenantId]
       properties:
-        userId: { type: string, minLength: 1 }
-        tenantId: { type: string, minLength: 1 }
+        userId: { type: string, minLength: 1, maxLength: 64 }
+        tenantId: { type: string, minLength: 1, maxLength: 64 }
 
     ImportLookupRequestDTO:
       type: object
@@ -1346,12 +1367,12 @@ components:
       required: [operationId, lineNumber, barcode, name, price, stockQuantity]
       properties:
         operationId: { type: string, minLength: 1, maxLength: 200 }
-        lineNumber: { type: integer, minimum: 2 }
+        lineNumber: { type: integer, minimum: 2, maximum: 1000000 }
         barcode: { type: string, minLength: 1, maxLength: 64 }
         name: { type: string, minLength: 1, maxLength: 200 }
-        price: { type: number, minimum: 0.01 }
-        cost: { type: number, minimum: 0 }
-        stockQuantity: { type: integer, minimum: 0 }
+        price: { type: number, minimum: 0.01, maximum: 1000000 }
+        cost: { type: number, minimum: 0, maximum: 1000000 }
+        stockQuantity: { type: integer, minimum: 0, maximum: 10000000 }
         category: { type: string, maxLength: 100 }
         active: { type: boolean }
 
