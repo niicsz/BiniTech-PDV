@@ -22,6 +22,7 @@ public class Tenant {
   private String termsVersion;
   private String termsAcceptedIp;
   private LocalDateTime dataPurgedAt;
+  private int extraUsers;
 
   public Tenant() {}
 
@@ -47,6 +48,14 @@ public class Tenant {
 
   public void setTermsAcceptedIp(String termsAcceptedIp) {
     this.termsAcceptedIp = termsAcceptedIp;
+  }
+
+  public int getExtraUsers() {
+    return extraUsers;
+  }
+
+  public void setExtraUsers(int extraUsers) {
+    this.extraUsers = extraUsers;
   }
 
   public LocalDateTime getDataPurgedAt() {

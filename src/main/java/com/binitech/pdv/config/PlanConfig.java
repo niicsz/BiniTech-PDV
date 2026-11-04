@@ -1,6 +1,7 @@
 package com.binitech.pdv.config;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,8 @@ public class PlanConfig {
   public static final BigDecimal EXCESS_PER_PRODUCT = new BigDecimal("0.10");
   public static final BigDecimal EXCESS_PER_SALE = new BigDecimal("0.05");
   public static final BigDecimal EXCESS_PER_OPERATOR = new BigDecimal("30.00");
+  public static final List<String> PAID_PLANS = List.of("starter", "pro", "enterprise");
+  public static final int MAX_EXTRA_USERS = 50;
 
   public record PlanLimits(
       int maxProducts, int maxSalesPerMonth, int maxOperators, BigDecimal baseMonthlyFee) {}
@@ -25,6 +28,17 @@ public class PlanConfig {
           new PlanLimits(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, BigDecimal.ZERO);
       default -> throw new IllegalArgumentException("Plano desconhecido: " + planTier);
     };
+  }
+
+  public static BigDecimal monthlyAmount(String planTier, int extraUsers) {
+    return getLimits(planTier)
+        .baseMonthlyFee()
+        .add(EXCESS_PER_OPERATOR.multiply(BigDecimal.valueOf(Math.max(0, extraUsers))));
+  }
+
+  public static int operatorLimit(String planTier, int extraUsers) {
+    int base = getLimits(planTier).maxOperators();
+    return base == Integer.MAX_VALUE ? base : base + Math.max(0, extraUsers);
   }
 
   public static boolean isFree(String planTier) {

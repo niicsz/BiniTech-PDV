@@ -70,6 +70,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
         .termsVersion(tenant.getTermsVersion())
         .termsAcceptedIp(tenant.getTermsAcceptedIp())
         .dataPurgedAt(tenant.getDataPurgedAt())
+        .extraUsers(tenant.getExtraUsers())
         .build();
   }
 
@@ -90,6 +91,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
     tenant.setTermsVersion(doc.getTermsVersion());
     tenant.setTermsAcceptedIp(doc.getTermsAcceptedIp());
     tenant.setDataPurgedAt(doc.getDataPurgedAt());
+    tenant.setExtraUsers(doc.getExtraUsers());
     return tenant;
   }
 }

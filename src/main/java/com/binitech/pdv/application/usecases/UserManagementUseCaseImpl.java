@@ -221,20 +221,20 @@ public class UserManagementUseCaseImpl implements UserManagementUseCasePort {
     if (role != Role.OPERATOR) {
       return;
     }
-    PlanConfig.PlanLimits limits;
+    int allowed;
     try {
-      limits = PlanConfig.getLimits(tenant.getPlanId());
+      allowed = PlanConfig.operatorLimit(tenant.getPlanId(), tenant.getExtraUsers());
     } catch (IllegalArgumentException exception) {
       throw new BusinessException("O tenant não possui um plano válido.");
     }
     long currentOperators = userRepository.countByTenantIdAndRole(tenant.getId(), Role.OPERATOR);
-    if (currentOperators >= limits.maxOperators()) {
+    if (currentOperators >= allowed) {
       throw new BusinessException(
-          "Limite de operadores do plano "
-              + tenant.getPlanId()
-              + " atingido ("
-              + limits.maxOperators()
-              + "). Faça upgrade para adicionar outro operador.");
+          "Você já usa os "
+              + allowed
+              + " operador(es) do seu plano. Em Assinatura, contrate um usuário adicional por R$ "
+              + PlanConfig.EXCESS_PER_OPERATOR.toPlainString().replace('.', ',')
+              + "/mês ou mude de plano.");
     }
   }
 

@@ -35,4 +35,5 @@ public class TenantDocument {
   private String termsVersion;
   private String termsAcceptedIp;
   private LocalDateTime dataPurgedAt;
+  private int extraUsers;
 }

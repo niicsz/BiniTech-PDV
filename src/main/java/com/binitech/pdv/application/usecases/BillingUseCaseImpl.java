@@ -3,6 +3,8 @@ package com.binitech.pdv.application.usecases;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
+import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOption;
+import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOverview;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
@@ -21,6 +23,7 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.InvoiceStatus;
 import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.math.BigDecimal;
@@ -34,6 +37,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 public class BillingUseCaseImpl implements BillingUseCasePort {
 
@@ -126,7 +130,10 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             : (int) userRepository.countByTenantIdAndRole(tenantId, "OPERATOR");
     int extraProducts = Math.max(effectiveProducts - limits.maxProducts(), 0);
     int extraSales = Math.max(monthlySales - limits.maxSalesPerMonth(), 0);
-    int extraOperators = Math.max(effectiveOperators - limits.maxOperators(), 0);
+    int extraOperators =
+        Math.max(
+            Math.max(effectiveOperators - limits.maxOperators(), 0),
+            tenantRepository.findById(tenantId).map(Tenant::getExtraUsers).orElse(0));
 
     BigDecimal baseAmount = limits.baseMonthlyFee();
     BigDecimal excessAmount =
@@ -325,7 +332,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
           asaasGateway.createSubscriptionCheckout(
               tenant,
               capitalize(tenant.getPlanId()),
-              limits.baseMonthlyFee(),
+              PlanConfig.monthlyAmount(tenant.getPlanId(), tenant.getExtraUsers()),
               successUrl,
               cancelUrl);
       checkoutSessionRepository.save(checkout.id(), tenant.getId());
@@ -353,7 +360,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     BigDecimal amount =
         findLatestInvoiceByTenantAndStatuses(tenantId, InvoiceStatus.OVERDUE, InvoiceStatus.PENDING)
             .map(Invoice::getAmount)
-            .orElseGet(() -> PlanConfig.getLimits(tenant.getPlanId()).baseMonthlyFee());
+            .orElseGet(() -> PlanConfig.monthlyAmount(tenant.getPlanId(), tenant.getExtraUsers()));
     String baseUrl = stripTrailingSlash(frontendUrl);
     try {
       CheckoutSession checkout =
@@ -727,5 +734,165 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
   private boolean hasText(String value) {
     return value != null && !value.isBlank();
+  }
+
+  @Override
+  public PlanOverview getPlanOverview(String tenantId) {
+    return overview(findTenant(tenantId));
+  }
+
+  @Override
+  public PlanOverview changePlan(String tenantId, String planId, Role role) {
+    ensureBillingManager(role);
+    Tenant tenant = findTenant(tenantId);
+    String target = planId == null ? "" : planId.trim().toLowerCase(Locale.ROOT);
+    if (!PlanConfig.PAID_PLANS.contains(target)) {
+      throw new BusinessException("Escolha um dos planos: Starter, Pro ou Enterprise.");
+    }
+    if (PlanConfig.isFree(tenant.getPlanId())) {
+      throw new BusinessException("O plano cortesia não pode ser alterado por aqui.");
+    }
+    if (target.equalsIgnoreCase(tenant.getPlanId())) {
+      return overview(tenant);
+    }
+    long operators = operatorsInUse(tenantId);
+    int newLimit = PlanConfig.operatorLimit(target, tenant.getExtraUsers());
+    if (operators > newLimit) {
+      throw new BusinessException(
+          "Você tem "
+              + operators
+              + " operadores e o plano "
+              + capitalize(target)
+              + " permite "
+              + newLimit
+              + ". Desative operadores ou contrate usuários adicionais antes de mudar.");
+    }
+    syncRecurringValue(tenantId, target, tenant.getExtraUsers());
+    LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+    tenant.setPlanId(target);
+    tenant.setUpdatedAt(now);
+    tenantRepository.save(tenant);
+    subscriptionRepository
+        .findByTenantId(tenantId)
+        .ifPresent(
+            subscription -> {
+              subscription.setPlanTier(target);
+              subscription.setUpdatedAt(now);
+              subscriptionRepository.save(subscription);
+            });
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Plano alterado: tenantId={} plano={}",
+          LogSanitizer.maskId(tenantId),
+          LogSanitizer.neutralize(target));
+    }
+    return overview(tenant);
+  }
+
+  @Override
+  public PlanOverview setExtraUsers(String tenantId, int extraUsers, Role role) {
+    ensureBillingManager(role);
+    Tenant tenant = findTenant(tenantId);
+    if (PlanConfig.isFree(tenant.getPlanId())) {
+      throw new BusinessException("O plano cortesia já tem usuários ilimitados.");
+    }
+    if (extraUsers < 0 || extraUsers > PlanConfig.MAX_EXTRA_USERS) {
+      throw new BusinessException(
+          "Escolha de 0 a " + PlanConfig.MAX_EXTRA_USERS + " usuários adicionais.");
+    }
+    long operators = operatorsInUse(tenantId);
+    int newLimit = PlanConfig.operatorLimit(tenant.getPlanId(), extraUsers);
+    if (operators > newLimit) {
+      throw new BusinessException(
+          "Você tem "
+              + operators
+              + " operadores ativos. Desative operadores antes de reduzir os usuários adicionais.");
+    }
+    if (extraUsers == tenant.getExtraUsers()) {
+      return overview(tenant);
+    }
+    syncRecurringValue(tenantId, tenant.getPlanId(), extraUsers);
+    tenant.setExtraUsers(extraUsers);
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    tenantRepository.save(tenant);
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Usuários adicionais alterados: tenantId={} quantidade={}",
+          LogSanitizer.maskId(tenantId),
+          extraUsers);
+    }
+    return overview(tenant);
+  }
+
+  private PlanOverview overview(Tenant tenant) {
+    String plan = tenant.getPlanId() == null ? "" : tenant.getPlanId().toLowerCase(Locale.ROOT);
+    boolean free = PlanConfig.isFree(plan);
+    List<PlanOption> options =
+        PlanConfig.PAID_PLANS.stream()
+            .map(
+                id -> {
+                  PlanLimits limits = PlanConfig.getLimits(id);
+                  return new PlanOption(
+                      id,
+                      limits.maxProducts(),
+                      limits.maxSalesPerMonth(),
+                      limits.maxOperators(),
+                      limits.baseMonthlyFee());
+                })
+            .toList();
+    return new PlanOverview(
+        plan,
+        tenant.getExtraUsers(),
+        operatorsInUse(tenant.getId()),
+        free ? Integer.MAX_VALUE : PlanConfig.operatorLimit(plan, tenant.getExtraUsers()),
+        free ? BigDecimal.ZERO : PlanConfig.monthlyAmount(plan, tenant.getExtraUsers()),
+        PlanConfig.EXCESS_PER_OPERATOR,
+        recurringCardSubscription(tenant.getId()).isPresent(),
+        options);
+  }
+
+  private void syncRecurringValue(String tenantId, String plan, int extraUsers) {
+    Optional<Subscription> recurring = recurringCardSubscription(tenantId);
+    if (recurring.isEmpty()) {
+      return;
+    }
+    if (!asaasGateway.isConfigured()) {
+      throw new BusinessException(
+          "Não foi possível atualizar a assinatura agora. " + PAYMENT_SUPPORT_MESSAGE);
+    }
+    BigDecimal amount = PlanConfig.monthlyAmount(plan, extraUsers);
+    String description =
+        "Assinatura mensal do plano "
+            + capitalize(plan)
+            + (extraUsers > 0 ? " + " + extraUsers + " usuário(s) adicional(is)" : "");
+    try {
+      asaasGateway.updateSubscriptionValue(
+          recurring.get().getAsaasSubscriptionId(), amount, description);
+    } catch (AsaasException e) {
+      log.error(
+          "Falha ao atualizar valor da assinatura no Asaas: tenantId={} error={}",
+          LogSanitizer.maskId(tenantId),
+          e.getMessage());
+      throw new BusinessException(
+          "Não foi possível atualizar a assinatura agora. " + PAYMENT_SUPPORT_MESSAGE);
+    }
+  }
+
+  private Optional<Subscription> recurringCardSubscription(String tenantId) {
+    return subscriptionRepository
+        .findByTenantId(tenantId)
+        .filter(s -> hasText(s.getAsaasSubscriptionId()))
+        .filter(s -> !BILLING_TYPE_PIX.equals(s.getBillingType()))
+        .filter(s -> s.getStatus() != SubscriptionStatus.CANCELLED);
+  }
+
+  private long operatorsInUse(String tenantId) {
+    return userRepository.countByTenantIdAndRole(tenantId, "OPERATOR");
+  }
+
+  private static void ensureBillingManager(Role role) {
+    if (role != Role.TENANT_ADMIN && role != Role.ADMIN) {
+      throw new AccessDeniedException("Só o administrador da loja altera o plano.");
+    }
   }
 }

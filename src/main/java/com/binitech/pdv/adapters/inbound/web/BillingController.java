@@ -1,14 +1,22 @@
 package com.binitech.pdv.adapters.inbound.web;
 
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
+import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOverview;
 import com.binitech.pdv.domain.Invoice;
 import com.binitech.pdv.domain.Subscription;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -55,10 +63,54 @@ public class BillingController {
     return ResponseEntity.ok(new UrlDTO(url));
   }
 
+  @GetMapping("/plan")
+  public ResponseEntity<PlanOverviewDTO> getPlan() {
+    return ResponseEntity.ok(
+        toPlanDto(billingUseCase.getPlanOverview(authenticatedUserProvider.getTenantId())));
+  }
+
+  @PutMapping("/plan")
+  public ResponseEntity<PlanOverviewDTO> changePlan(@Valid @RequestBody ChangePlanRequest request) {
+    return ResponseEntity.ok(
+        toPlanDto(
+            billingUseCase.changePlan(
+                authenticatedUserProvider.getTenantId(),
+                request.planId(),
+                authenticatedUserProvider.getUserRole())));
+  }
+
+  @PutMapping("/extra-users")
+  public ResponseEntity<PlanOverviewDTO> setExtraUsers(
+      @Valid @RequestBody ExtraUsersRequest request) {
+    return ResponseEntity.ok(
+        toPlanDto(
+            billingUseCase.setExtraUsers(
+                authenticatedUserProvider.getTenantId(),
+                request.quantity(),
+                authenticatedUserProvider.getUserRole())));
+  }
+
   @GetMapping("/portal")
   public ResponseEntity<UrlDTO> getPortalUrl() {
     String url = billingUseCase.createPortalUrl(authenticatedUserProvider.getTenantId());
     return ResponseEntity.ok(new UrlDTO(url));
+  }
+
+  private PlanOverviewDTO toPlanDto(PlanOverview overview) {
+    return new PlanOverviewDTO(
+        overview.currentPlan(),
+        overview.extraUsers(),
+        overview.operatorsInUse(),
+        overview.operatorLimit() == Integer.MAX_VALUE ? null : overview.operatorLimit(),
+        overview.monthlyAmount(),
+        overview.extraUserPrice(),
+        overview.recurringCard(),
+        overview.plans().stream()
+            .map(
+                p ->
+                    new PlanOptionDTO(
+                        p.id(), p.maxProducts(), p.maxSalesPerMonth(), p.maxOperators(), p.price()))
+            .toList());
   }
 
   private SubscriptionDTO toSubscriptionDto(Subscription subscription) {
@@ -115,6 +167,23 @@ public class BillingController {
       LocalDateTime updatedAt) {}
 
   public record UrlDTO(String url) {}
+
+  public record ChangePlanRequest(@NotBlank String planId) {}
+
+  public record ExtraUsersRequest(@NotNull @Min(0) @Max(50) Integer quantity) {}
+
+  public record PlanOptionDTO(
+      String id, int maxProducts, int maxSalesPerMonth, int maxOperators, BigDecimal price) {}
+
+  public record PlanOverviewDTO(
+      String currentPlan,
+      int extraUsers,
+      long operatorsInUse,
+      Integer operatorLimit,
+      BigDecimal monthlyAmount,
+      BigDecimal extraUserPrice,
+      boolean recurringCard,
+      List<PlanOptionDTO> plans) {}
 
   public record InvoiceDTO(
       String id,

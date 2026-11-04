@@ -121,7 +121,7 @@ class AuthUseCaseImplTest {
               BusinessException.class,
               () -> authUseCase.register("second-operator", "password", Role.OPERATOR, "tenant1"));
 
-      assertTrue(exception.getMessage().contains("Limite de operadores"));
+      assertTrue(exception.getMessage().contains("usuário adicional"));
       verify(userRepository, never()).save(any());
     }
 
