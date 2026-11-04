@@ -23,6 +23,8 @@ public interface SpringDataProductRepository extends MongoRepository<ProductDocu
 
   List<ProductDocument> findAllByTenantId(String tenantId, Pageable pageable);
 
+  List<ProductDocument> findAllByTenantIdAndActiveTrueAndDeliveryVisibleTrue(String tenantId);
+
   Optional<ProductDocument> findByBarcodeAndTenantId(String barcode, String tenantId);
 
   List<ProductDocument> findAllByTenantIdAndBarcodeIn(String tenantId, Set<String> barcodes);

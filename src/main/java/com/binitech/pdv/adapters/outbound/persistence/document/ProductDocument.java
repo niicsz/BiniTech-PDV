@@ -39,4 +39,5 @@ public class ProductDocument {
   private String ncm;
   private String cfop;
   private String csosn;
+  private boolean deliveryVisible;
 }
