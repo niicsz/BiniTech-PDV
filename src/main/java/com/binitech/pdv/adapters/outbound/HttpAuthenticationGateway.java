@@ -8,6 +8,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorStatu
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.domain.exception.SessionRejectedException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -187,15 +188,19 @@ public class HttpAuthenticationGateway implements AuthenticationGateway {
 
   @Override
   public AuthResult refresh(String refreshToken) {
-    return invoke(
-        () ->
-            client
-                .post()
-                .uri("/api/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("refreshToken", refreshToken))
-                .retrieve()
-                .body(AuthResult.class));
+    try {
+      return invoke(
+          () ->
+              client
+                  .post()
+                  .uri("/api/auth/refresh")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .body(Map.of("refreshToken", refreshToken))
+                  .retrieve()
+                  .body(AuthResult.class));
+    } catch (BusinessException rejected) {
+      throw new SessionRejectedException();
+    }
   }
 
   @Override

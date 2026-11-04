@@ -5,6 +5,7 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.TwoFactorErrorDTO;
 import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.domain.exception.SessionRejectedException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -78,6 +79,15 @@ public class GlobalExceptionHandler {
     error.setMessage(ex.getMessage());
     error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(SessionRejectedException.class)
+  public ResponseEntity<ErrorDTO> handleSessionRejected(SessionRejectedException ex) {
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("SESSION_REJECTED");
+    error.setMessage(ex.getMessage());
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
   }
 
   @ExceptionHandler(TwoFactorException.class)
