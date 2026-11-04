@@ -8,6 +8,7 @@ import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.AuthResult;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort.TwoFactorChallenge;
 import com.binitech.pdv.domain.exception.AuthenticationUnavailableException;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.domain.exception.SessionRejectedException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
 import java.io.IOException;
 import java.time.Instant;
@@ -176,6 +177,15 @@ class HttpAuthenticationGatewayTest {
         .andRespond(withNoContent());
     assertEquals("new-refresh", gateway.refresh("refresh").refreshToken());
     gateway.logout("access");
+    server.verify();
+  }
+
+  @Test
+  void rejectedRefresh_endsTheSession() {
+    server
+        .expect(requestTo("http://auth:8081/api/auth/refresh"))
+        .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+    assertThrows(SessionRejectedException.class, () -> gateway.refresh("old-refresh"));
     server.verify();
   }
 
