@@ -139,17 +139,17 @@ public class TenantController {
   }
 
   public record CreateTenantRequest(
-      @NotBlank String name,
+      @NotBlank @Size(min = 2, max = 120) String name,
       @NotBlank @Pattern(regexp = "starter|pro|enterprise") String planId,
-      @NotBlank @Email String billingEmail,
+      @NotBlank @Email @Size(max = 254) String billingEmail,
       @NotNull @AssertTrue Boolean acceptedTerms,
       @NotBlank @Size(max = 20) String termsVersion) {}
 
-  public record BlockTenantRequest(@NotBlank String reason) {}
+  public record BlockTenantRequest(@NotBlank @Size(max = 500) String reason) {}
 
-  public record RejectTenantRequest(@NotBlank String reason) {}
+  public record RejectTenantRequest(@NotBlank @Size(max = 500) String reason) {}
 
-  public record ManualActivationRequest(PaymentMethod paymentMethod) {}
+  public record ManualActivationRequest(@NotNull PaymentMethod paymentMethod) {}
 
   public record TenantUserDTO(String id, String username, String role) {}
 
