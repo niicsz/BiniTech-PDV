@@ -10,6 +10,7 @@ import java.util.Locale;
 public final class DeliveryWhatsappMessage {
 
   private static final Locale PT_BR = Locale.of("pt", "BR");
+  private static final char NO_BREAK_SPACE = (char) 0xA0;
 
   private DeliveryWhatsappMessage() {}
 
@@ -69,7 +70,7 @@ public final class DeliveryWhatsappMessage {
   }
 
   public static String money(double value) {
-    return NumberFormat.getCurrencyInstance(PT_BR).format(value).replace(' ', ' ');
+    return NumberFormat.getCurrencyInstance(PT_BR).format(value).replace(NO_BREAK_SPACE, ' ');
   }
 
   private static String payment(DeliveryPaymentMethod method) {

@@ -162,16 +162,20 @@ public class DeliveryWebMapper {
             : DeliveryPaymentMethod.valueOf(dto.getPaymentMethod().getValue()),
         dto.getChangeFor(),
         dto.getNotes(),
-        dto.getItems() == null
-            ? List.of()
-            : dto.getItems().stream()
-                .map(
-                    i ->
-                        new OrderLine(
-                            i.getProductId(),
-                            i.getQuantity() == null ? 0 : i.getQuantity(),
-                            i.getNotes()))
-                .toList());
+        lines(dto));
+  }
+
+  private static List<OrderLine> lines(PlaceDeliveryOrderDTO dto) {
+    if (dto.getItems() == null) {
+      return List.of();
+    }
+    return dto.getItems().stream()
+        .map(i -> new OrderLine(i.getProductId(), quantityOf(i.getQuantity()), i.getNotes()))
+        .toList();
+  }
+
+  private static int quantityOf(Integer quantity) {
+    return quantity == null ? 0 : quantity;
   }
 
   public DeliveryOrderStatus toStatus(DeliveryOrderStatusDTO dto) {

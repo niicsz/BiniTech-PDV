@@ -18,7 +18,7 @@ public class DeliveryOrderRateLimiter {
   private final int maxOrders;
   private final long windowMillis;
   private final Clock clock;
-  private final Map<String, Deque<Long>> hits = new ConcurrentHashMap<>();
+  private final Map<String, Window> windows = new ConcurrentHashMap<>();
 
   @Autowired
   public DeliveryOrderRateLimiter(
@@ -35,11 +35,16 @@ public class DeliveryOrderRateLimiter {
 
   public boolean tryAcquire(String key) {
     long now = clock.millis();
-    if (hits.size() > MAX_KEYS) {
-      hits.entrySet().removeIf(e -> expired(e.getValue(), now));
+    if (windows.size() > MAX_KEYS) {
+      windows.values().removeIf(w -> w.idleSince(now));
     }
-    Deque<Long> times = hits.computeIfAbsent(key, k -> new ArrayDeque<>());
-    synchronized (times) {
+    return windows.computeIfAbsent(key, k -> new Window()).tryAcquire(now);
+  }
+
+  private final class Window {
+    private final Deque<Long> times = new ArrayDeque<>();
+
+    synchronized boolean tryAcquire(long now) {
       while (!times.isEmpty() && now - times.peekFirst() >= windowMillis) {
         times.pollFirst();
       }
@@ -49,10 +54,8 @@ public class DeliveryOrderRateLimiter {
       times.addLast(now);
       return true;
     }
-  }
 
-  private boolean expired(Deque<Long> times, long now) {
-    synchronized (times) {
+    synchronized boolean idleSince(long now) {
       return times.isEmpty() || now - times.peekLast() >= windowMillis;
     }
   }
