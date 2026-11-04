@@ -3,6 +3,8 @@ package com.binitech.pdv.application.ports.inbound;
 import com.binitech.pdv.domain.Invoice;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.Role;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,4 +49,23 @@ public interface BillingUseCasePort {
       String checkoutSessionId);
 
   Subscription manuallyActivate(String tenantId, PaymentMethod paymentMethod);
+
+  PlanOverview getPlanOverview(String tenantId);
+
+  PlanOverview changePlan(String tenantId, String planId, Role role);
+
+  PlanOverview setExtraUsers(String tenantId, int extraUsers, Role role);
+
+  record PlanOption(
+      String id, int maxProducts, int maxSalesPerMonth, int maxOperators, BigDecimal price) {}
+
+  record PlanOverview(
+      String currentPlan,
+      int extraUsers,
+      long operatorsInUse,
+      int operatorLimit,
+      BigDecimal monthlyAmount,
+      BigDecimal extraUserPrice,
+      boolean recurringCard,
+      List<PlanOption> plans) {}
 }

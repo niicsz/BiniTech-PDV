@@ -280,7 +280,7 @@ class AuthControllerIT {
           .andExpect(jsonPath("$.code").value("BUSINESS_ERROR"))
           .andExpect(
               jsonPath("$.message")
-                  .value(org.hamcrest.Matchers.containsString("Limite de operadores")));
+                  .value(org.hamcrest.Matchers.containsString("usuário adicional")));
     }
 
     @Test

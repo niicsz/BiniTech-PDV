@@ -138,6 +138,27 @@ public class AsaasGateway {
     return value.length() > 500 ? value.substring(0, 500) : value;
   }
 
+  public void updateSubscriptionValue(String subscriptionId, BigDecimal value, String description) {
+    try {
+      client
+          .post()
+          .uri("/subscriptions/{id}", subscriptionId)
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(new SubscriptionUpdate(value, description, true))
+          .retrieve()
+          .toBodilessEntity();
+    } catch (RestClientResponseException e) {
+      throw new AsaasException(
+          "Asaas recusou a alteração da assinatura: HTTP "
+              + e.getStatusCode().value()
+              + " "
+              + truncate(e.getResponseBodyAsString()),
+          e);
+    } catch (RestClientException e) {
+      throw new AsaasException("Falha ao alterar a assinatura no Asaas", e);
+    }
+  }
+
   public String findActiveSubscriptionId(String customerId) {
     try {
       Page<IdOnly> page =
@@ -214,6 +235,8 @@ public class AsaasGateway {
   record SubscriptionRule(String cycle, String nextDueDate) {}
 
   record CheckoutResponse(String id, String link) {}
+
+  record SubscriptionUpdate(BigDecimal value, String description, boolean updatePendingPayments) {}
 
   record Page<T>(List<T> data) {}
 
