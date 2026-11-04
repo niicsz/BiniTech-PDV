@@ -132,6 +132,18 @@ class BillingPlanChangeTest {
   }
 
   @Test
+  @DisplayName("Downgrade é recusado quando há mais produtos ativos do que o novo plano permite")
+  void downgradeBlockedByProducts() {
+    tenant.setPlanId("pro");
+    when(products.countByTenantIdAndActiveTrue("t1")).thenReturn(5000L);
+    BusinessException error =
+        assertThrows(
+            BusinessException.class, () -> billing.changePlan("t1", "starter", Role.TENANT_ADMIN));
+    assertTrue(error.getMessage().contains("5000 produtos ativos"));
+    assertEquals("pro", tenant.getPlanId());
+  }
+
+  @Test
   @DisplayName("Se o Asaas recusar, o plano não muda")
   void asaasFailureKeepsPlan() {
     cardSubscription();
