@@ -108,6 +108,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     existing.setNcm(product.getNcm());
     existing.setCfop(product.getCfop());
     existing.setCsosn(product.getCsosn());
+    existing.setDeliveryVisible(product.isDeliveryVisible());
     if (activeOverride != null) {
       existing.setActive(activeOverride);
     }

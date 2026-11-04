@@ -37,6 +37,8 @@ public interface ProductRepositoryPort {
 
   long countActiveByTenantId(String tenantId);
 
+  List<Product> findDeliveryCatalog(String tenantId);
+
   boolean decreaseStock(String productId, String tenantId, int quantity);
 
   int decreaseStockUpTo(String productId, String tenantId, int quantity);

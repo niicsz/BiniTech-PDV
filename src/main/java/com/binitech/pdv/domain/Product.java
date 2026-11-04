@@ -20,6 +20,7 @@ public class Product implements Serializable {
   private String ncm;
   private String cfop;
   private String csosn;
+  private boolean deliveryVisible;
 
   public Product() {
     this.active = true;
@@ -35,6 +36,14 @@ public class Product implements Serializable {
 
   public void increaseStock(int quantity) {
     this.stockQuantity += quantity;
+  }
+
+  public boolean isDeliveryVisible() {
+    return deliveryVisible;
+  }
+
+  public void setDeliveryVisible(boolean deliveryVisible) {
+    this.deliveryVisible = deliveryVisible;
   }
 
   public String getNcm() {

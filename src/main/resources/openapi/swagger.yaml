@@ -19,6 +19,10 @@ tags:
     description: Operações de venda e relatórios
   - name: Users
     description: Gerenciamento de usuários do tenant autenticado
+  - name: Delivery
+    description: Pedidos e configuração do delivery da loja
+  - name: PublicDelivery
+    description: Cardápio e pedidos públicos do delivery
 
 paths:
   /api/auth/login:
@@ -653,6 +657,201 @@ paths:
                 items:
                   $ref: '#/components/schemas/SaleDTO'
 
+  /api/delivery/settings:
+    get:
+      tags: [Delivery]
+      summary: Configuração do delivery da loja
+      operationId: getDeliverySettings
+      responses:
+        '200':
+          description: Configuração atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliverySettingsDTO'
+        '404':
+          description: Delivery indisponível neste ambiente
+    put:
+      tags: [Delivery]
+      summary: Atualizar a configuração do delivery
+      operationId: updateDeliverySettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeliverySettingsDTO'
+      responses:
+        '200':
+          description: Configuração salva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliverySettingsDTO'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/delivery/orders:
+    get:
+      tags: [Delivery]
+      summary: Listar pedidos do delivery
+      operationId: listDeliveryOrders
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliveryOrderStatusDTO'
+      responses:
+        '200':
+          description: Pedidos mais recentes primeiro
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeliveryOrderDTO'
+
+  /api/delivery/orders/{id}/status:
+    patch:
+      tags: [Delivery]
+      summary: Avançar ou cancelar um pedido
+      operationId: updateDeliveryOrderStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeliveryOrderStatusDTO'
+      responses:
+        '200':
+          description: Pedido atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryOrderDTO'
+        '400':
+          description: Mudança de status não permitida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/delivery/orders/{id}/complete:
+    post:
+      tags: [Delivery]
+      summary: Concluir o pedido e lançar a venda no caixa
+      operationId: completeDeliveryOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteDeliveryOrderDTO'
+      responses:
+        '200':
+          description: Pedido concluído e venda registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryOrderDTO'
+        '400':
+          description: Pedido não pode ser concluído
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/public/delivery/{slug}:
+    get:
+      tags: [PublicDelivery]
+      summary: Cardápio público da loja
+      operationId: getPublicDeliveryStore
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Loja e cardápio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicDeliveryStoreDTO'
+        '404':
+          description: Loja sem delivery
+
+  /api/public/delivery/{slug}/orders:
+    post:
+      tags: [PublicDelivery]
+      summary: Enviar um pedido para a loja
+      operationId: placeDeliveryOrder
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceDeliveryOrderDTO'
+      responses:
+        '201':
+          description: Pedido recebido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlacedDeliveryOrderDTO'
+        '400':
+          description: Pedido inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '429':
+          description: Muitos pedidos em sequência
+
+  /api/public/delivery/{slug}/orders/{orderId}:
+    get:
+      tags: [PublicDelivery]
+      summary: Acompanhar um pedido
+      operationId: trackDeliveryOrder
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Situação do pedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlacedDeliveryOrderDTO'
+        '404':
+          description: Pedido não encontrado
+
 components:
   parameters:
     ProductImportServiceKey:
@@ -838,6 +1037,9 @@ components:
           type: string
           pattern: '^\d{3}$'
           description: CSOSN do ICMS (Simples Nacional/MEI), usado na NFC-e
+        deliveryVisible:
+          type: boolean
+          description: Mostra o produto no cardápio do delivery
         userId:
           type: string
           readOnly: true
@@ -883,6 +1085,9 @@ components:
           description: CSOSN do ICMS (Simples Nacional/MEI), usado na NFC-e
         active:
           type: boolean
+        deliveryVisible:
+          type: boolean
+          description: Mostra o produto no cardápio do delivery
 
     SaleDTO:
       type: object
@@ -1194,3 +1399,202 @@ components:
           type: string
           format: date-time
 
+    DeliveryOrderStatusDTO:
+      type: string
+      enum: [RECEIVED, ACCEPTED, DISPATCHED, COMPLETED, CANCELLED]
+
+    DeliveryFulfillmentDTO:
+      type: string
+      enum: [DELIVERY, PICKUP]
+
+    DeliveryPaymentMethodDTO:
+      type: string
+      enum: [PIX, CASH, CARD]
+
+    DeliverySettingsDTO:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        open: { type: boolean }
+        slug: { type: string }
+        storeName: { type: string }
+        whatsapp: { type: string }
+        message: { type: string }
+        deliveryFee: { type: number, format: double }
+        minimumOrder: { type: number, format: double }
+        estimatedMinutes: { type: integer }
+        deliveryAvailable: { type: boolean }
+        pickupAvailable: { type: boolean }
+        pickupAddress: { type: string }
+        acceptedPayments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        pixKey: { type: string }
+
+    UpdateDeliverySettingsDTO:
+      type: object
+      required: [enabled, open, whatsapp, deliveryFee, minimumOrder, estimatedMinutes, deliveryAvailable, pickupAvailable, acceptedPayments]
+      properties:
+        enabled: { type: boolean }
+        open: { type: boolean }
+        whatsapp: { type: string, maxLength: 20 }
+        message: { type: string, maxLength: 280 }
+        deliveryFee: { type: number, format: double, minimum: 0, maximum: 1000 }
+        minimumOrder: { type: number, format: double, minimum: 0, maximum: 100000 }
+        estimatedMinutes: { type: integer, minimum: 5, maximum: 600 }
+        deliveryAvailable: { type: boolean }
+        pickupAvailable: { type: boolean }
+        pickupAddress: { type: string, maxLength: 200 }
+        acceptedPayments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        pixKey: { type: string, maxLength: 120 }
+
+    DeliveryAddressDTO:
+      type: object
+      required: [street, number, district]
+      properties:
+        street: { type: string, minLength: 2, maxLength: 120 }
+        number: { type: string, minLength: 1, maxLength: 20 }
+        complement: { type: string, maxLength: 80 }
+        district: { type: string, minLength: 2, maxLength: 80 }
+        reference: { type: string, maxLength: 120 }
+
+    DeliveryOrderItemDTO:
+      type: object
+      properties:
+        productId: { type: string }
+        description: { type: string }
+        unitPrice: { type: number, format: double }
+        quantity: { type: integer }
+        notes: { type: string }
+        subtotal: { type: number, format: double }
+
+    DeliveryOrderDTO:
+      type: object
+      properties:
+        id: { type: string }
+        number: { type: integer, format: int64 }
+        status:
+          $ref: '#/components/schemas/DeliveryOrderStatusDTO'
+        fulfillment:
+          $ref: '#/components/schemas/DeliveryFulfillmentDTO'
+        customerName: { type: string }
+        customerPhone: { type: string }
+        address:
+          $ref: '#/components/schemas/DeliveryAddressDTO'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryOrderItemDTO'
+        subtotal: { type: number, format: double }
+        deliveryFee: { type: number, format: double }
+        total: { type: number, format: double }
+        paymentMethod:
+          $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        changeFor: { type: number, format: double }
+        notes: { type: string }
+        saleId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    UpdateDeliveryOrderStatusDTO:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/DeliveryOrderStatusDTO'
+
+    CompleteDeliveryOrderDTO:
+      type: object
+      required: [paymentMethod]
+      properties:
+        paymentMethod:
+          type: string
+          enum: [CASH, CREDIT_CARD, DEBIT_CARD, PIX]
+
+    PublicDeliveryProductDTO:
+      type: object
+      properties:
+        id: { type: string }
+        description: { type: string }
+        category: { type: string }
+        price: { type: number, format: double }
+        available: { type: boolean }
+        maxQuantity: { type: integer }
+
+    PublicDeliveryStoreDTO:
+      type: object
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        open: { type: boolean }
+        message: { type: string }
+        deliveryFee: { type: number, format: double }
+        minimumOrder: { type: number, format: double }
+        estimatedMinutes: { type: integer }
+        deliveryAvailable: { type: boolean }
+        pickupAvailable: { type: boolean }
+        pickupAddress: { type: string }
+        acceptedPayments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicDeliveryProductDTO'
+
+    PlaceDeliveryOrderItemDTO:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { type: string, minLength: 1, maxLength: 64 }
+        quantity: { type: integer, minimum: 1, maximum: 99 }
+        notes: { type: string, maxLength: 140 }
+
+    PlaceDeliveryOrderDTO:
+      type: object
+      required: [customerName, customerPhone, fulfillment, paymentMethod, items]
+      properties:
+        customerName: { type: string, minLength: 2, maxLength: 80 }
+        customerPhone: { type: string, minLength: 10, maxLength: 20 }
+        fulfillment:
+          $ref: '#/components/schemas/DeliveryFulfillmentDTO'
+        address:
+          $ref: '#/components/schemas/DeliveryAddressDTO'
+        paymentMethod:
+          $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        changeFor: { type: number, format: double, minimum: 0, maximum: 100000 }
+        notes: { type: string, maxLength: 280 }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/PlaceDeliveryOrderItemDTO'
+
+    PlacedDeliveryOrderDTO:
+      type: object
+      properties:
+        id: { type: string }
+        number: { type: integer, format: int64 }
+        status:
+          $ref: '#/components/schemas/DeliveryOrderStatusDTO'
+        fulfillment:
+          $ref: '#/components/schemas/DeliveryFulfillmentDTO'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryOrderItemDTO'
+        subtotal: { type: number, format: double }
+        deliveryFee: { type: number, format: double }
+        total: { type: number, format: double }
+        paymentMethod:
+          $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        pixKey: { type: string }
+        whatsappUrl: { type: string }
+        createdAt: { type: string, format: date-time }

@@ -6,6 +6,7 @@ import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
+import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
@@ -15,6 +16,8 @@ import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.DeliveryStoreRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
@@ -29,6 +32,7 @@ import com.binitech.pdv.application.usecases.AccessLogUseCaseImpl;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.BillingUseCaseImpl;
 import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
+import com.binitech.pdv.application.usecases.DeliveryUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
@@ -86,6 +90,28 @@ public class BeanConfig {
         productRepositoryPort,
         ZoneId.of(businessTimeZone),
         saleFiscalPublisher);
+  }
+
+  @Bean
+  public DeliveryUseCasePort deliveryUseCasePort(
+      @Value("${delivery.enabled:false}") boolean deliveryEnabled,
+      DeliveryStoreRepositoryPort deliveryStoreRepositoryPort,
+      DeliveryOrderRepositoryPort deliveryOrderRepositoryPort,
+      TenantRepositoryPort tenantRepositoryPort,
+      ProductRepositoryPort productRepositoryPort,
+      SaleUseCasePort saleUseCasePort,
+      @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
+    log.info(
+        "Configurando DeliveryUseCasePort (delivery {})", deliveryEnabled ? "ativo" : "desligado");
+    return new DeliveryUseCaseImpl(
+        deliveryEnabled,
+        deliveryStoreRepositoryPort,
+        deliveryOrderRepositoryPort,
+        tenantRepositoryPort,
+        productRepositoryPort,
+        saleUseCasePort,
+        frontendUrl,
+        Clock.systemUTC());
   }
 
   @Bean

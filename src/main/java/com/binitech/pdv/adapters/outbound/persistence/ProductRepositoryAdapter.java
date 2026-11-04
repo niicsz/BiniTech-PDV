@@ -248,4 +248,11 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   public long countActiveByTenantId(String tenantId) {
     return repository.countByTenantIdAndActiveTrue(tenantId);
   }
+
+  @Override
+  public List<Product> findDeliveryCatalog(String tenantId) {
+    return repository.findAllByTenantIdAndActiveTrueAndDeliveryVisibleTrue(tenantId).stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
 }
