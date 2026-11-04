@@ -2,6 +2,7 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.domain.Barcode;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -22,9 +23,33 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
   private static final int MAX_PAGE_SIZE = 200;
 
   private final ProductRepositoryPort productRepository;
+  private final TenantRepositoryPort tenantRepository;
 
   public ProductUseCaseImpl(ProductRepositoryPort productRepository) {
+    this(productRepository, null);
+  }
+
+  public ProductUseCaseImpl(
+      ProductRepositoryPort productRepository, TenantRepositoryPort tenantRepository) {
     this.productRepository = productRepository;
+    this.tenantRepository = tenantRepository;
+  }
+
+  private void ensureProductSlot(String tenantId) {
+    if (tenantRepository == null || tenantId == null) {
+      return;
+    }
+    tenantRepository
+        .findById(tenantId)
+        .filter(
+            tenant ->
+                ProductPlanLimit.remaining(
+                        tenant, productRepository.countActiveByTenantId(tenantId))
+                    <= 0)
+        .ifPresent(
+            tenant -> {
+              throw ProductPlanLimit.reached(tenant);
+            });
   }
 
   @Override
@@ -46,6 +71,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
       throw new BusinessException(
           "Já existe um produto cadastrado com o código de barras: " + product.getBarcode());
     }
+    ensureProductSlot(tenantId);
     product.setActive(true);
     product.setUserId(userId);
     product.setTenantId(tenantId);
@@ -109,6 +135,9 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     existing.setCfop(product.getCfop());
     existing.setCsosn(product.getCsosn());
     existing.setDeliveryVisible(product.isDeliveryVisible());
+    if (Boolean.TRUE.equals(activeOverride) && !existing.isActive()) {
+      ensureProductSlot(tenantId);
+    }
     if (activeOverride != null) {
       existing.setActive(activeOverride);
     }

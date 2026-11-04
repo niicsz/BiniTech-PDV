@@ -63,13 +63,20 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       List<ImportCommand> commands) {
     User actor = authorizedUser(identity);
     BatchKeys keys = validateAndCollectKeys(commands);
+    Tenant tenant =
+        tenants.findById(identity.tenantId()).orElseThrow(ProductImportIntegrationUseCase::denied);
     ProcessingState state =
         new ProcessingState(
             loadReceipts(identity.tenantId(), keys.operationIds()),
             loadProducts(identity.tenantId(), keys.barcodes()),
             new ArrayList<>(),
             new ArrayList<>(),
-            new ArrayList<>());
+            new ArrayList<>(),
+            tenant,
+            new long[] {
+              ProductPlanLimit.remaining(
+                  tenant, products.countActiveByTenantId(identity.tenantId()))
+            });
     Set<UpdateField> fields = updateFields == null ? Set.of() : updateFields;
     commands.forEach(
         command -> process(command, identity, actor.getRole(), mode, stockMode, fields, state));
@@ -148,6 +155,9 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
     Product product = state.products().get(command.barcode());
     if (product == null) {
       Product created = create(command, identity);
+      if (created.isActive()) {
+        takeProductSlot(state);
+      }
       state.changed().add(created);
       state.products().put(created.getBarcode(), created);
       state.pending().add(new PendingResult(command, created, ResultAction.CREATED));
@@ -161,6 +171,13 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
     update(product, command, stockMode, fields);
     state.changed().add(product);
     state.pending().add(new PendingResult(command, product, ResultAction.UPDATED));
+  }
+
+  private static void takeProductSlot(ProcessingState state) {
+    if (state.productSlots()[0] <= 0) {
+      throw ProductPlanLimit.reached(state.tenant());
+    }
+    state.productSlots()[0]--;
   }
 
   private static void authorizeUpdate(String userId, Role actorRole, Product product) {
@@ -249,7 +266,9 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       Map<String, Product> products,
       List<Product> changed,
       List<PendingResult> pending,
-      List<ImportResult> results) {}
+      List<ImportResult> results,
+      Tenant tenant,
+      long[] productSlots) {}
 
   private record PendingResult(ImportCommand command, Product product, ResultAction action) {}
 }

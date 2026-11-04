@@ -11,8 +11,6 @@ public class PlanConfig {
   public static final String PLAN_FREE = "free";
   public static final int UNLIMITED = Integer.MAX_VALUE;
 
-  public static final BigDecimal EXCESS_PER_PRODUCT = new BigDecimal("0.10");
-  public static final BigDecimal EXCESS_PER_SALE = new BigDecimal("0.05");
   public static final BigDecimal EXCESS_PER_OPERATOR = new BigDecimal("30.00");
   public static final List<String> PAID_PLANS = List.of("starter", "pro", "enterprise");
   public static final int MAX_EXTRA_USERS = 50;

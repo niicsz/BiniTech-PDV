@@ -64,9 +64,10 @@ public class BeanConfig {
   }
 
   @Bean
-  public ProductUseCasePort productUseCasePort(ProductRepositoryPort productRepositoryPort) {
+  public ProductUseCasePort productUseCasePort(
+      ProductRepositoryPort productRepositoryPort, TenantRepositoryPort tenantRepositoryPort) {
     log.info("Configurando ProductUseCasePort");
-    return new ProductUseCaseImpl(productRepositoryPort);
+    return new ProductUseCaseImpl(productRepositoryPort, tenantRepositoryPort);
   }
 
   @Bean

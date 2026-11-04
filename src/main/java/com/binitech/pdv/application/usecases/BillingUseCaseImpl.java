@@ -118,16 +118,10 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     LocalDate today = LocalDate.now(ZoneId.systemDefault());
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
-    int effectiveProducts =
-        activeProducts >= 0
-            ? activeProducts
-            : (int) productRepository.countByTenantIdAndActiveTrue(tenantId);
     int effectiveOperators =
         operators >= 0
             ? operators
             : (int) userRepository.countByTenantIdAndRole(tenantId, "OPERATOR");
-    int extraProducts = Math.max(effectiveProducts - limits.maxProducts(), 0);
-    int extraSales = Math.max(monthlySales - limits.maxSalesPerMonth(), 0);
     int extraOperators =
         Math.max(
             Math.max(effectiveOperators - limits.maxOperators(), 0),
@@ -135,10 +129,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
     BigDecimal baseAmount = limits.baseMonthlyFee();
     BigDecimal excessAmount =
-        PlanConfig.EXCESS_PER_PRODUCT
-            .multiply(BigDecimal.valueOf(extraProducts))
-            .add(PlanConfig.EXCESS_PER_SALE.multiply(BigDecimal.valueOf(extraSales)))
-            .add(PlanConfig.EXCESS_PER_OPERATOR.multiply(BigDecimal.valueOf(extraOperators)));
+        PlanConfig.EXCESS_PER_OPERATOR.multiply(BigDecimal.valueOf(extraOperators));
 
     Invoice invoice = new Invoice();
     invoice.setTenantId(tenantId);
@@ -147,9 +138,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     invoice.setStatus(InvoiceStatus.PENDING);
     invoice.setDueDate(today.plusDays(5));
     invoice.setPaidAt(null);
-    invoice.setDescription(
-        buildDescription(
-            subscription.getPlanTier(), today, extraProducts, extraSales, extraOperators));
+    invoice.setDescription(buildDescription(subscription.getPlanTier(), today, extraOperators));
     invoice.setBaseAmount(baseAmount);
     invoice.setExcessAmount(excessAmount);
     invoice.setCreatedAt(now);
@@ -686,12 +675,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         .findFirst();
   }
 
-  private String buildDescription(
-      String planTier,
-      LocalDate referenceDate,
-      int extraProducts,
-      int extraSales,
-      int extraOperators) {
+  private String buildDescription(String planTier, LocalDate referenceDate, int extraOperators) {
     StringBuilder description =
         new StringBuilder(
             "Assinatura "
@@ -702,8 +686,6 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
                 + referenceDate.getYear());
 
     StringBuilder extras = new StringBuilder();
-    appendExtra(extras, extraProducts, "produto");
-    appendExtra(extras, extraSales, "venda");
     appendExtra(extras, extraOperators, "operador");
     if (!extras.isEmpty()) {
       description.append(" + ").append(extras);
@@ -763,6 +745,18 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
               + " permite "
               + newLimit
               + ". Desative operadores ou contrate usuários adicionais antes de mudar.");
+    }
+    int productLimit = PlanConfig.getLimits(target).maxProducts();
+    long activeProducts = productRepository.countByTenantIdAndActiveTrue(tenantId);
+    if (activeProducts > productLimit) {
+      throw new BusinessException(
+          "Você tem "
+              + activeProducts
+              + " produtos ativos e o plano "
+              + capitalize(target)
+              + " permite "
+              + productLimit
+              + ". Inative produtos antes de mudar.");
     }
     syncRecurringValue(tenantId, target, tenant.getExtraUsers());
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
