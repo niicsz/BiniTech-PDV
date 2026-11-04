@@ -96,7 +96,7 @@ class BillingUseCaseImplTest {
       when(asaasGateway.createSubscriptionCheckout(
               any(Tenant.class),
               eq("Pro"),
-              eq(new BigDecimal("199.00")),
+              eq(new BigDecimal("149.00")),
               eq("http://localhost:4200/billing?status=success"),
               eq("http://localhost:4200/billing")))
           .thenReturn(

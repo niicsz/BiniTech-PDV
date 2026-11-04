@@ -105,7 +105,7 @@ class BillingPlanChangeTest {
 
     assertEquals("pro", overview.currentPlan());
     assertEquals("pro", tenant.getPlanId());
-    verify(asaas).updateSubscriptionValue(eq("sub_1"), eq(new BigDecimal("199.00")), anyString());
+    verify(asaas).updateSubscriptionValue(eq("sub_1"), eq(new BigDecimal("149.00")), anyString());
     ArgumentCaptor<Subscription> saved = ArgumentCaptor.forClass(Subscription.class);
     verify(subscriptions).save(saved.capture());
     assertEquals("pro", saved.getValue().getPlanTier());
