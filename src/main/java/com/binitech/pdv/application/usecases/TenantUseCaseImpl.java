@@ -5,6 +5,7 @@ import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
+import com.binitech.pdv.config.PlanConfig;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.domain.User;
 import com.binitech.pdv.domain.exception.BusinessException;
@@ -116,6 +117,9 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
     requirePendingApproval(tenant);
     provisionTenantAdmin(tenant);
 
+    if (!PlanConfig.isFree(tenant.getPlanId())) {
+      tenant.startTrial(LocalDate.now(ZoneId.systemDefault()));
+    }
     tenant.setStatus(TenantStatus.ACTIVE);
     tenant.setBlockedAt(null);
     tenant.setBlockReason(null);

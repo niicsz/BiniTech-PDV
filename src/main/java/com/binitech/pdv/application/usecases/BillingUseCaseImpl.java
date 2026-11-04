@@ -839,7 +839,13 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
         free ? BigDecimal.ZERO : PlanConfig.monthlyAmount(plan, tenant.getExtraUsers()),
         PlanConfig.EXCESS_PER_OPERATOR,
         recurringCardSubscription(tenant.getId()).isPresent(),
-        options);
+        options,
+        tenant.getTrialEndsAt(),
+        subscriptionRepository
+            .findByTenantId(tenant.getId())
+            .map(Subscription::getStatus)
+            .filter(s -> s == SubscriptionStatus.ACTIVE || s == SubscriptionStatus.PAST_DUE)
+            .isPresent());
   }
 
   private void syncRecurringValue(String tenantId, String plan, int extraUsers) {

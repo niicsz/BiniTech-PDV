@@ -1,8 +1,10 @@
 package com.binitech.pdv.config;
 
+import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -10,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import org.slf4j.Logger;
@@ -27,9 +30,14 @@ public class TenantValidationFilter extends OncePerRequestFilter {
   private static final Logger log = LoggerFactory.getLogger(TenantValidationFilter.class);
 
   private final TenantRepositoryPort tenantRepository;
+  private final SubscriptionRepositoryPort subscriptionRepository;
   private final ObjectMapper objectMapper;
 
-  public TenantValidationFilter(TenantRepositoryPort tenantRepository, ObjectMapper objectMapper) {
+  public TenantValidationFilter(
+      TenantRepositoryPort tenantRepository,
+      SubscriptionRepositoryPort subscriptionRepository,
+      ObjectMapper objectMapper) {
+    this.subscriptionRepository = subscriptionRepository;
     this.tenantRepository = tenantRepository;
     this.objectMapper = objectMapper;
   }
@@ -99,6 +107,17 @@ public class TenantValidationFilter extends OncePerRequestFilter {
       return;
     }
 
+    if (trialEndedWithoutPayment(tenant)) {
+      writeError(
+          response,
+          HttpStatus.PAYMENT_REQUIRED,
+          "TRIAL_ENDED",
+          "Seu teste grátis de "
+              + Tenant.TRIAL_DAYS
+              + " dias terminou. Assine em Assinatura para continuar usando o caixa.");
+      return;
+    }
+
     filterChain.doFilter(request, response);
   }
 
@@ -113,4 +132,17 @@ public class TenantValidationFilter extends OncePerRequestFilter {
   }
 
   private record TenantErrorResponse(String code, String message, OffsetDateTime timestamp) {}
+
+  private boolean trialEndedWithoutPayment(Tenant tenant) {
+    if (tenant.getStatus() != TenantStatus.ACTIVE
+        || PlanConfig.isFree(tenant.getPlanId())
+        || !tenant.trialExpired(LocalDate.now(ZoneId.of("America/Sao_Paulo")))) {
+      return false;
+    }
+    return subscriptionRepository
+        .findByTenantId(tenant.getId())
+        .map(s -> s.getStatus())
+        .filter(s -> s == SubscriptionStatus.ACTIVE || s == SubscriptionStatus.PAST_DUE)
+        .isEmpty();
+  }
 }
