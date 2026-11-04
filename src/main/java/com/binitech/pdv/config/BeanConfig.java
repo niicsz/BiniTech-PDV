@@ -104,14 +104,12 @@ public class BeanConfig {
     log.info(
         "Configurando DeliveryUseCasePort (delivery {})", deliveryEnabled ? "ativo" : "desligado");
     return new DeliveryUseCaseImpl(
-        deliveryEnabled,
+        new DeliveryUseCaseImpl.Options(deliveryEnabled, frontendUrl, Clock.systemUTC()),
         deliveryStoreRepositoryPort,
         deliveryOrderRepositoryPort,
         tenantRepositoryPort,
         productRepositoryPort,
-        saleUseCasePort,
-        frontendUrl,
-        Clock.systemUTC());
+        saleUseCasePort);
   }
 
   @Bean

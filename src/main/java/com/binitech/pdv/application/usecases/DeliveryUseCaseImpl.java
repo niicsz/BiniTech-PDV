@@ -59,23 +59,31 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
   private final String frontendUrl;
   private final Clock clock;
 
+  public record Options(boolean featureEnabled, String frontendUrl, Clock clock) {}
+
   public DeliveryUseCaseImpl(
-      boolean featureEnabled,
+      Options options,
       DeliveryStoreRepositoryPort stores,
       DeliveryOrderRepositoryPort orders,
       TenantRepositoryPort tenants,
       ProductRepositoryPort products,
-      SaleUseCasePort sales,
-      String frontendUrl,
-      Clock clock) {
-    this.featureEnabled = featureEnabled;
+      SaleUseCasePort sales) {
+    this.featureEnabled = options.featureEnabled();
     this.stores = stores;
     this.orders = orders;
     this.tenants = tenants;
     this.products = products;
     this.sales = sales;
-    this.frontendUrl = frontendUrl.replaceAll("/+$", "");
-    this.clock = clock;
+    this.frontendUrl = withoutTrailingSlash(options.frontendUrl());
+    this.clock = options.clock();
+  }
+
+  private static String withoutTrailingSlash(String url) {
+    int end = url.length();
+    while (end > 0 && url.charAt(end - 1) == '/') {
+      end--;
+    }
+    return url.substring(0, end);
   }
 
   @Override
@@ -278,7 +286,8 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
       totals.merge(line.productId(), line.quantity(), Integer::sum);
     }
     Map<String, Product> catalog = new LinkedHashMap<>();
-    for (String productId : totals.keySet()) {
+    for (Map.Entry<String, Integer> total : totals.entrySet()) {
+      String productId = total.getKey();
       Product product =
           products
               .findById(productId)
@@ -287,7 +296,7 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
               .filter(Product::isDeliveryVisible)
               .orElseThrow(
                   () -> new BusinessException("Um dos produtos não está mais disponível."));
-      if (product.getStockQuantity() < totals.get(productId)) {
+      if (product.getStockQuantity() < total.getValue()) {
         throw new BusinessException(
             "Temos só "
                 + Math.max(0, product.getStockQuantity())

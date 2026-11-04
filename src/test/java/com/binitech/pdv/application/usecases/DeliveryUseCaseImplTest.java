@@ -96,14 +96,15 @@ class DeliveryUseCaseImplTest {
 
   private DeliveryUseCaseImpl create(boolean enabled) {
     return new DeliveryUseCaseImpl(
-        enabled,
+        new DeliveryUseCaseImpl.Options(
+            enabled,
+            "https://www.binitechpdv.com.br/",
+            Clock.fixed(Instant.parse("2026-11-03T15:00:00Z"), ZoneOffset.UTC)),
         stores,
         orders,
         tenants,
         products,
-        sales,
-        "https://www.binitechpdv.com.br/",
-        Clock.fixed(Instant.parse("2026-11-03T15:00:00Z"), ZoneOffset.UTC));
+        sales);
   }
 
   private static Product product(String id, String description, double price, int stock) {
@@ -140,16 +141,13 @@ class DeliveryUseCaseImplTest {
     DeliveryUseCaseImpl off = create(false);
     assertThrows(ResourceNotFoundException.class, () -> off.getPublicStore(SLUG));
     assertThrows(ResourceNotFoundException.class, () -> off.getSettings(TENANT));
-    assertThrows(
-        ResourceNotFoundException.class,
-        () ->
-            off.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.PIX,
-                    null,
-                    new OrderLine("coca", 2, null))));
+    OrderRequest request1 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("coca", 2, null));
+    assertThrows(ResourceNotFoundException.class, () -> off.placeOrder(SLUG, request1));
   }
 
   @Test
@@ -208,41 +206,32 @@ class DeliveryUseCaseImplTest {
   @Test
   @DisplayName("Recusa pedido abaixo do mínimo, acima do estoque ou com produto fora do cardápio")
   void rejectsInvalidOrders() {
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.PIX,
-                    null,
-                    new OrderLine("pao", 2, null))));
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.PIX,
-                    null,
-                    new OrderLine("coca", 2, null),
-                    new OrderLine("pao", 2, null),
-                    new OrderLine("pao", 2, null))));
+    OrderRequest request2 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("pao", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request2));
+    OrderRequest request3 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("coca", 2, null),
+            new OrderLine("pao", 2, null),
+            new OrderLine("pao", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request3));
     Product hidden = product("cerveja", "Cerveja", 10, 50);
     hidden.setDeliveryVisible(false);
     when(products.findById("cerveja")).thenReturn(Optional.of(hidden));
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.PIX,
-                    null,
-                    new OrderLine("cerveja", 2, null))));
+    OrderRequest request4 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("cerveja", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request4));
     verify(orders, never()).save(any());
   }
 
@@ -250,37 +239,28 @@ class DeliveryUseCaseImplTest {
   @DisplayName("Loja fechada, troco menor que o total ou pagamento não aceito são recusados")
   void rejectsByStoreRules() {
     store.setAcceptedPayments(EnumSet.of(DeliveryPaymentMethod.PIX, DeliveryPaymentMethod.CASH));
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.CARD,
-                    null,
-                    new OrderLine("coca", 2, null))));
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.DELIVERY,
-                    DeliveryPaymentMethod.CASH,
-                    20.0,
-                    new OrderLine("coca", 2, null))));
+    OrderRequest request5 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.CARD,
+            null,
+            new OrderLine("coca", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request5));
+    OrderRequest request6 =
+        request(
+            DeliveryFulfillment.DELIVERY,
+            DeliveryPaymentMethod.CASH,
+            20.0,
+            new OrderLine("coca", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request6));
     store.setOpen(false);
-    assertThrows(
-        BusinessException.class,
-        () ->
-            useCase.placeOrder(
-                SLUG,
-                request(
-                    DeliveryFulfillment.PICKUP,
-                    DeliveryPaymentMethod.PIX,
-                    null,
-                    new OrderLine("coca", 2, null))));
+    OrderRequest request7 =
+        request(
+            DeliveryFulfillment.PICKUP,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("coca", 2, null));
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, request7));
   }
 
   @Test
