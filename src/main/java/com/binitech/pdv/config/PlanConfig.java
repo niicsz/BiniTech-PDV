@@ -22,7 +22,7 @@ public class PlanConfig {
   public static PlanLimits getLimits(String planTier) {
     return switch (normalize(planTier)) {
       case "starter" -> new PlanLimits(200, 300, 1, new BigDecimal("99.00"));
-      case "pro" -> new PlanLimits(500, 1000, 3, new BigDecimal("199.00"));
+      case "pro" -> new PlanLimits(500, 1000, 3, new BigDecimal("149.00"));
       case "enterprise" -> new PlanLimits(2000, 5000, 10, new BigDecimal("349.00"));
       case PLAN_FREE ->
           new PlanLimits(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, BigDecimal.ZERO);

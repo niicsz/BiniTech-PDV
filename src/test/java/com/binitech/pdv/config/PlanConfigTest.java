@@ -15,7 +15,7 @@ class PlanConfigTest {
   @DisplayName("getLimits resolve limites e tarifa-base de cada plano pago")
   void getLimits_paidPlans_shouldResolve() {
     assertEquals(new BigDecimal("99.00"), PlanConfig.getLimits("starter").baseMonthlyFee());
-    assertEquals(new BigDecimal("199.00"), PlanConfig.getLimits("pro").baseMonthlyFee());
+    assertEquals(new BigDecimal("149.00"), PlanConfig.getLimits("pro").baseMonthlyFee());
     assertEquals(new BigDecimal("349.00"), PlanConfig.getLimits("enterprise").baseMonthlyFee());
     assertEquals(1, PlanConfig.getLimits("starter").maxOperators());
     assertEquals(3, PlanConfig.getLimits("pro").maxOperators());
