@@ -114,7 +114,9 @@ public class BillingController {
                         limitOrNull(p.maxSalesPerMonth()),
                         p.maxOperators(),
                         p.price()))
-            .toList());
+            .toList(),
+        overview.trialEndsAt(),
+        overview.paid());
   }
 
   private static Integer limitOrNull(int limit) {
@@ -195,7 +197,9 @@ public class BillingController {
       BigDecimal monthlyAmount,
       BigDecimal extraUserPrice,
       boolean recurringCard,
-      List<PlanOptionDTO> plans) {}
+      List<PlanOptionDTO> plans,
+      LocalDate trialEndsAt,
+      boolean paid) {}
 
   public record InvoiceDTO(
       String id,

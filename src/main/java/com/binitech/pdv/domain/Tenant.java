@@ -7,6 +7,8 @@ import java.util.Objects;
 
 public class Tenant {
 
+  public static final int TRIAL_DAYS = 7;
+
   private String id;
   private String name;
   private String slug;
@@ -112,6 +114,16 @@ public class Tenant {
 
   public void setBillingEmail(String billingEmail) {
     this.billingEmail = billingEmail;
+  }
+
+  public void startTrial(LocalDate today) {
+    if (trialEndsAt == null) {
+      trialEndsAt = today.plusDays(TRIAL_DAYS);
+    }
+  }
+
+  public boolean trialExpired(LocalDate today) {
+    return trialEndsAt != null && today.isAfter(trialEndsAt);
   }
 
   public LocalDate getTrialEndsAt() {
