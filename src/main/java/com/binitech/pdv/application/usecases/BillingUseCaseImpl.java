@@ -3,8 +3,6 @@ package com.binitech.pdv.application.usecases;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProductRepository;
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
-import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOption;
-import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOverview;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
@@ -323,7 +321,6 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
       throw new BusinessException(
           "Pagamento online indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
-    PlanLimits limits = PlanConfig.getLimits(tenant.getPlanId());
     String baseUrl = stripTrailingSlash(frontendUrl);
     String successUrl = baseUrl + "/billing?status=success";
     String cancelUrl = baseUrl + "/billing";
