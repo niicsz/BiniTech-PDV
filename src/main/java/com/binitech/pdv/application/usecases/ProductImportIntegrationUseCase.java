@@ -8,6 +8,7 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.*;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.security.access.AccessDeniedException;
 
 public class ProductImportIntegrationUseCase implements ProductImportIntegrationUseCasePort {
@@ -73,10 +74,9 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
             new ArrayList<>(),
             new ArrayList<>(),
             tenant,
-            new long[] {
-              ProductPlanLimit.remaining(
-                  tenant, products.countActiveByTenantId(identity.tenantId()))
-            });
+            new AtomicLong(
+                ProductPlanLimit.remaining(
+                    tenant, products.countActiveByTenantId(identity.tenantId()))));
     Set<UpdateField> fields = updateFields == null ? Set.of() : updateFields;
     commands.forEach(
         command -> process(command, identity, actor.getRole(), mode, stockMode, fields, state));
@@ -174,10 +174,10 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
   }
 
   private static void takeProductSlot(ProcessingState state) {
-    if (state.productSlots()[0] <= 0) {
+    if (state.productSlots().get() <= 0) {
       throw ProductPlanLimit.reached(state.tenant());
     }
-    state.productSlots()[0]--;
+    state.productSlots().decrementAndGet();
   }
 
   private static void authorizeUpdate(String userId, Role actorRole, Product product) {
@@ -268,7 +268,7 @@ public class ProductImportIntegrationUseCase implements ProductImportIntegration
       List<PendingResult> pending,
       List<ImportResult> results,
       Tenant tenant,
-      long[] productSlots) {}
+      AtomicLong productSlots) {}
 
   private record PendingResult(ImportCommand command, Product product, ResultAction action) {}
 }
