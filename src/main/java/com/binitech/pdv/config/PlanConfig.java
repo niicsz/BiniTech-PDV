@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class PlanConfig {
 
   public static final String PLAN_FREE = "free";
+  public static final int UNLIMITED = Integer.MAX_VALUE;
 
   public static final BigDecimal EXCESS_PER_PRODUCT = new BigDecimal("0.10");
   public static final BigDecimal EXCESS_PER_SALE = new BigDecimal("0.05");
@@ -21,9 +22,9 @@ public class PlanConfig {
 
   public static PlanLimits getLimits(String planTier) {
     return switch (normalize(planTier)) {
-      case "starter" -> new PlanLimits(200, 300, 1, new BigDecimal("99.00"));
-      case "pro" -> new PlanLimits(500, 1000, 3, new BigDecimal("149.00"));
-      case "enterprise" -> new PlanLimits(2000, 5000, 10, new BigDecimal("349.00"));
+      case "starter" -> new PlanLimits(3000, UNLIMITED, 1, new BigDecimal("99.00"));
+      case "pro" -> new PlanLimits(10000, UNLIMITED, 3, new BigDecimal("149.00"));
+      case "enterprise" -> new PlanLimits(UNLIMITED, UNLIMITED, 10, new BigDecimal("349.00"));
       case PLAN_FREE ->
           new PlanLimits(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, BigDecimal.ZERO);
       default -> throw new IllegalArgumentException("Plano desconhecido: " + planTier);

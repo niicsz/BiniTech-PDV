@@ -109,8 +109,16 @@ public class BillingController {
             .map(
                 p ->
                     new PlanOptionDTO(
-                        p.id(), p.maxProducts(), p.maxSalesPerMonth(), p.maxOperators(), p.price()))
+                        p.id(),
+                        limitOrNull(p.maxProducts()),
+                        limitOrNull(p.maxSalesPerMonth()),
+                        p.maxOperators(),
+                        p.price()))
             .toList());
+  }
+
+  private static Integer limitOrNull(int limit) {
+    return limit == Integer.MAX_VALUE ? null : limit;
   }
 
   private SubscriptionDTO toSubscriptionDto(Subscription subscription) {
@@ -173,7 +181,11 @@ public class BillingController {
   public record ExtraUsersRequest(@NotNull @Min(0) @Max(50) Integer quantity) {}
 
   public record PlanOptionDTO(
-      String id, int maxProducts, int maxSalesPerMonth, int maxOperators, BigDecimal price) {}
+      String id,
+      Integer maxProducts,
+      Integer maxSalesPerMonth,
+      int maxOperators,
+      BigDecimal price) {}
 
   public record PlanOverviewDTO(
       String currentPlan,
