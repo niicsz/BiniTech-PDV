@@ -20,6 +20,12 @@ class PlanConfigTest {
     assertEquals(1, PlanConfig.getLimits("starter").maxOperators());
     assertEquals(3, PlanConfig.getLimits("pro").maxOperators());
     assertEquals(10, PlanConfig.getLimits("enterprise").maxOperators());
+    assertEquals(3000, PlanConfig.getLimits("starter").maxProducts());
+    assertEquals(10000, PlanConfig.getLimits("pro").maxProducts());
+    assertEquals(PlanConfig.UNLIMITED, PlanConfig.getLimits("enterprise").maxProducts());
+    for (String plan : PlanConfig.PAID_PLANS) {
+      assertEquals(PlanConfig.UNLIMITED, PlanConfig.getLimits(plan).maxSalesPerMonth());
+    }
   }
 
   @Test
