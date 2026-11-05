@@ -18,6 +18,8 @@ public class CheckoutSessionDocument {
   @Id private String id;
   private String tenantId;
   private String billingType;
+  private String pendingPlan;
+  private Integer pendingExtraUsers;
   private Instant createdAt;
   private Instant paidAt;
 }

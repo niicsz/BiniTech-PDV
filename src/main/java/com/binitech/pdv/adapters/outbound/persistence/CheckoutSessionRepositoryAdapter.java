@@ -55,6 +55,30 @@ public class CheckoutSessionRepositoryAdapter implements CheckoutSessionReposito
         > 0;
   }
 
+  @Override
+  public void savePlanChange(String checkoutId, String tenantId, String planId, int extraUsers) {
+    mongo.save(
+        CheckoutSessionDocument.builder()
+            .id(checkoutId)
+            .tenantId(tenantId)
+            .pendingPlan(planId)
+            .pendingExtraUsers(extraUsers)
+            .createdAt(Instant.now())
+            .build());
+  }
+
+  @Override
+  public Optional<PlanChange> findPlanChange(String checkoutId) {
+    return find(checkoutId)
+        .filter(d -> d.getPendingPlan() != null && d.getTenantId() != null)
+        .map(
+            d ->
+                new PlanChange(
+                    d.getTenantId(),
+                    d.getPendingPlan(),
+                    d.getPendingExtraUsers() == null ? 0 : d.getPendingExtraUsers()));
+  }
+
   private Optional<CheckoutSessionDocument> find(String checkoutId) {
     return Optional.ofNullable(mongo.findById(checkoutId, CheckoutSessionDocument.class));
   }
