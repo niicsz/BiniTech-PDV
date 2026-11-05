@@ -3,7 +3,9 @@ package com.binitech.pdv.domain;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Tenant {
 
@@ -26,6 +28,7 @@ public class Tenant {
   private LocalDateTime dataPurgedAt;
   private int extraUsers;
   private String contactPhone;
+  private Set<String> trialEmailsSent = new LinkedHashSet<>();
 
   public Tenant() {}
 
@@ -129,6 +132,14 @@ public class Tenant {
     if (trialEndsAt == null) {
       trialEndsAt = today.plusDays(TRIAL_DAYS);
     }
+  }
+
+  public Set<String> getTrialEmailsSent() {
+    return trialEmailsSent;
+  }
+
+  public void setTrialEmailsSent(Set<String> trialEmailsSent) {
+    this.trialEmailsSent = trialEmailsSent == null ? new LinkedHashSet<>() : trialEmailsSent;
   }
 
   public boolean trialExpired(LocalDate today) {

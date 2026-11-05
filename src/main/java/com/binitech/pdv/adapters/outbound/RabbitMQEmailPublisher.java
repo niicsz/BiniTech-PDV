@@ -3,6 +3,7 @@ package com.binitech.pdv.adapters.outbound;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.config.RabbitMQConfig;
 import com.binitech.pdv.domain.EmailEvent;
+import com.binitech.pdv.domain.TrialEmail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -45,5 +46,14 @@ public class RabbitMQEmailPublisher implements EmailServicePort {
     rabbitTemplate.convertAndSend(
         RabbitMQConfig.EMAIL_EXCHANGE, RabbitMQConfig.EMAIL_ROUTING_KEY, event);
     log.info("Evento de redefinição de senha enfileirado para: {}", to);
+  }
+
+  @Override
+  public void sendTrialEmail(String to, String tenantName, TrialEmail step) {
+    rabbitTemplate.convertAndSend(
+        RabbitMQConfig.EMAIL_EXCHANGE,
+        RabbitMQConfig.EMAIL_ROUTING_KEY,
+        EmailEvent.trial(to, tenantName, step));
+    log.info("E-mail do teste grátis enfileirado: etapa={}", step);
   }
 }

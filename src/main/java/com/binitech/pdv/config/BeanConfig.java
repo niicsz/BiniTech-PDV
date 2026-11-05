@@ -12,6 +12,7 @@ import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCas
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
+import com.binitech.pdv.application.ports.inbound.TrialNurtureUseCasePort;
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AdConversionsPort;
@@ -40,6 +41,7 @@ import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleFiscalPublisher;
 import com.binitech.pdv.application.usecases.SaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
+import com.binitech.pdv.application.usecases.TrialNurtureUseCaseImpl;
 import com.binitech.pdv.application.usecases.UserManagementUseCaseImpl;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -183,6 +185,16 @@ public class BeanConfig {
         springDataProductRepository,
         springDataUserRepository,
         new BillingAsaasConfig(frontendUrl, asaasGateway, checkoutSessionRepositoryPort));
+  }
+
+  @Bean
+  public TrialNurtureUseCasePort trialNurtureUseCasePort(
+      TenantRepositoryPort tenantRepositoryPort,
+      SubscriptionRepositoryPort subscriptionRepositoryPort,
+      SaleRepositoryPort saleRepositoryPort,
+      EmailServicePort emailServicePort) {
+    return new TrialNurtureUseCaseImpl(
+        tenantRepositoryPort, subscriptionRepositoryPort, saleRepositoryPort, emailServicePort);
   }
 
   @Bean

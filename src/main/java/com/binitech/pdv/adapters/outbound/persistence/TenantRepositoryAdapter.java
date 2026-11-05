@@ -72,6 +72,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
         .dataPurgedAt(tenant.getDataPurgedAt())
         .extraUsers(tenant.getExtraUsers())
         .contactPhone(tenant.getContactPhone())
+        .trialEmailsSent(tenant.getTrialEmailsSent())
         .build();
   }
 
@@ -94,6 +95,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
     tenant.setDataPurgedAt(doc.getDataPurgedAt());
     tenant.setExtraUsers(doc.getExtraUsers());
     tenant.setContactPhone(doc.getContactPhone());
+    tenant.setTrialEmailsSent(doc.getTrialEmailsSent());
     return tenant;
   }
 }
