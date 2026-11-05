@@ -71,6 +71,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
         .termsAcceptedIp(tenant.getTermsAcceptedIp())
         .dataPurgedAt(tenant.getDataPurgedAt())
         .extraUsers(tenant.getExtraUsers())
+        .contactPhone(tenant.getContactPhone())
         .build();
   }
 
@@ -92,6 +93,7 @@ public class TenantRepositoryAdapter implements TenantRepositoryPort {
     tenant.setTermsAcceptedIp(doc.getTermsAcceptedIp());
     tenant.setDataPurgedAt(doc.getDataPurgedAt());
     tenant.setExtraUsers(doc.getExtraUsers());
+    tenant.setContactPhone(doc.getContactPhone());
     return tenant;
   }
 }

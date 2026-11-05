@@ -79,6 +79,11 @@ app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}
   business-time-zone: ${APP_BUSINESS_TIME_ZONE:America/Sao_Paulo}
 
+signup:
+  auto-approve: ${SIGNUP_AUTO_APPROVE:true}
+  per-ip: ${SIGNUP_PER_IP:3}
+  window: ${SIGNUP_WINDOW:24h}
+
 delivery:
   enabled: ${DELIVERY_ENABLED:false}
   orders-per-window: ${DELIVERY_ORDERS_PER_WINDOW:5}

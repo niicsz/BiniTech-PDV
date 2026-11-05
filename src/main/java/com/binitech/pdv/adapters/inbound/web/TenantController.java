@@ -31,23 +31,59 @@ public class TenantController {
 
   private final TenantUseCasePort tenantUseCase;
   private final BillingUseCasePort billingUseCase;
+  private final SignupRateLimiter signupLimiter;
 
-  public TenantController(TenantUseCasePort tenantUseCase, BillingUseCasePort billingUseCase) {
+  public TenantController(
+      TenantUseCasePort tenantUseCase,
+      BillingUseCasePort billingUseCase,
+      SignupRateLimiter signupLimiter) {
     this.tenantUseCase = tenantUseCase;
     this.billingUseCase = billingUseCase;
+    this.signupLimiter = signupLimiter;
   }
 
   @PostMapping("/api/public/tenants")
-  public ResponseEntity<TenantDTO> createTenant(
+  public ResponseEntity<?> createTenant(
       @Valid @RequestBody CreateTenantRequest request, HttpServletRequest httpRequest) {
+    String ip = ClientIpResolver.resolve(httpRequest);
+    if (request.website() != null && !request.website().isBlank()) {
+      throw new BusinessException("Não foi possível concluir o cadastro.");
+    }
+    if (request.password() != null) {
+      if (!signupLimiter.tryAcquire(ip)) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(new SignupError("Muitos cadastros a partir desta rede. Tente de novo amanhã."));
+      }
+      TenantUseCasePort.SignupResult result =
+          tenantUseCase.signUp(
+              new TenantUseCasePort.SelfSignup(
+                  request.name(),
+                  generateSlug(request.name()),
+                  request.planId(),
+                  request.billingEmail(),
+                  request.password(),
+                  request.phone(),
+                  new TenantUseCasePort.TermsAcceptance(request.termsVersion(), ip)));
+      Tenant created = result.tenant();
+      return ResponseEntity.status(HttpStatus.CREATED)
+          .body(
+              new SignupResponse(
+                  created.getId(),
+                  created.getName(),
+                  created.getSlug(),
+                  created.getStatus().name(),
+                  created.getPlanId(),
+                  result.active(),
+                  result.username(),
+                  created.getTrialEndsAt()));
+    }
     Tenant tenant =
         tenantUseCase.createTenant(
             request.name(),
             generateSlug(request.name()),
             request.planId(),
             request.billingEmail(),
-            new TenantUseCasePort.TermsAcceptance(
-                request.termsVersion(), ClientIpResolver.resolve(httpRequest)));
+            new TenantUseCasePort.TermsAcceptance(request.termsVersion(), ip));
     return ResponseEntity.status(HttpStatus.CREATED).body(toDto(tenant));
   }
 
@@ -143,7 +179,22 @@ public class TenantController {
       @NotBlank @Pattern(regexp = "starter|pro|enterprise") String planId,
       @NotBlank @Email @Size(max = 254) String billingEmail,
       @NotNull @AssertTrue Boolean acceptedTerms,
-      @NotBlank @Size(max = 20) String termsVersion) {}
+      @NotBlank @Size(max = 20) String termsVersion,
+      @Size(min = 8, max = 128) String password,
+      @Pattern(regexp = "^[0-9 ()+-]{10,20}$", message = "WhatsApp inválido") String phone,
+      @Size(max = 200) String website) {}
+
+  public record SignupResponse(
+      String id,
+      String name,
+      String slug,
+      String status,
+      String planId,
+      boolean active,
+      String username,
+      java.time.LocalDate trialEndsAt) {}
+
+  public record SignupError(String message) {}
 
   public record BlockTenantRequest(@NotBlank @Size(max = 500) String reason) {}
 

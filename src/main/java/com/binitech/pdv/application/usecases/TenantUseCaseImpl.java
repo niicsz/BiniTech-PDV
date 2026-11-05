@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$!";
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+  private final boolean autoApprove;
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
   private final AuthenticationGateway authentication;
@@ -38,10 +40,81 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       UserRepositoryPort userRepository,
       AuthenticationGateway authentication,
       EmailServicePort emailService) {
+    this(tenantRepository, userRepository, authentication, emailService, true);
+  }
+
+  public TenantUseCaseImpl(
+      TenantRepositoryPort tenantRepository,
+      UserRepositoryPort userRepository,
+      AuthenticationGateway authentication,
+      EmailServicePort emailService,
+      boolean autoApprove) {
+    this.autoApprove = autoApprove;
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
     this.authentication = authentication;
     this.emailService = emailService;
+  }
+
+  @Override
+  public SignupResult signUp(SelfSignup signup) {
+    String email = signup.email() == null ? "" : signup.email().trim().toLowerCase(Locale.ROOT);
+    if (DisposableEmail.isDisposable(email)) {
+      throw new BusinessException("Use um e-mail de verdade para criar a conta.");
+    }
+    if (tenantRepository.findByBillingEmail(email).isPresent()
+        || userRepository.existsByUsername(email)) {
+      throw new BusinessException(
+          "Já existe uma conta com esse e-mail. Entre ou use Esqueci minha senha.");
+    }
+    Tenant tenant =
+        createTenant(signup.name(), signup.slug(), signup.planId(), email, signup.terms());
+    tenant.setContactPhone(digitsOrNull(signup.phone()));
+    if (!autoApprove) {
+      tenantRepository.save(tenant);
+      return new SignupResult(tenant, false, null);
+    }
+    tenant.startTrial(LocalDate.now(ZoneId.systemDefault()));
+    tenant.setStatus(TenantStatus.ACTIVE);
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    Tenant saved = tenantRepository.save(tenant);
+    provisionSelfServiceAdmin(saved, email, signup.password());
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Tenant ativado no cadastro: tenantId={} teste até {}",
+          LogSanitizer.maskId(saved.getId()),
+          saved.getTrialEndsAt());
+    }
+    return new SignupResult(saved, true, email);
+  }
+
+  private void provisionSelfServiceAdmin(Tenant tenant, String email, String password) {
+    User adminUser = new User();
+    adminUser.setUsername(email);
+    adminUser.setRole(Role.TENANT_ADMIN);
+    adminUser.setTenantId(tenant.getId());
+    adminUser.setName(tenant.getName());
+    adminUser.setEmail(email);
+    adminUser.setActive(true);
+    adminUser.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    adminUser.setUpdatedAt(adminUser.getCreatedAt());
+    new IdentityProvisioningUseCase(userRepository, authentication).provision(adminUser, password);
+    try {
+      emailService.sendWelcomeEmail(email, tenant.getName(), email);
+    } catch (Exception e) {
+      log.error(
+          "Falha ao enviar boas-vindas para tenantId={}: {}",
+          LogSanitizer.maskId(tenant.getId()),
+          e.getMessage());
+    }
+  }
+
+  private static String digitsOrNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    String digits = value.replaceAll("\\D", "");
+    return digits.isEmpty() ? null : digits;
   }
 
   @Override

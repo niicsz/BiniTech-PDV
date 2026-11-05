@@ -131,10 +131,17 @@ public class BeanConfig {
       TenantRepositoryPort tenantRepositoryPort,
       UserRepositoryPort userRepositoryPort,
       AuthenticationGateway authenticationGateway,
-      EmailServicePort emailServicePort) {
-    log.info("Configurando TenantUseCasePort");
+      EmailServicePort emailServicePort,
+      @Value("${signup.auto-approve:true}") boolean autoApprove) {
+    log.info(
+        "Configurando TenantUseCasePort (cadastro automático {})",
+        autoApprove ? "ligado" : "desligado");
     return new TenantUseCaseImpl(
-        tenantRepositoryPort, userRepositoryPort, authenticationGateway, emailServicePort);
+        tenantRepositoryPort,
+        userRepositoryPort,
+        authenticationGateway,
+        emailServicePort,
+        autoApprove);
   }
 
   @Bean

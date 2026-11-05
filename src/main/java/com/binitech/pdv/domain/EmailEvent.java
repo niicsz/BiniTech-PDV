@@ -11,13 +11,18 @@ public record EmailEvent(
 
   public enum EmailType {
     TENANT_APPROVAL,
-    PASSWORD_RESET
+    PASSWORD_RESET,
+    WELCOME
   }
 
   public static EmailEvent approval(
       String to, String tenantName, String tenantSlug, String username, String tempPassword) {
     return new EmailEvent(
         EmailType.TENANT_APPROVAL, to, tenantName, tenantSlug, username, tempPassword, null);
+  }
+
+  public static EmailEvent welcome(String to, String tenantName, String username) {
+    return new EmailEvent(EmailType.WELCOME, to, tenantName, null, username, null, null);
   }
 
   public static EmailEvent passwordReset(

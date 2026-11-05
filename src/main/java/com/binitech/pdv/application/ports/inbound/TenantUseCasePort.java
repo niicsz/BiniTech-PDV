@@ -26,6 +26,19 @@ public interface TenantUseCasePort {
 
   record TermsAcceptance(String version, String ip) {}
 
+  record SelfSignup(
+      String name,
+      String slug,
+      String planId,
+      String email,
+      String password,
+      String phone,
+      TermsAcceptance terms) {}
+
+  record SignupResult(Tenant tenant, boolean active, String username) {}
+
+  SignupResult signUp(SelfSignup signup);
+
   Tenant blockTenant(String tenantId, String reason);
 
   Tenant updateTenantStatus(String tenantId, TenantStatus newStatus);
