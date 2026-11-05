@@ -43,7 +43,7 @@ public class TenantController {
   }
 
   @PostMapping("/api/public/tenants")
-  public ResponseEntity<?> createTenant(
+  public ResponseEntity<SignupReply> createTenant(
       @Valid @RequestBody CreateTenantRequest request, HttpServletRequest httpRequest) {
     String ip = ClientIpResolver.resolve(httpRequest);
     if (request.website() != null && !request.website().isBlank()) {
@@ -184,6 +184,8 @@ public class TenantController {
       @Pattern(regexp = "^[0-9 ()+-]{10,20}$", message = "WhatsApp inválido") String phone,
       @Size(max = 200) String website) {}
 
+  public sealed interface SignupReply permits TenantDTO, SignupResponse, SignupError {}
+
   public record SignupResponse(
       String id,
       String name,
@@ -192,9 +194,10 @@ public class TenantController {
       String planId,
       boolean active,
       String username,
-      java.time.LocalDate trialEndsAt) {}
+      java.time.LocalDate trialEndsAt)
+      implements SignupReply {}
 
-  public record SignupError(String message) {}
+  public record SignupError(String message) implements SignupReply {}
 
   public record BlockTenantRequest(@NotBlank @Size(max = 500) String reason) {}
 
@@ -217,5 +220,6 @@ public class TenantController {
       java.time.LocalDate blockedAt,
       String blockReason,
       java.time.LocalDateTime createdAt,
-      java.time.LocalDateTime updatedAt) {}
+      java.time.LocalDateTime updatedAt)
+      implements SignupReply {}
 }
