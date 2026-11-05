@@ -31,6 +31,14 @@ public class RabbitMQEmailPublisher implements EmailServicePort {
   }
 
   @Override
+  public void sendWelcomeEmail(String to, String tenantName, String username) {
+    EmailEvent event = EmailEvent.welcome(to, tenantName, username);
+    rabbitTemplate.convertAndSend(
+        RabbitMQConfig.EMAIL_EXCHANGE, RabbitMQConfig.EMAIL_ROUTING_KEY, event);
+    log.info("Evento de redefinição de senha enfileirado para: {}", to);
+  }
+
+  @Override
   public void sendPasswordResetEmail(
       String to, String tenantName, String username, String resetLink) {
     EmailEvent event = EmailEvent.passwordReset(to, tenantName, username, resetLink);

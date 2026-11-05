@@ -68,6 +68,9 @@ public class ResendEmailServiceAdapter {
     if (event.type() == EmailEvent.EmailType.PASSWORD_RESET) {
       return new EmailContent("🔑 Redefinição de senha — BiniTech PDV", buildResetHtml(event));
     }
+    if (event.type() == EmailEvent.EmailType.WELCOME) {
+      return new EmailContent("Sua conta BiniTech PDV está pronta", buildWelcomeHtml(event));
+    }
     return new EmailContent("✅ Sua conta BiniTech PDV foi aprovada!", buildApprovalHtml(event));
   }
 
@@ -96,6 +99,22 @@ public class ResendEmailServiceAdapter {
             .formatted(event.tenantName(), event.username(), event.tempPassword(), loginUrl);
     return emailLayout(
         "<tr><td style=\"background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#ffffff;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#e0e7ff;font-size:14px;\">Sua conta foi aprovada</p></td></tr>",
+        content);
+  }
+
+  private String buildWelcomeHtml(EmailEvent event) {
+    String loginUrl = frontendUrl + "/login";
+    String content =
+        """
+            <p style="font-size:16px;">Olá, <strong>%s</strong>!</p>
+            <p style="font-size:15px;line-height:1.6;color:#475569;">Sua conta no BiniTech PDV está ativa e o teste grátis de 7 dias já começou. Entre com o seu e-mail e a senha que você criou no cadastro.</p>
+            <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;margin:24px 0;"><tr><td style="padding:16px 20px;color:#475569;font-size:14px;"><strong>Usuário:</strong> %s</td></tr></table>
+            <table cellpadding="0" cellspacing="0" border="0" align="center"><tr><td style="border-radius:10px;background:#d4391a;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Abrir o caixa</a></td></tr></table>
+            <p style="font-size:13px;color:#94a3b8;line-height:1.6;">Esqueceu a senha? Use a opção Esqueci minha senha na tela de login.</p>
+            """
+            .formatted(event.tenantName(), event.username(), loginUrl);
+    return emailLayout(
+        "<tr><td style=\"background:#241a12;padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#f3ede1;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#f3ede1;font-size:14px;\">Sua conta está pronta</p></td></tr>",
         content);
   }
 

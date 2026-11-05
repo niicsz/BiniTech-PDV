@@ -36,4 +36,5 @@ public class TenantDocument {
   private String termsAcceptedIp;
   private LocalDateTime dataPurgedAt;
   private int extraUsers;
+  private String contactPhone;
 }

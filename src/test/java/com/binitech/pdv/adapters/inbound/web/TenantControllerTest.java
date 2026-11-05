@@ -35,7 +35,11 @@ class TenantControllerTest {
   @BeforeEach
   void setUp() {
     mockMvc =
-        MockMvcBuilders.standaloneSetup(new TenantController(tenantUseCase, billingUseCase))
+        MockMvcBuilders.standaloneSetup(
+                new TenantController(
+                    tenantUseCase,
+                    billingUseCase,
+                    new SignupRateLimiter(3, java.time.Duration.ofHours(24))))
             .build();
   }
 
