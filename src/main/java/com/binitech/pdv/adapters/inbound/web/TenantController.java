@@ -63,7 +63,15 @@ public class TenantController {
                   request.billingEmail(),
                   request.password(),
                   request.phone(),
-                  new TenantUseCasePort.TermsAcceptance(request.termsVersion(), ip)));
+                  new TenantUseCasePort.TermsAcceptance(request.termsVersion(), ip),
+                  Boolean.TRUE.equals(request.adsConsent())
+                      ? new TenantUseCasePort.AdTracking(
+                          request.eventId(),
+                          request.fbp(),
+                          request.fbc(),
+                          httpRequest.getHeader("User-Agent"),
+                          request.sourceUrl())
+                      : null));
       Tenant created = result.tenant();
       return ResponseEntity.status(HttpStatus.CREATED)
           .body(
@@ -182,7 +190,12 @@ public class TenantController {
       @NotBlank @Size(max = 20) String termsVersion,
       @Size(min = 8, max = 128) String password,
       @Pattern(regexp = "^[0-9 ()+-]{10,20}$", message = "WhatsApp inválido") String phone,
-      @Size(max = 200) String website) {}
+      @Size(max = 200) String website,
+      Boolean adsConsent,
+      @Size(max = 64) String eventId,
+      @Size(max = 200) String fbp,
+      @Size(max = 500) String fbc,
+      @Size(max = 500) String sourceUrl) {}
 
   public record SignupResponse(
       String id,

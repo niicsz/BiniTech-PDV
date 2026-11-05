@@ -33,7 +33,10 @@ public interface TenantUseCasePort {
       String email,
       String password,
       String phone,
-      TermsAcceptance terms) {}
+      TermsAcceptance terms,
+      AdTracking tracking) {}
+
+  record AdTracking(String eventId, String fbp, String fbc, String userAgent, String sourceUrl) {}
 
   record SignupResult(Tenant tenant, boolean active, String username) {}
 
