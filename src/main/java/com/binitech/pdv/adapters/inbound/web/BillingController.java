@@ -116,7 +116,8 @@ public class BillingController {
                         p.price()))
             .toList(),
         overview.trialEndsAt(),
-        overview.paid());
+        overview.paid(),
+        overview.checkoutUrl());
   }
 
   private static Integer limitOrNull(int limit) {
@@ -199,7 +200,8 @@ public class BillingController {
       boolean recurringCard,
       List<PlanOptionDTO> plans,
       LocalDate trialEndsAt,
-      boolean paid) {}
+      boolean paid,
+      String checkoutUrl) {}
 
   public record InvoiceDTO(
       String id,

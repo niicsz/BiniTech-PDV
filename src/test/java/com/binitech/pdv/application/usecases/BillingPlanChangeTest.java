@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,11 +16,13 @@ import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProdu
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort.PlanOverview;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort.PlanChange;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
 import com.binitech.pdv.config.AsaasException;
 import com.binitech.pdv.config.AsaasGateway;
+import com.binitech.pdv.config.AsaasGateway.CheckoutSession;
 import com.binitech.pdv.config.BillingAsaasConfig;
 import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
@@ -98,17 +101,71 @@ class BillingPlanChangeTest {
   }
 
   @Test
-  @DisplayName("Upgrade troca o plano na hora e atualiza o valor da assinatura no cartão")
-  void upgradeUpdatesRecurringCard() {
+  @DisplayName(
+      "Upgrade no cartão abre um checkout com o valor novo e só troca o plano após o pagamento")
+  void upgradeWithCardOpensCheckout() {
     cardSubscription();
+    when(asaas.createSubscriptionCheckout(any(), anyString(), any(), anyString(), anyString()))
+        .thenReturn(
+            new CheckoutSession("chk_1", "https://asaas.com/checkoutSession/show?id=chk_1"));
+
     PlanOverview overview = billing.changePlan("t1", "PRO", Role.TENANT_ADMIN);
 
-    assertEquals("pro", overview.currentPlan());
+    assertEquals("starter", overview.currentPlan());
+    assertEquals("starter", tenant.getPlanId());
+    assertEquals("https://asaas.com/checkoutSession/show?id=chk_1", overview.checkoutUrl());
+    verify(asaas)
+        .createSubscriptionCheckout(
+            eq(tenant), eq("Pro"), eq(new BigDecimal("149.00")), anyString(), anyString());
+    verify(checkouts).savePlanChange("chk_1", "t1", "pro", 0);
+    verify(tenants, never()).save(any());
+    verify(subscriptions, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("Pagamento do checkout troca o plano, liga a assinatura nova e cancela a antiga")
+  void paidCheckoutAppliesPlanAndCancelsOld() {
+    cardSubscription();
+    when(checkouts.findBillingType("chk_1")).thenReturn(Optional.empty());
+    when(checkouts.findPlanChange("chk_1")).thenReturn(Optional.of(new PlanChange("t1", "pro", 2)));
+    when(checkouts.markPaid("chk_1")).thenReturn(true);
+    when(subscriptions.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    billing.confirmSubscriptionPayment("pay_1", "sub_2", "cus_1", "chk_1");
+
     assertEquals("pro", tenant.getPlanId());
-    verify(asaas).updateSubscriptionValue(eq("sub_1"), eq(new BigDecimal("149.00")), anyString());
+    assertEquals(2, tenant.getExtraUsers());
     ArgumentCaptor<Subscription> saved = ArgumentCaptor.forClass(Subscription.class);
-    verify(subscriptions).save(saved.capture());
+    verify(subscriptions, atLeastOnce()).save(saved.capture());
+    assertEquals("sub_2", saved.getValue().getAsaasSubscriptionId());
     assertEquals("pro", saved.getValue().getPlanTier());
+    verify(asaas).cancelSubscription("sub_1");
+  }
+
+  @Test
+  @DisplayName("Aviso com a assinatura antiga não aplica a troca nem cancela nada")
+  void checkoutPaidWithOldSubscriptionWaitsForPayment() {
+    cardSubscription();
+    when(checkouts.findPlanChange("chk_1")).thenReturn(Optional.of(new PlanChange("t1", "pro", 0)));
+
+    billing.activateFromCheckoutSession("chk_1", "sub_1", "cus_1", "t1");
+
+    assertEquals("starter", tenant.getPlanId());
+    verify(checkouts, never()).markPaid(anyString());
+    verify(asaas, never()).cancelSubscription(anyString());
+  }
+
+  @Test
+  @DisplayName("Aviso repetido do mesmo checkout não troca o plano duas vezes")
+  void duplicatedWebhookIsIgnored() {
+    cardSubscription();
+    when(checkouts.findPlanChange("chk_1")).thenReturn(Optional.of(new PlanChange("t1", "pro", 0)));
+    when(checkouts.markPaid("chk_1")).thenReturn(false);
+
+    billing.activateFromCheckoutSession("chk_1", "sub_2", "cus_1", "t1");
+
+    assertEquals("starter", tenant.getPlanId());
+    verify(asaas, never()).cancelSubscription(anyString());
   }
 
   @Test
@@ -116,7 +173,8 @@ class BillingPlanChangeTest {
   void changeWithoutCardSubscription() {
     billing.changePlan("t1", "enterprise", Role.TENANT_ADMIN);
     assertEquals("enterprise", tenant.getPlanId());
-    verify(asaas, never()).updateSubscriptionValue(anyString(), any(), anyString());
+    verify(asaas, never())
+        .createSubscriptionCheckout(any(), anyString(), any(), anyString(), anyString());
   }
 
   @Test
@@ -144,12 +202,12 @@ class BillingPlanChangeTest {
   }
 
   @Test
-  @DisplayName("Se o Asaas recusar, o plano não muda")
+  @DisplayName("Se o Asaas recusar o checkout, o plano não muda")
   void asaasFailureKeepsPlan() {
     cardSubscription();
     doThrow(new AsaasException("HTTP 400", null))
         .when(asaas)
-        .updateSubscriptionValue(anyString(), any(), anyString());
+        .createSubscriptionCheckout(any(), anyString(), any(), anyString(), anyString());
     assertThrows(BusinessException.class, () -> billing.changePlan("t1", "pro", Role.TENANT_ADMIN));
     assertEquals("starter", tenant.getPlanId());
     verify(tenants, never()).save(any());
@@ -163,15 +221,30 @@ class BillingPlanChangeTest {
   }
 
   @Test
-  @DisplayName("Usuários adicionais somam R$ 30 cada na assinatura e liberam mais operadores")
+  @DisplayName("Usuários adicionais somam R$ 30 cada e liberam mais operadores")
   void extraUsersRaiseLimitAndValue() {
-    cardSubscription();
     PlanOverview overview = billing.setExtraUsers("t1", 2, Role.TENANT_ADMIN);
 
     assertEquals(2, tenant.getExtraUsers());
     assertEquals(3, overview.operatorLimit());
     assertEquals(new BigDecimal("159.00"), overview.monthlyAmount());
-    verify(asaas).updateSubscriptionValue(eq("sub_1"), eq(new BigDecimal("159.00")), anyString());
+  }
+
+  @Test
+  @DisplayName("No cartão, usuários adicionais passam pelo checkout com o valor novo")
+  void extraUsersWithCardOpenCheckout() {
+    cardSubscription();
+    when(asaas.createSubscriptionCheckout(any(), anyString(), any(), anyString(), anyString()))
+        .thenReturn(new CheckoutSession("chk_2", "https://asaas.com/c/chk_2"));
+
+    PlanOverview overview = billing.setExtraUsers("t1", 2, Role.TENANT_ADMIN);
+
+    assertEquals(0, tenant.getExtraUsers());
+    assertEquals("https://asaas.com/c/chk_2", overview.checkoutUrl());
+    verify(asaas)
+        .createSubscriptionCheckout(
+            eq(tenant), anyString(), eq(new BigDecimal("159.00")), anyString(), anyString());
+    verify(checkouts).savePlanChange("chk_2", "t1", "starter", 2);
   }
 
   @Test

@@ -12,4 +12,10 @@ public interface CheckoutSessionRepositoryPort {
   Optional<String> findBillingType(String checkoutId);
 
   boolean markPaid(String checkoutId);
+
+  void savePlanChange(String checkoutId, String tenantId, String planId, int extraUsers);
+
+  Optional<PlanChange> findPlanChange(String checkoutId);
+
+  record PlanChange(String tenantId, String planId, int extraUsers) {}
 }

@@ -4,6 +4,7 @@ import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataProdu
 import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserRepository;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort.PlanChange;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SubscriptionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
@@ -454,6 +455,14 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (isPixCheckout(checkoutSessionId)) {
       return activateFromPixCheckout(checkoutSessionId);
     }
+    Optional<PlanChange> planChange =
+        hasText(checkoutSessionId)
+            ? checkoutSessionRepository.findPlanChange(checkoutSessionId)
+            : Optional.empty();
+    if (planChange.isPresent()) {
+      return applyPaidPlanChange(
+          checkoutSessionId, planChange.get(), asaasSubscriptionId, asaasCustomerId);
+    }
     if (hasText(asaasSubscriptionId)) {
       Optional<Subscription> existing =
           subscriptionRepository.findByAsaasSubscriptionId(asaasSubscriptionId);
@@ -758,7 +767,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
               + productLimit
               + ". Inative produtos antes de mudar.");
     }
-    syncRecurringValue(tenantId, target, tenant.getExtraUsers());
+    if (recurringCardSubscription(tenantId).isPresent()) {
+      return startCardPlanChange(tenant, target, tenant.getExtraUsers());
+    }
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
     tenant.setPlanId(target);
     tenant.setUpdatedAt(now);
@@ -802,7 +813,9 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
     if (extraUsers == tenant.getExtraUsers()) {
       return overview(tenant);
     }
-    syncRecurringValue(tenantId, tenant.getPlanId(), extraUsers);
+    if (recurringCardSubscription(tenantId).isPresent()) {
+      return startCardPlanChange(tenant, tenant.getPlanId(), extraUsers);
+    }
     tenant.setExtraUsers(extraUsers);
     tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     tenantRepository.save(tenant);
@@ -816,6 +829,10 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
   }
 
   private PlanOverview overview(Tenant tenant) {
+    return overview(tenant, null);
+  }
+
+  private PlanOverview overview(Tenant tenant, String checkoutUrl) {
     String plan = tenant.getPlanId() == null ? "" : tenant.getPlanId().toLowerCase(Locale.ROOT);
     boolean free = PlanConfig.isFree(plan);
     List<PlanOption> options =
@@ -845,34 +862,86 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
             .findByTenantId(tenant.getId())
             .map(Subscription::getStatus)
             .filter(s -> s == SubscriptionStatus.ACTIVE || s == SubscriptionStatus.PAST_DUE)
-            .isPresent());
+            .isPresent(),
+        checkoutUrl);
   }
 
-  private void syncRecurringValue(String tenantId, String plan, int extraUsers) {
-    Optional<Subscription> recurring = recurringCardSubscription(tenantId);
-    if (recurring.isEmpty()) {
-      return;
-    }
+  private PlanOverview startCardPlanChange(Tenant tenant, String plan, int extraUsers) {
     if (!asaasGateway.isConfigured()) {
       throw new BusinessException(
           "Não foi possível atualizar a assinatura agora. " + PAYMENT_SUPPORT_MESSAGE);
     }
-    BigDecimal amount = PlanConfig.monthlyAmount(plan, extraUsers);
-    String description =
-        "Assinatura mensal do plano "
-            + capitalize(plan)
-            + (extraUsers > 0 ? " + " + extraUsers + " usuário(s) adicional(is)" : "");
+    String planName =
+        capitalize(plan) + (extraUsers > 0 ? " + " + extraUsers + " usuário(s) adicional(is)" : "");
+    String baseUrl = stripTrailingSlash(frontendUrl);
     try {
-      asaasGateway.updateSubscriptionValue(
-          recurring.get().getAsaasSubscriptionId(), amount, description);
+      CheckoutSession checkout =
+          asaasGateway.createSubscriptionCheckout(
+              tenant,
+              planName,
+              PlanConfig.monthlyAmount(plan, extraUsers),
+              baseUrl + "/billing?status=success",
+              baseUrl + "/billing");
+      checkoutSessionRepository.savePlanChange(
+          checkout.id(), tenant.getId(), plan.toLowerCase(Locale.ROOT), extraUsers);
+      if (log.isInfoEnabled()) {
+        log.info(
+            "Troca de plano aguardando pagamento: tenantId={} plano={} adicionais={}",
+            LogSanitizer.maskId(tenant.getId()),
+            LogSanitizer.neutralize(plan),
+            extraUsers);
+      }
+      return overview(tenant, checkout.url());
     } catch (AsaasException e) {
       log.error(
-          "Falha ao atualizar valor da assinatura no Asaas: tenantId={} error={}",
-          LogSanitizer.maskId(tenantId),
+          "Falha ao criar checkout de troca de plano: tenantId={} error={}",
+          LogSanitizer.maskId(tenant.getId()),
           e.getMessage());
       throw new BusinessException(
           "Não foi possível atualizar a assinatura agora. " + PAYMENT_SUPPORT_MESSAGE);
     }
+  }
+
+  private Optional<Subscription> applyPaidPlanChange(
+      String checkoutSessionId,
+      PlanChange change,
+      String newAsaasSubscriptionId,
+      String customerId) {
+    Optional<Subscription> current = subscriptionRepository.findByTenantId(change.tenantId());
+    String oldAsaasSubscriptionId = current.map(Subscription::getAsaasSubscriptionId).orElse(null);
+    if (!hasText(newAsaasSubscriptionId) || newAsaasSubscriptionId.equals(oldAsaasSubscriptionId)) {
+      return current;
+    }
+    Optional<Tenant> tenantOptional = tenantRepository.findById(change.tenantId());
+    if (tenantOptional.isEmpty() || !checkoutSessionRepository.markPaid(checkoutSessionId)) {
+      return current;
+    }
+    Tenant tenant = tenantOptional.get();
+    tenant.setPlanId(change.planId());
+    tenant.setExtraUsers(change.extraUsers());
+    tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
+    tenantRepository.save(tenant);
+    Optional<Subscription> activated =
+        activateFromCheckout(newAsaasSubscriptionId, customerId, tenant.getId());
+    if (hasText(oldAsaasSubscriptionId)) {
+      try {
+        asaasGateway.cancelSubscription(oldAsaasSubscriptionId);
+      } catch (AsaasException e) {
+        log.error(
+            "Plano trocado, mas a assinatura antiga não foi cancelada no Asaas: tenantId={} subscriptionId={} error={}",
+            LogSanitizer.maskId(tenant.getId()),
+            LogSanitizer.maskId(oldAsaasSubscriptionId),
+            e.getMessage());
+      }
+    }
+    if (log.isInfoEnabled()) {
+      log.info(
+          "Plano trocado após pagamento: tenantId={} plano={} adicionais={}",
+          LogSanitizer.maskId(tenant.getId()),
+          LogSanitizer.neutralize(change.planId()),
+          change.extraUsers());
+    }
+    return activated;
   }
 
   private Optional<Subscription> recurringCardSubscription(String tenantId) {

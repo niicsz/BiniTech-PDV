@@ -70,5 +70,6 @@ public interface BillingUseCasePort {
       boolean recurringCard,
       List<PlanOption> plans,
       LocalDate trialEndsAt,
-      boolean paid) {}
+      boolean paid,
+      String checkoutUrl) {}
 }
