@@ -2,6 +2,7 @@ package com.binitech.pdv.adapters.outbound.persistence.document;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,4 +38,5 @@ public class TenantDocument {
   private LocalDateTime dataPurgedAt;
   private int extraUsers;
   private String contactPhone;
+  private Set<String> trialEmailsSent;
 }

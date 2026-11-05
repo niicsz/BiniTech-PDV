@@ -12,7 +12,22 @@ public record EmailEvent(
   public enum EmailType {
     TENANT_APPROVAL,
     PASSWORD_RESET,
-    WELCOME
+    WELCOME,
+    TRIAL_FIRST_SALE,
+    TRIAL_FEATURES,
+    TRIAL_ENDING,
+    TRIAL_ENDED
+  }
+
+  public static EmailEvent trial(String to, String tenantName, TrialEmail step) {
+    EmailType type =
+        switch (step) {
+          case FIRST_SALE -> EmailType.TRIAL_FIRST_SALE;
+          case FEATURES -> EmailType.TRIAL_FEATURES;
+          case ENDING -> EmailType.TRIAL_ENDING;
+          case ENDED -> EmailType.TRIAL_ENDED;
+        };
+    return new EmailEvent(type, to, tenantName, null, null, null, null);
   }
 
   public static EmailEvent approval(

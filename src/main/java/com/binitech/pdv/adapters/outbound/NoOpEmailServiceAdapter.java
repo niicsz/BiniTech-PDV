@@ -1,6 +1,7 @@
 package com.binitech.pdv.adapters.outbound;
 
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
+import com.binitech.pdv.domain.TrialEmail;
 import com.binitech.pdv.utils.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,5 +43,10 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
             + "Configure o servidor de e-mail para reenviar.",
         LogSanitizer.maskUsername(username),
         LogSanitizer.maskUsername(tenantName));
+  }
+
+  @Override
+  public void sendTrialEmail(String to, String tenantName, TrialEmail step) {
+    log.info("[EMAIL-NOOP] E-mail do teste grátis não enviado: etapa={}", step);
   }
 }

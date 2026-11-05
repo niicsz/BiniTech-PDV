@@ -71,6 +71,10 @@ public class ResendEmailServiceAdapter {
     if (event.type() == EmailEvent.EmailType.WELCOME) {
       return new EmailContent("Sua conta BiniTech PDV está pronta", buildWelcomeHtml(event));
     }
+    TrialEmailContent trial = TrialEmailContent.of(event.type(), frontendUrl);
+    if (trial != null) {
+      return new EmailContent(trial.subject(), buildTrialHtml(event, trial));
+    }
     return new EmailContent("✅ Sua conta BiniTech PDV foi aprovada!", buildApprovalHtml(event));
   }
 
@@ -116,6 +120,38 @@ public class ResendEmailServiceAdapter {
     return emailLayout(
         "<tr><td style=\"background:#241a12;padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#f3ede1;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#f3ede1;font-size:14px;\">Sua conta está pronta</p></td></tr>",
         content);
+  }
+
+  private String buildTrialHtml(EmailEvent event, TrialEmailContent trial) {
+    String content =
+        """
+            <p style="font-size:16px;">Olá, <strong>%s</strong>!</p>
+            %s
+            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#d4391a;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">%s</a></td></tr></table>
+            <p style="font-size:13px;color:#94a3b8;line-height:1.6;">%s Fale com a gente no <a href="https://wa.me/5511958710404" style="color:#d4391a;">WhatsApp (11) 95871-0404</a>.</p>
+            """
+            .formatted(
+                escape(event.tenantName()),
+                trial.body(),
+                trial.link(),
+                trial.button(),
+                trial.help());
+    return emailLayout(
+        "<tr><td style=\"background:#241a12;padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#f3ede1;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#f3ede1;font-size:14px;\">"
+            + trial.tagline()
+            + "</p></td></tr>",
+        content);
+  }
+
+  private static String escape(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;");
   }
 
   private String emailLayout(String header, String content) {
