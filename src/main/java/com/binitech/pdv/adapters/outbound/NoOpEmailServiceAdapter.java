@@ -28,7 +28,9 @@ public class NoOpEmailServiceAdapter implements EmailServicePort {
 
   @Override
   public void sendWelcomeEmail(String to, String tenantName, String username) {
-    log.info("[EMAIL-NOOP] Boas-vindas para {} ({})", LogSanitizer.maskUsername(to), tenantName);
+    if (log.isInfoEnabled()) {
+      log.info("[EMAIL-NOOP] Boas-vindas para {} ({})", LogSanitizer.maskUsername(to), tenantName);
+    }
   }
 
   @Override
