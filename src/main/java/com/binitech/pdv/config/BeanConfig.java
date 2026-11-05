@@ -14,6 +14,7 @@ import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
 import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.AdConversionsPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
@@ -132,7 +133,8 @@ public class BeanConfig {
       UserRepositoryPort userRepositoryPort,
       AuthenticationGateway authenticationGateway,
       EmailServicePort emailServicePort,
-      @Value("${signup.auto-approve:true}") boolean autoApprove) {
+      @Value("${signup.auto-approve:true}") boolean autoApprove,
+      AdConversionsPort adConversionsPort) {
     log.info(
         "Configurando TenantUseCasePort (cadastro automático {})",
         autoApprove ? "ligado" : "desligado");
@@ -141,7 +143,8 @@ public class BeanConfig {
         userRepositoryPort,
         authenticationGateway,
         emailServicePort,
-        autoApprove);
+        autoApprove,
+        adConversionsPort);
   }
 
   @Bean

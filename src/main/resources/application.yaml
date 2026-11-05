@@ -79,6 +79,10 @@ app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:4200}
   business-time-zone: ${APP_BUSINESS_TIME_ZONE:America/Sao_Paulo}
 
+meta:
+  pixel-id: ${META_PIXEL_ID:}
+  capi-token: ${META_CAPI_TOKEN:}
+
 signup:
   auto-approve: ${SIGNUP_AUTO_APPROVE:true}
   per-ip: ${SIGNUP_PER_IP:3}
