@@ -41,6 +41,8 @@ import org.springframework.security.access.AccessDeniedException;
 public class BillingUseCaseImpl implements BillingUseCasePort {
 
   private static final Logger log = LoggerFactory.getLogger(BillingUseCaseImpl.class);
+  private static final String BILLING_PATH = "/billing";
+  private static final String BILLING_SUCCESS_PATH = BILLING_PATH + "?status=success";
   private static final String PAYMENT_SUPPORT_MESSAGE =
       "Entre em contato com o suporte para realizar o pagamento.";
   private static final String BILLING_TYPE_PIX = "PIX";
@@ -312,8 +314,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
           "Pagamento online indisponível no momento. " + PAYMENT_SUPPORT_MESSAGE);
     }
     String baseUrl = stripTrailingSlash(frontendUrl);
-    String successUrl = baseUrl + "/billing?status=success";
-    String cancelUrl = baseUrl + "/billing";
+    String successUrl = baseUrl + BILLING_SUCCESS_PATH;
+    String cancelUrl = baseUrl + BILLING_PATH;
     try {
       CheckoutSession checkout =
           asaasGateway.createSubscriptionCheckout(
@@ -355,8 +357,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
               tenant,
               capitalize(tenant.getPlanId()),
               amount,
-              baseUrl + "/billing?status=success",
-              baseUrl + "/billing");
+              baseUrl + BILLING_SUCCESS_PATH,
+              baseUrl + BILLING_PATH);
       checkoutSessionRepository.save(checkout.id(), tenant.getId(), BILLING_TYPE_PIX);
       return checkout.url();
     } catch (AsaasException e) {
@@ -880,8 +882,8 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
               tenant,
               planName,
               PlanConfig.monthlyAmount(plan, extraUsers),
-              baseUrl + "/billing?status=success",
-              baseUrl + "/billing");
+              baseUrl + BILLING_SUCCESS_PATH,
+              baseUrl + BILLING_PATH);
       checkoutSessionRepository.savePlanChange(
           checkout.id(), tenant.getId(), plan.toLowerCase(Locale.ROOT), extraUsers);
       if (log.isInfoEnabled()) {
