@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort;
+import com.binitech.pdv.application.ports.outbound.AdConversionsPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
@@ -13,6 +14,7 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final boolean autoApprove;
+  private final AdConversionsPort adConversions;
   private final TenantRepositoryPort tenantRepository;
   private final UserRepositoryPort userRepository;
   private final AuthenticationGateway authentication;
@@ -40,7 +43,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       UserRepositoryPort userRepository,
       AuthenticationGateway authentication,
       EmailServicePort emailService) {
-    this(tenantRepository, userRepository, authentication, emailService, true);
+    this(tenantRepository, userRepository, authentication, emailService, true, null);
   }
 
   public TenantUseCaseImpl(
@@ -49,7 +52,18 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
       AuthenticationGateway authentication,
       EmailServicePort emailService,
       boolean autoApprove) {
+    this(tenantRepository, userRepository, authentication, emailService, autoApprove, null);
+  }
+
+  public TenantUseCaseImpl(
+      TenantRepositoryPort tenantRepository,
+      UserRepositoryPort userRepository,
+      AuthenticationGateway authentication,
+      EmailServicePort emailService,
+      boolean autoApprove,
+      AdConversionsPort adConversions) {
     this.autoApprove = autoApprove;
+    this.adConversions = adConversions;
     this.tenantRepository = tenantRepository;
     this.userRepository = userRepository;
     this.authentication = authentication;
@@ -79,6 +93,7 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
     tenant.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     Tenant saved = tenantRepository.save(tenant);
     provisionSelfServiceAdmin(saved, email, signup.password());
+    reportSignup(saved, email, signup);
     if (log.isInfoEnabled()) {
       log.info(
           "Tenant ativado no cadastro: tenantId={} teste até {}",
@@ -107,6 +122,30 @@ public class TenantUseCaseImpl implements TenantUseCasePort {
           LogSanitizer.maskId(tenant.getId()),
           e.getMessage());
     }
+  }
+
+  private void reportSignup(Tenant tenant, String email, SelfSignup signup) {
+    AdTracking tracking = signup.tracking();
+    if (adConversions == null || tracking == null || tracking.eventId() == null) {
+      return;
+    }
+    BigDecimal value;
+    try {
+      value = PlanConfig.getLimits(tenant.getPlanId()).baseMonthlyFee();
+    } catch (IllegalArgumentException e) {
+      value = null;
+    }
+    adConversions.sendSignup(
+        new AdConversionsPort.SignupConversion(
+            tracking.eventId(),
+            email,
+            tenant.getContactPhone(),
+            signup.terms() == null ? null : signup.terms().ip(),
+            tracking.userAgent(),
+            tracking.fbp(),
+            tracking.fbc(),
+            tracking.sourceUrl(),
+            value));
   }
 
   private static String digitsOrNull(String value) {

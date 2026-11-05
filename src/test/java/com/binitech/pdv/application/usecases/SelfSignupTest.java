@@ -13,9 +13,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.binitech.pdv.application.ports.inbound.TenantUseCasePort.AdTracking;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort.SelfSignup;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort.SignupResult;
 import com.binitech.pdv.application.ports.inbound.TenantUseCasePort.TermsAcceptance;
+import com.binitech.pdv.application.ports.outbound.AdConversionsPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.TenantRepositoryPort;
@@ -62,7 +64,8 @@ class SelfSignupTest {
         mail,
         "senha-forte-123",
         "(11) 91234-5678",
-        new TermsAcceptance("2026-11-04", "200.1.1.1"));
+        new TermsAcceptance("2026-11-04", "200.1.1.1"),
+        null);
   }
 
   @Test
@@ -116,5 +119,44 @@ class SelfSignupTest {
     assertEquals(TenantStatus.PENDING_APPROVAL, result.tenant().getStatus());
     verify(authentication, never())
         .provision(anyString(), anyString(), anyString(), anyString(), anyString());
+  }
+
+  @Test
+  @DisplayName("Com consentimento, o cadastro é enviado à Meta com o mesmo eventId do navegador")
+  void reportsSignupWhenConsented() {
+    AdConversionsPort ads = mock(AdConversionsPort.class);
+    TenantUseCaseImpl useCase =
+        new TenantUseCaseImpl(tenants, users, authentication, email, true, ads);
+    SelfSignup consented =
+        new SelfSignup(
+            "Mercado do João",
+            "mercado-do-joao",
+            "pro",
+            "dono@loja.com",
+            "senha-forte-123",
+            "11912345678",
+            new TermsAcceptance("2026-11-04", "200.1.1.1"),
+            new AdTracking(
+                "evt-1", "fb.1.1.2", null, "Mozilla", "https://www.binitechpdv.com.br/signup"));
+
+    useCase.signUp(consented);
+
+    ArgumentCaptor<AdConversionsPort.SignupConversion> sent =
+        ArgumentCaptor.forClass(AdConversionsPort.SignupConversion.class);
+    verify(ads).sendSignup(sent.capture());
+    assertEquals("evt-1", sent.getValue().eventId());
+    assertEquals("dono@loja.com", sent.getValue().email());
+    assertEquals("200.1.1.1", sent.getValue().ip());
+    assertEquals(new java.math.BigDecimal("149.00"), sent.getValue().monthlyValue());
+  }
+
+  @Test
+  @DisplayName("Sem consentimento, nada é enviado à Meta")
+  void silentWithoutConsent() {
+    AdConversionsPort ads = mock(AdConversionsPort.class);
+    TenantUseCaseImpl useCase =
+        new TenantUseCaseImpl(tenants, users, authentication, email, true, ads);
+    useCase.signUp(signup("dono@loja.com"));
+    verify(ads, never()).sendSignup(any());
   }
 }
