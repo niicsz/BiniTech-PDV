@@ -89,6 +89,18 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   }
 
   @Override
+  public List<Sale> findForCashSession(String tenantId, String cashSessionId) {
+    Query query =
+        Query.query(
+            Criteria.where("tenantId")
+                .is(tenantId)
+                .orOperator(
+                    Criteria.where("cashSessionId").is(cashSessionId),
+                    Criteria.where("returns.cashSessionId").is(cashSessionId)));
+    return mongo.find(query, SaleDocument.class).stream().map(mapper::toDomain).toList();
+  }
+
+  @Override
   public Sale save(Sale sale) {
     var document = mapper.toDocument(sale);
     var saved = repository.save(document);

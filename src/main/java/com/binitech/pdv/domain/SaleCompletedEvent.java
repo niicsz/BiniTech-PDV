@@ -23,7 +23,9 @@ public record SaleCompletedEvent(
       String unit,
       BigDecimal quantity,
       BigDecimal unitPrice,
-      BigDecimal total) {}
+      BigDecimal total,
+      BigDecimal discount,
+      BigDecimal surcharge) {}
 
   public record Payment(String method, BigDecimal amount) {}
 }

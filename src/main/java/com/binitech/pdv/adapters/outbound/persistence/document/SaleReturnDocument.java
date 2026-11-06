@@ -23,4 +23,5 @@ public class SaleReturnDocument {
   private String reason;
   private boolean restocked;
   private boolean fiscalPending;
+  private String cashSessionId;
 }
