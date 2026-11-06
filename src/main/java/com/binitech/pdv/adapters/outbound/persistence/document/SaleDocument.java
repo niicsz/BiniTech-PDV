@@ -50,4 +50,8 @@ public class SaleDocument {
   private double returnedCost;
   private String status;
   private Integer returnsVersion;
+  private double itemsTotal;
+  private double discount;
+  private double surcharge;
+  private String cashSessionId;
 }

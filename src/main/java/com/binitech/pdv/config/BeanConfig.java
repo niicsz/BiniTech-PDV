@@ -5,6 +5,7 @@ import com.binitech.pdv.adapters.outbound.persistence.repository.SpringDataUserR
 import com.binitech.pdv.application.ports.inbound.AccessLogUseCasePort;
 import com.binitech.pdv.application.ports.inbound.AuthUseCasePort;
 import com.binitech.pdv.application.ports.inbound.BillingUseCasePort;
+import com.binitech.pdv.application.ports.inbound.CashSessionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
@@ -17,6 +18,7 @@ import com.binitech.pdv.application.ports.inbound.UserManagementUseCasePort;
 import com.binitech.pdv.application.ports.outbound.AccessLogRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.AdConversionsPort;
 import com.binitech.pdv.application.ports.outbound.AuthenticationGateway;
+import com.binitech.pdv.application.ports.outbound.CashSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.CheckoutSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryStoreRepositoryPort;
@@ -33,6 +35,7 @@ import com.binitech.pdv.application.ports.outbound.UserRepositoryPort;
 import com.binitech.pdv.application.usecases.AccessLogUseCaseImpl;
 import com.binitech.pdv.application.usecases.AuthUseCaseImpl;
 import com.binitech.pdv.application.usecases.BillingUseCaseImpl;
+import com.binitech.pdv.application.usecases.CashSessionUseCaseImpl;
 import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
 import com.binitech.pdv.application.usecases.DeliveryUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
@@ -87,13 +90,29 @@ public class BeanConfig {
       SaleRepositoryPort saleRepositoryPort,
       ProductRepositoryPort productRepositoryPort,
       @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone,
-      SaleFiscalPublisher saleFiscalPublisher) {
+      SaleFiscalPublisher saleFiscalPublisher,
+      CashSessionRepositoryPort cashSessionRepositoryPort) {
     log.info("Configurando SaleUseCasePort");
     return new SaleUseCaseImpl(
         saleRepositoryPort,
         productRepositoryPort,
         ZoneId.of(businessTimeZone),
-        saleFiscalPublisher);
+        saleFiscalPublisher,
+        cashSessionRepositoryPort);
+  }
+
+  @Bean
+  public CashSessionUseCasePort cashSessionUseCasePort(
+      CashSessionRepositoryPort cashSessionRepositoryPort,
+      SaleRepositoryPort saleRepositoryPort,
+      DeliveryOrderRepositoryPort deliveryOrderRepositoryPort,
+      @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone) {
+    return new CashSessionUseCaseImpl(
+        cashSessionRepositoryPort,
+        saleRepositoryPort,
+        deliveryOrderRepositoryPort,
+        Clock.systemUTC(),
+        ZoneId.of(businessTimeZone));
   }
 
   @Bean

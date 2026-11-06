@@ -40,12 +40,16 @@ public interface WebMapper {
   @Mapping(target = "returnedCost", ignore = true)
   @Mapping(target = "status", ignore = true)
   @Mapping(target = "returnsVersion", ignore = true)
+  @Mapping(target = "itemsTotal", ignore = true)
+  @Mapping(target = "cashSessionId", ignore = true)
   Sale toDomain(CreateSaleDTO dto);
 
   @Mapping(target = "productDescription", ignore = true)
   @Mapping(target = "unitPrice", ignore = true)
   @Mapping(target = "subtotal", ignore = true)
   @Mapping(target = "costPrice", ignore = true)
+  @Mapping(target = "discount", ignore = true)
+  @Mapping(target = "surcharge", ignore = true)
   SaleItem toDomain(CreateSaleItemDTO dto);
 
   SaleDTO toDto(Sale sale);
