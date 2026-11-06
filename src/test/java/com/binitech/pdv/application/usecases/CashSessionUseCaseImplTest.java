@@ -265,8 +265,8 @@ class CashSessionUseCaseImplTest {
   @Test
   @DisplayName("Período maior que 31 dias é recusado")
   void rejectsLongPeriod() {
-    assertThatThrownBy(
-            () -> useCase.list(ADMIN, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 1)))
-        .isInstanceOf(BusinessException.class);
+    LocalDate start = LocalDate.of(2026, 1, 1);
+    LocalDate end = LocalDate.of(2026, 3, 1);
+    assertThatThrownBy(() -> useCase.list(ADMIN, start, end)).isInstanceOf(BusinessException.class);
   }
 }

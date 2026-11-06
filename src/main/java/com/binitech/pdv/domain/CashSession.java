@@ -47,13 +47,13 @@ public class CashSession {
     if (!isOpen()) {
       throw new BusinessException("Este caixa já foi fechado.");
     }
-    Double countedAmount = counted == null ? null : requireAmount(counted, true);
+    Double countedValue = counted == null ? null : requireAmount(counted, true);
     this.status = CashSessionStatus.CLOSED;
     this.closedAt = now;
     this.closedByUserId = userId;
-    this.countedAmount = countedAmount;
+    this.countedAmount = countedValue;
     this.difference =
-        countedAmount == null ? null : Money.round(countedAmount - summary.expectedCash());
+        countedValue == null ? null : Money.round(countedValue - summary.expectedCash());
     this.notes = notes == null || notes.isBlank() ? null : notes.trim();
     this.closingSummary = summary;
   }
