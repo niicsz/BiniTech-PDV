@@ -41,5 +41,7 @@ public interface SaleRepositoryPort {
 
   List<Sale> findDebtorsByTenantId(String tenantId);
 
+  List<Sale> findForCashSession(String tenantId, String cashSessionId);
+
   long countByTenantIdAndTimestampBetween(String tenantId, LocalDateTime start, LocalDateTime end);
 }

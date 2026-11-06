@@ -21,6 +21,8 @@ tags:
     description: Gerenciamento de usuários do tenant autenticado
   - name: Delivery
     description: Pedidos e configuração do delivery da loja
+  - name: CashSessions
+    description: Abertura, sangria, suprimento e fechamento de caixa
   - name: PublicDelivery
     description: Cardápio e pedidos públicos do delivery
 
@@ -657,6 +659,165 @@ paths:
                 items:
                   $ref: '#/components/schemas/SaleDTO'
 
+  /api/cash-sessions:
+    get:
+      tags: [CashSessions]
+      summary: Listar caixas abertos no período (administrador vê todos, operador só os seus)
+      operationId: listCashSessions
+      parameters:
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Caixas mais recentes primeiro
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CashSessionDTO'
+        '400':
+          description: Período inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+    post:
+      tags: [CashSessions]
+      summary: Abrir o caixa do operador com o troco inicial
+      operationId: openCashSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenCashSessionDTO'
+      responses:
+        '201':
+          description: Caixa aberto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashSessionDTO'
+        '400':
+          description: Já existe caixa aberto ou valor inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/cash-sessions/current:
+    get:
+      tags: [CashSessions]
+      summary: Caixa aberto do operador logado
+      operationId: getCurrentCashSession
+      responses:
+        '200':
+          description: Caixa aberto com o resumo do turno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashSessionDTO'
+        '204':
+          description: Nenhum caixa aberto
+
+  /api/cash-sessions/{id}:
+    get:
+      tags: [CashSessions]
+      summary: Detalhe de um caixa
+      operationId: getCashSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Caixa com o resumo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashSessionDTO'
+        '404':
+          description: Caixa não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/cash-sessions/{id}/movements:
+    post:
+      tags: [CashSessions]
+      summary: Registrar sangria ou suprimento
+      operationId: addCashMovement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCashMovementDTO'
+      responses:
+        '201':
+          description: Movimento registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashSessionDTO'
+        '400':
+          description: Valor inválido, caixa fechado ou sangria maior que o dinheiro do caixa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/cash-sessions/{id}/close:
+    post:
+      tags: [CashSessions]
+      summary: Fechar o caixa informando o dinheiro contado
+      operationId: closeCashSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseCashSessionDTO'
+      responses:
+        '200':
+          description: Caixa fechado com o resumo final
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashSessionDTO'
+        '400':
+          description: Caixa já fechado ou valor inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
   /api/delivery/settings:
     get:
       tags: [Delivery]
@@ -1153,6 +1314,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SaleReturnDTO'
+        itemsTotal:
+          type: number
+          format: double
+        discount:
+          type: number
+          format: double
+        surcharge:
+          type: number
+          format: double
+        cashSessionId:
+          type: string
 
     SaleStatusEnum:
       type: string
@@ -1236,6 +1408,12 @@ components:
         subtotal:
           type: number
           format: double
+        discount:
+          type: number
+          format: double
+        surcharge:
+          type: number
+          format: double
 
     CreateSaleDTO:
       type: object
@@ -1267,6 +1445,18 @@ components:
           maxLength: 14
         skipStockValidation:
           type: boolean
+        discount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000
+          description: Desconto em reais sobre o total dos produtos
+        surcharge:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000
+          description: Acréscimo em reais sobre o total dos produtos
 
     CreateSaleItemDTO:
       type: object
@@ -1419,6 +1609,155 @@ components:
         timestamp:
           type: string
           format: date-time
+
+    CashSessionStatusDTO:
+      type: string
+      enum: [OPEN, CLOSED]
+
+    CashMovementTypeDTO:
+      type: string
+      enum: [SUPPLY, WITHDRAWAL]
+
+    OpenCashSessionDTO:
+      type: object
+      required:
+        - openingAmount
+      properties:
+        openingAmount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000
+
+    CreateCashMovementDTO:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          $ref: '#/components/schemas/CashMovementTypeDTO'
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 1000000
+        reason:
+          type: string
+          maxLength: 120
+
+    CloseCashSessionDTO:
+      type: object
+      properties:
+        countedAmount:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000000
+          description: Dinheiro contado na gaveta; sem ele o caixa fecha sem conferência
+        notes:
+          type: string
+          maxLength: 500
+
+    CashMovementDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/CashMovementTypeDTO'
+        amount:
+          type: number
+          format: double
+        reason:
+          type: string
+        userId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    PaymentTotalDTO:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        amount:
+          type: number
+          format: double
+
+    CashSessionSummaryDTO:
+      type: object
+      properties:
+        salesCount:
+          type: integer
+        salesTotal:
+          type: number
+          format: double
+        discountTotal:
+          type: number
+          format: double
+        surchargeTotal:
+          type: number
+          format: double
+        receivedByMethod:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentTotalDTO'
+        cashSales:
+          type: number
+          format: double
+        cashRefunds:
+          type: number
+          format: double
+        supplies:
+          type: number
+          format: double
+        withdrawals:
+          type: number
+          format: double
+        expectedCash:
+          type: number
+          format: double
+
+    CashSessionDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        operatorName:
+          type: string
+        status:
+          $ref: '#/components/schemas/CashSessionStatusDTO'
+        openedAt:
+          type: string
+          format: date-time
+        openingAmount:
+          type: number
+          format: double
+        movements:
+          type: array
+          items:
+            $ref: '#/components/schemas/CashMovementDTO'
+        closedAt:
+          type: string
+          format: date-time
+        closedByUserId:
+          type: string
+        countedAmount:
+          type: number
+          format: double
+        difference:
+          type: number
+          format: double
+        notes:
+          type: string
+        summary:
+          $ref: '#/components/schemas/CashSessionSummaryDTO'
+        pendingDeliveryOrders:
+          type: integer
 
     DeliveryOrderStatusDTO:
       type: string

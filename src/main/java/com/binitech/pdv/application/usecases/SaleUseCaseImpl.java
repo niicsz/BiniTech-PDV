@@ -1,8 +1,10 @@
 package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
+import com.binitech.pdv.application.ports.outbound.CashSessionRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
+import com.binitech.pdv.domain.CashSession;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
@@ -11,6 +13,7 @@ import com.binitech.pdv.domain.SaleReturnRequest;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.RefundMethod;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.SaleStatus;
 import java.time.Instant;
@@ -39,6 +42,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   private final ProductRepositoryPort productRepository;
   private final ZoneId businessZone;
   private final SaleFiscalPublisher fiscalPublisher;
+  private final CashSessionRepositoryPort cashSessions;
 
   public SaleUseCaseImpl(
       SaleRepositoryPort saleRepository,
@@ -52,10 +56,20 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       ProductRepositoryPort productRepository,
       ZoneId businessZone,
       SaleFiscalPublisher fiscalPublisher) {
+    this(saleRepository, productRepository, businessZone, fiscalPublisher, null);
+  }
+
+  public SaleUseCaseImpl(
+      SaleRepositoryPort saleRepository,
+      ProductRepositoryPort productRepository,
+      ZoneId businessZone,
+      SaleFiscalPublisher fiscalPublisher,
+      CashSessionRepositoryPort cashSessions) {
     this.saleRepository = saleRepository;
     this.productRepository = productRepository;
     this.businessZone = businessZone;
     this.fiscalPublisher = fiscalPublisher;
+    this.cashSessions = cashSessions;
   }
 
   @Override
@@ -79,6 +93,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()));
     sale.setCustomerCpf(digitsOrNull(sale.getCustomerCpf()));
     sale.setFiscalPending(fiscalPublisher != null);
+    sale.setCashSessionId(openCashSessionId(tenantId, userId));
 
     Map<String, Integer> reserved = reserveStock(sale, productsById, tenantId);
     Sale saved;
@@ -112,6 +127,13 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
             e.getMessage());
       }
     }
+  }
+
+  private String openCashSessionId(String tenantId, String userId) {
+    if (cashSessions == null) {
+      return null;
+    }
+    return cashSessions.findOpen(tenantId, userId).map(CashSession::getId).orElse(null);
   }
 
   private static String digitsOrNull(String value) {
@@ -353,6 +375,9 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
             userId,
             LocalDateTime.now(ZoneId.systemDefault()));
     saleReturn.setFiscalPending(fiscalPublisher != null);
+    if (saleReturn.getRefundMethod() == RefundMethod.CASH) {
+      saleReturn.setCashSessionId(openCashSessionId(tenantId, userId));
+    }
 
     if (!saleRepository.appendReturn(sale, expectedVersion)) {
       if (log.isWarnEnabled()) {

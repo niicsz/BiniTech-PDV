@@ -17,6 +17,7 @@ public class SaleReturn {
   private String reason;
   private boolean restocked;
   private boolean fiscalPending;
+  private String cashSessionId;
 
   public String getId() {
     return id;
@@ -96,5 +97,13 @@ public class SaleReturn {
 
   public void setFiscalPending(boolean fiscalPending) {
     this.fiscalPending = fiscalPending;
+  }
+
+  public String getCashSessionId() {
+    return cashSessionId;
+  }
+
+  public void setCashSessionId(String cashSessionId) {
+    this.cashSessionId = cashSessionId;
   }
 }

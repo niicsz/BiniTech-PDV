@@ -148,7 +148,9 @@ public class SaleFiscalPublisher {
         "UN",
         BigDecimal.valueOf(item.getQuantity()),
         money(item.getUnitPrice()),
-        money(item.getSubtotal()));
+        money(item.getSubtotal()),
+        money(item.getDiscount()),
+        money(item.getSurcharge()));
   }
 
   private static SaleCompletedEvent.Payment toPayment(Payment payment) {

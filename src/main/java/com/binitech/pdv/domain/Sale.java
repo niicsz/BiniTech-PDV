@@ -4,12 +4,16 @@ import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.RefundMethod;
 import com.binitech.pdv.utils.enums.SaleStatus;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.ToDoubleFunction;
+import java.util.stream.Stream;
 
 public class Sale {
 
@@ -34,6 +38,10 @@ public class Sale {
   private double returnedCost;
   private SaleStatus status;
   private int returnsVersion;
+  private double itemsTotal;
+  private double discount;
+  private double surcharge;
+  private String cashSessionId;
 
   public Sale() {
     this.items = new ArrayList<>();
@@ -84,7 +92,7 @@ public class Sale {
       saleReturn.getItems().add(returnItem(entry.getKey(), entry.getValue()));
     }
     saleReturn.setRefundAmount(
-        Money.sum(saleReturn.getItems().stream().map(SaleItem::getSubtotal)));
+        Money.sum(saleReturn.getItems().stream().map(SaleItem::netSubtotal)));
     saleReturn.setRefundCost(
         Money.sum(
             saleReturn.getItems().stream()
@@ -144,12 +152,37 @@ public class Sale {
             .filter(i -> Objects.equals(i.getProductId(), productId))
             .findFirst()
             .orElseThrow();
-    return new SaleItem(
-        productId,
-        sold.getProductDescription(),
-        quantity,
-        sold.getUnitPrice(),
-        sold.getCostPrice());
+    SaleItem returned =
+        new SaleItem(
+            productId,
+            sold.getProductDescription(),
+            quantity,
+            sold.getUnitPrice(),
+            sold.getCostPrice());
+    returned.setDiscount(returnShare(productId, quantity, SaleItem::getDiscount));
+    returned.setSurcharge(returnShare(productId, quantity, SaleItem::getSurcharge));
+    return returned;
+  }
+
+  private double returnShare(String productId, int quantity, ToDoubleFunction<SaleItem> value) {
+    BigDecimal sold = productValue(items.stream(), productId, value);
+    BigDecimal alreadyReturned =
+        productValue(returns.stream().flatMap(r -> r.getItems().stream()), productId, value);
+    int available = soldQuantity(productId) - returnedQuantity(productId);
+    if (quantity >= available) {
+      return sold.subtract(alreadyReturned).max(BigDecimal.ZERO).doubleValue();
+    }
+    return sold.multiply(BigDecimal.valueOf(quantity))
+        .divide(BigDecimal.valueOf(soldQuantity(productId)), 2, RoundingMode.HALF_UP)
+        .doubleValue();
+  }
+
+  private static BigDecimal productValue(
+      Stream<SaleItem> source, String productId, ToDoubleFunction<SaleItem> value) {
+    return source
+        .filter(i -> Objects.equals(i.getProductId(), productId))
+        .map(i -> Money.of(value.applyAsDouble(i)))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 
   private String descriptionOf(String productId) {
@@ -183,9 +216,43 @@ public class Sale {
   }
 
   public void recalculateTotal() {
-    this.totalAmount = Money.sum(items.stream().map(SaleItem::getSubtotal));
+    this.itemsTotal = Money.sum(items.stream().map(SaleItem::getSubtotal));
+    allocateAdjustments();
+    this.totalAmount =
+        Money.of(itemsTotal).subtract(Money.of(discount)).add(Money.of(surcharge)).doubleValue();
     this.totalCost =
         Money.sum(items.stream().map(i -> Money.multiply(i.getCostPrice(), i.getQuantity())));
+  }
+
+  private void allocateAdjustments() {
+    List<BigDecimal> discounts = allocate(Money.of(discount));
+    List<BigDecimal> surcharges = allocate(Money.of(surcharge));
+    for (int i = 0; i < items.size(); i++) {
+      items.get(i).setDiscount(discounts.get(i).doubleValue());
+      items.get(i).setSurcharge(surcharges.get(i).doubleValue());
+    }
+  }
+
+  private List<BigDecimal> allocate(BigDecimal amount) {
+    BigDecimal base = Money.of(itemsTotal);
+    List<BigDecimal> parts = new ArrayList<>();
+    if (amount.signum() == 0 || base.signum() == 0) {
+      items.forEach(i -> parts.add(BigDecimal.ZERO));
+      return parts;
+    }
+    BigDecimal allocated = BigDecimal.ZERO;
+    int largest = 0;
+    for (int i = 0; i < items.size(); i++) {
+      BigDecimal subtotal = Money.of(items.get(i).getSubtotal());
+      BigDecimal part = amount.multiply(subtotal).divide(base, 2, RoundingMode.DOWN);
+      parts.add(part);
+      allocated = allocated.add(part);
+      if (subtotal.compareTo(Money.of(items.get(largest).getSubtotal())) > 0) {
+        largest = i;
+      }
+    }
+    parts.set(largest, parts.get(largest).add(amount.subtract(allocated)));
+    return parts;
   }
 
   public void calculatePayment() {
@@ -204,6 +271,12 @@ public class Sale {
     }
     if (payments == null || payments.isEmpty()) {
       throw new BusinessException("A venda deve ter ao menos uma forma de pagamento.");
+    }
+    if (discount < 0 || surcharge < 0) {
+      throw new BusinessException("Desconto e acréscimo não podem ser negativos.");
+    }
+    if (Money.compare(discount, itemsTotal) >= 0) {
+      throw new BusinessException("O desconto precisa ser menor que o total dos produtos.");
     }
     if (Money.compare(this.totalPaid, this.totalAmount) < 0) {
       throw new BusinessException(
@@ -369,6 +442,38 @@ public class Sale {
 
   public void setStatus(SaleStatus status) {
     this.status = status;
+  }
+
+  public double getItemsTotal() {
+    return itemsTotal;
+  }
+
+  public void setItemsTotal(double itemsTotal) {
+    this.itemsTotal = itemsTotal;
+  }
+
+  public double getDiscount() {
+    return discount;
+  }
+
+  public void setDiscount(double discount) {
+    this.discount = discount;
+  }
+
+  public double getSurcharge() {
+    return surcharge;
+  }
+
+  public void setSurcharge(double surcharge) {
+    this.surcharge = surcharge;
+  }
+
+  public String getCashSessionId() {
+    return cashSessionId;
+  }
+
+  public void setCashSessionId(String cashSessionId) {
+    this.cashSessionId = cashSessionId;
   }
 
   public int getReturnsVersion() {

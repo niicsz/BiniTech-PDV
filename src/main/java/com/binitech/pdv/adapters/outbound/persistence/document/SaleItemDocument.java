@@ -17,4 +17,6 @@ public class SaleItemDocument {
   private double unitPrice;
   private double costPrice;
   private double subtotal;
+  private double discount;
+  private double surcharge;
 }

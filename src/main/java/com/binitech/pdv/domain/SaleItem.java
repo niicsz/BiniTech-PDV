@@ -10,6 +10,8 @@ public class SaleItem {
   private double unitPrice;
   private double costPrice;
   private double subtotal;
+  private double discount;
+  private double surcharge;
 
   public SaleItem() {}
 
@@ -29,6 +31,10 @@ public class SaleItem {
 
   public void recalculateSubtotal() {
     this.subtotal = Money.multiply(this.unitPrice, this.quantity);
+  }
+
+  public double netSubtotal() {
+    return Money.of(subtotal).subtract(Money.of(discount)).add(Money.of(surcharge)).doubleValue();
   }
 
   public String getProductId() {
@@ -77,6 +83,22 @@ public class SaleItem {
 
   public void setSubtotal(double subtotal) {
     this.subtotal = subtotal;
+  }
+
+  public double getDiscount() {
+    return discount;
+  }
+
+  public void setDiscount(double discount) {
+    this.discount = discount;
+  }
+
+  public double getSurcharge() {
+    return surcharge;
+  }
+
+  public void setSurcharge(double surcharge) {
+    this.surcharge = surcharge;
   }
 
   @Override
