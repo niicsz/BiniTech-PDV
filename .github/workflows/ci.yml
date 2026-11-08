@@ -52,6 +52,9 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+          server-id: ossindex
+          server-username: OSSINDEX_USERNAME
+          server-password: OSSINDEX_TOKEN
 
       - name: Run OWASP Dependency Check
         env:
@@ -62,8 +65,7 @@ jobs:
           chmod +x mvnw
           ./mvnw -B \
             -DnvdApiKey="$NVD_API_KEY" \
-            -Dossindex.username="$OSSINDEX_USERNAME" \
-            -Dossindex.apiToken="$OSSINDEX_TOKEN" \
+            -DossIndexServerId=ossindex \
             org.owasp:dependency-check-maven:check
 
       - name: Upload dependency-check report
