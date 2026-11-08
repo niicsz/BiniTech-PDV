@@ -38,6 +38,7 @@
 		<tomcat.version>10.1.61</tomcat.version>
 		<netty.version>4.1.140.Final</netty.version>
 		<mongodb.version>5.14.0</mongodb.version>
+		<jackson-bom.version>2.21.8</jackson-bom.version>
 		<log4j2.version>2.25.4</log4j2.version>
 		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<spring-amqp.version>3.2.12</spring-amqp.version>
