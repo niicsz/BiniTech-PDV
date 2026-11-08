@@ -9,6 +9,7 @@ import com.binitech.pdv.application.ports.inbound.CashSessionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
+import com.binitech.pdv.application.ports.inbound.PixUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
@@ -24,6 +25,9 @@ import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryStoreRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.EmailServicePort;
 import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.PixChargeRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.PixGatewayPort;
+import com.binitech.pdv.application.ports.outbound.PixSettingsRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleEventPublisherPort;
@@ -39,6 +43,7 @@ import com.binitech.pdv.application.usecases.CashSessionUseCaseImpl;
 import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
 import com.binitech.pdv.application.usecases.DeliveryUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
+import com.binitech.pdv.application.usecases.PixUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleFiscalPublisher;
@@ -47,6 +52,7 @@ import com.binitech.pdv.application.usecases.TenantUseCaseImpl;
 import com.binitech.pdv.application.usecases.TrialNurtureUseCaseImpl;
 import com.binitech.pdv.application.usecases.UserManagementUseCaseImpl;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +105,29 @@ public class BeanConfig {
         ZoneId.of(businessTimeZone),
         saleFiscalPublisher,
         cashSessionRepositoryPort);
+  }
+
+  @Bean
+  public PixUseCasePort pixUseCasePort(
+      @Value("${pix.enabled:false}") boolean pixEnabled,
+      @Value("${pix.expiration-minutes:15}") long expirationMinutes,
+      @Value("${pix.notification-base-url:}") String notificationBaseUrl,
+      PixSettingsRepositoryPort pixSettingsRepositoryPort,
+      PixChargeRepositoryPort pixChargeRepositoryPort,
+      PixGatewayPort pixGatewayPort,
+      SaleUseCasePort saleUseCasePort) {
+    log.info("Configurando PixUseCasePort (Pix integrado {})", pixEnabled ? "ativo" : "desligado");
+    return new PixUseCaseImpl(
+        new PixUseCaseImpl.Options(
+            pixEnabled,
+            Duration.ofMinutes(Math.max(1, expirationMinutes)),
+            Duration.ofSeconds(3),
+            notificationBaseUrl,
+            Clock.systemUTC()),
+        pixSettingsRepositoryPort,
+        pixChargeRepositoryPort,
+        pixGatewayPort,
+        saleUseCasePort);
   }
 
   @Bean
