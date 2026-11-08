@@ -56,24 +56,38 @@ jobs:
           server-username: OSSINDEX_USERNAME
           server-password: OSSINDEX_TOKEN
 
-      - name: Cache dependency-check data
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - name: Restore dependency-check data
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: dependency-check-data-${{ github.run_id }}
           restore-keys: dependency-check-data-
 
       - name: Run OWASP Dependency Check
+        id: owasp
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
           OSSINDEX_USERNAME: ${{ secrets.OSSINDEX_USERNAME }}
           OSSINDEX_TOKEN: ${{ secrets.OSSINDEX_TOKEN }}
         run: |
           chmod +x mvnw
+          set +e
           ./mvnw -B \
             -DnvdApiKey="$NVD_API_KEY" \
             -DossIndexServerId=ossindex \
-            org.owasp:dependency-check-maven:check
+            org.owasp:dependency-check-maven:check | tee owasp.log
+          status=${PIPESTATUS[0]}
+          if ! grep -q "Unable to continue dependency-check analysis" owasp.log; then
+            echo "db_ready=true" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+
+      - name: Save dependency-check data
+        if: always() && steps.owasp.outputs.db_ready == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-data-${{ github.run_id }}
 
       - name: Upload dependency-check report
         if: always()
