@@ -199,9 +199,11 @@ public class PixUseCaseImpl implements PixUseCasePort {
         && !secret.isBlank()
         && !gateway.isValidSignature(
             secret, notification.dataId(), notification.requestId(), notification.signature())) {
-      log.warn(
-          "Notificação Pix com assinatura inválida: cobrança={}",
-          LogSanitizer.maskId(charge.getId()));
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Notificação Pix com assinatura inválida: cobrança={}",
+            LogSanitizer.maskId(charge.getId()));
+      }
       return;
     }
     if (notification.dataId() != null
@@ -320,7 +322,11 @@ public class PixUseCaseImpl implements PixUseCasePort {
     if (base == null || base.isBlank() || !base.startsWith("https://")) {
       return null;
     }
-    return base.replaceAll("/+$", "") + "/webhooks/mercadopago/pix?charge=" + chargeId;
+    String trimmed = base;
+    while (trimmed.endsWith("/")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    }
+    return trimmed + "/webhooks/mercadopago/pix?charge=" + chargeId;
   }
 
   private static double pixAmount(Sale sale) {

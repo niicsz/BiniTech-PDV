@@ -36,7 +36,8 @@ public class MercadoPagoPixGateway implements PixGatewayPort {
   private static final DateTimeFormatter EXPIRATION_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
   private static final String BEARER = "Bearer ";
-  private static final String PAYMENT_PATH = "/v1/payments/{id}";
+  private static final String API_VERSION = "v1";
+  private static final String PAYMENTS = "payments";
 
   private final RestClient client;
   private final String payerEmail;
@@ -63,7 +64,7 @@ public class MercadoPagoPixGateway implements PixGatewayPort {
       Account account =
           client
               .get()
-              .uri("/users/me")
+              .uri(uri -> uri.pathSegment("users", "me").build())
               .header(HttpHeaders.AUTHORIZATION, BEARER + accessToken)
               .retrieve()
               .body(Account.class);
@@ -97,7 +98,7 @@ public class MercadoPagoPixGateway implements PixGatewayPort {
       PaymentResponse response =
           client
               .post()
-              .uri("/v1/payments")
+              .uri(uri -> uri.pathSegment(API_VERSION, PAYMENTS).build())
               .header(HttpHeaders.AUTHORIZATION, BEARER + accessToken)
               .header("X-Idempotency-Key", request.idempotencyKey())
               .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +134,7 @@ public class MercadoPagoPixGateway implements PixGatewayPort {
     PaymentResponse response =
         client
             .get()
-            .uri(PAYMENT_PATH, providerPaymentId)
+            .uri(uri -> uri.pathSegment(API_VERSION, PAYMENTS, providerPaymentId).build())
             .header(HttpHeaders.AUTHORIZATION, BEARER + accessToken)
             .retrieve()
             .body(PaymentResponse.class);
@@ -153,7 +154,7 @@ public class MercadoPagoPixGateway implements PixGatewayPort {
   public void cancel(String accessToken, String providerPaymentId) {
     client
         .put()
-        .uri(PAYMENT_PATH, providerPaymentId)
+        .uri(uri -> uri.pathSegment(API_VERSION, PAYMENTS, providerPaymentId).build())
         .header(HttpHeaders.AUTHORIZATION, BEARER + accessToken)
         .contentType(MediaType.APPLICATION_JSON)
         .body(new StatusUpdate("cancelled"))

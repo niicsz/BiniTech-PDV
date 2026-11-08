@@ -116,15 +116,16 @@ class PixUseCaseImplTest {
     PixUseCaseImpl off = build(false, null);
     assertThatThrownBy(() -> off.getSettings(OPERATOR))
         .isInstanceOf(ResourceNotFoundException.class);
-    assertThatThrownBy(() -> off.createCharge(OPERATOR, request(10, 0)))
+    Sale sale = request(10, 0);
+    assertThatThrownBy(() -> off.createCharge(OPERATOR, sale))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
   @Test
   @DisplayName("Operador não altera a configuração do Pix")
   void operatorCannotChangeSettings() {
-    assertThatThrownBy(
-            () -> useCase.updateSettings(OPERATOR, new SettingsUpdate(true, "tok", null)))
+    SettingsUpdate update = new SettingsUpdate(true, "tok", null);
+    assertThatThrownBy(() -> useCase.updateSettings(OPERATOR, update))
         .isInstanceOf(AccessDeniedException.class);
   }
 
@@ -150,7 +151,8 @@ class PixUseCaseImplTest {
   void enablingRequiresToken() {
     when(settings.findByTenantId("t1")).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> useCase.updateSettings(ADMIN, new SettingsUpdate(true, null, null)))
+    SettingsUpdate update = new SettingsUpdate(true, null, null);
+    assertThatThrownBy(() -> useCase.updateSettings(ADMIN, update))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("Access Token");
   }
@@ -201,12 +203,14 @@ class PixUseCaseImplTest {
   @DisplayName("Venda sem pagamento em Pix ou com Pix desligado na loja é recusada")
   void rejectsWithoutPixAmountOrInactiveStore() {
     when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
-    assertThatThrownBy(() -> useCase.createCharge(OPERATOR, request(0, 10)))
+    Sale cashOnly = request(0, 10);
+    assertThatThrownBy(() -> useCase.createCharge(OPERATOR, cashOnly))
         .isInstanceOf(BusinessException.class);
 
     when(settings.findByTenantId("t1"))
         .thenReturn(Optional.of(new PixSettings("t1", false, "tok", null, null, null)));
-    assertThatThrownBy(() -> useCase.createCharge(OPERATOR, request(10, 0)))
+    Sale pixSale = request(10, 0);
+    assertThatThrownBy(() -> useCase.createCharge(OPERATOR, pixSale))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("não está ligado");
     verify(gateway, never()).createCharge(anyString(), any());
