@@ -1,7 +1,7 @@
 package com.binitech.pdv.adapters.outbound;
 
 import com.binitech.pdv.domain.exception.BusinessException;
-import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
@@ -22,6 +22,7 @@ public class SecretCipher {
   private static final String PREFIX = "v1:";
   private static final int IV_BYTES = 12;
   private static final int TAG_BITS = 128;
+  private static final int MAX_PLAIN_LENGTH = 4096;
 
   private final SecretKey key;
   private final SecureRandom random = new SecureRandom();
@@ -53,6 +54,9 @@ public class SecretCipher {
     if (plain == null) {
       return null;
     }
+    if (plain.length() > MAX_PLAIN_LENGTH) {
+      throw new BusinessException("Credencial grande demais.");
+    }
     requireKey();
     try {
       byte[] iv = new byte[IV_BYTES];
@@ -60,9 +64,10 @@ public class SecretCipher {
       Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
       cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
       byte[] encrypted = cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8));
-      ByteBuffer buffer = ByteBuffer.allocate(iv.length + encrypted.length);
-      buffer.put(iv).put(encrypted);
-      return PREFIX + Base64.getEncoder().encodeToString(buffer.array());
+      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+      buffer.writeBytes(iv);
+      buffer.writeBytes(encrypted);
+      return PREFIX + Base64.getEncoder().encodeToString(buffer.toByteArray());
     } catch (GeneralSecurityException e) {
       throw new IllegalStateException("Falha ao criptografar credencial.", e);
     }

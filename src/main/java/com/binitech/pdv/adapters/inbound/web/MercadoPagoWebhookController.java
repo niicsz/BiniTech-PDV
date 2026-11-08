@@ -34,7 +34,8 @@ public class MercadoPagoWebhookController {
       @RequestHeader(value = "x-signature", required = false) String signature,
       @RequestHeader(value = "x-request-id", required = false) String requestId,
       @RequestBody(required = false) Event event) {
-    String dataId = queryDataId != null ? queryDataId : event == null ? null : event.dataId();
+    String bodyDataId = event == null ? null : event.dataId();
+    String dataId = queryDataId != null ? queryDataId : bodyDataId;
     if (!valid(chargeId) || (dataId != null && !valid(dataId))) {
       return ResponseEntity.ok().build();
     }

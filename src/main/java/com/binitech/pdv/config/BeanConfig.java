@@ -64,6 +64,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class BeanConfig {
 
+  private static final String OFF = "desligado";
+
   private static final Logger log = LoggerFactory.getLogger(BeanConfig.class);
 
   @Bean
@@ -116,7 +118,7 @@ public class BeanConfig {
       PixChargeRepositoryPort pixChargeRepositoryPort,
       PixGatewayPort pixGatewayPort,
       SaleUseCasePort saleUseCasePort) {
-    log.info("Configurando PixUseCasePort (Pix integrado {})", pixEnabled ? "ativo" : "desligado");
+    log.info("Configurando PixUseCasePort (Pix integrado {})", pixEnabled ? "ativo" : OFF);
     return new PixUseCaseImpl(
         new PixUseCaseImpl.Options(
             pixEnabled,
@@ -153,8 +155,7 @@ public class BeanConfig {
       ProductRepositoryPort productRepositoryPort,
       SaleUseCasePort saleUseCasePort,
       @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
-    log.info(
-        "Configurando DeliveryUseCasePort (delivery {})", deliveryEnabled ? "ativo" : "desligado");
+    log.info("Configurando DeliveryUseCasePort (delivery {})", deliveryEnabled ? "ativo" : OFF);
     return new DeliveryUseCaseImpl(
         new DeliveryUseCaseImpl.Options(deliveryEnabled, frontendUrl, Clock.systemUTC()),
         deliveryStoreRepositoryPort,
@@ -186,8 +187,7 @@ public class BeanConfig {
       @Value("${signup.auto-approve:true}") boolean autoApprove,
       AdConversionsPort adConversionsPort) {
     log.info(
-        "Configurando TenantUseCasePort (cadastro automático {})",
-        autoApprove ? "ligado" : "desligado");
+        "Configurando TenantUseCasePort (cadastro automático {})", autoApprove ? "ligado" : OFF);
     return new TenantUseCaseImpl(
         tenantRepositoryPort,
         userRepositoryPort,
