@@ -14,8 +14,21 @@
     <cve>CVE-2026-59283</cve>
   </suppress>
   <suppress until="2027-02-28Z">
-    <notes>Affects only the embedded UnboundID LDAP server (UnboundIdContainer), which is not used. The fix (6.5.12) is commercial-only. Remove after moving to Spring Boot 4.</notes>
+    <notes>Spring Security 6.5.11 is the last open-source 6.5 release; the fix (6.5.12) is commercial-only. The embedded UnboundID LDAP server, X.509 principal extraction and WebAuthn are not used, and authentication is delegated to the Auth service through JWT. Remove after moving to Spring Boot 4.</notes>
     <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring-security-.*@6\.5\.11$</packageUrl>
     <cve>CVE-2026-59270</cve>
+    <cve>CVE-2026-47838</cve>
+    <cve>CVE-2026-47841</cve>
+    <cve>CVE-2026-59276</cve>
+  </suppress>
+  <suppress until="2027-02-28Z">
+    <notes>Reactor Core 3.7.19 is the last open-source 3.7 release; the fix (3.7.20) is commercial-only. Flux.windowTimeout with fairBackpressure is not used. Remove after moving to Spring Boot 4.</notes>
+    <packageUrl regex="true">^pkg:maven/io\.projectreactor/reactor-core@3\.7\.19$</packageUrl>
+    <cve>CVE-2026-47857</cve>
+  </suppress>
+  <suppress until="2027-02-28Z">
+    <notes>Micrometer 1.15.12 is the last open-source 1.15 release. The issue is in the Apache HttpAsyncClient instrumentation, and no Apache HTTP client is on the classpath. Remove after moving to Spring Boot 4.</notes>
+    <packageUrl regex="true">^pkg:maven/io\.micrometer/micrometer-core@1\.15\.12$</packageUrl>
+    <cve>CVE-2026-59295</cve>
   </suppress>
 </suppressions>

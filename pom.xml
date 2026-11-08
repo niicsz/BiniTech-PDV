@@ -39,6 +39,8 @@
 		<netty.version>4.1.140.Final</netty.version>
 		<mongodb.version>5.14.0</mongodb.version>
 		<jackson-bom.version>2.21.8</jackson-bom.version>
+		<rabbit-amqp-client.version>5.37.1</rabbit-amqp-client.version>
+		<hibernate-validator.version>8.0.6.Final</hibernate-validator.version>
 		<log4j2.version>2.25.4</log4j2.version>
 		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<spring-amqp.version>3.2.12</spring-amqp.version>
