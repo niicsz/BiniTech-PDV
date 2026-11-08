@@ -23,6 +23,8 @@ tags:
     description: Pedidos e configuração do delivery da loja
   - name: CashSessions
     description: Abertura, sangria, suprimento e fechamento de caixa
+  - name: Pix
+    description: Pix integrado com QR dinâmico e baixa automática
   - name: PublicDelivery
     description: Cardápio e pedidos públicos do delivery
 
@@ -818,6 +820,119 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/pix/settings:
+    get:
+      tags: [Pix]
+      summary: Configuração do Pix integrado da loja
+      operationId: getPixSettings
+      responses:
+        '200':
+          description: Configuração atual (o token nunca é devolvido)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PixSettingsDTO'
+        '404':
+          description: Pix integrado indisponível ou cobrança não encontrada
+    put:
+      tags: [Pix]
+      summary: Ligar, desligar e informar as credenciais do Mercado Pago
+      operationId: updatePixSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePixSettingsDTO'
+      responses:
+        '200':
+          description: Configuração salva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PixSettingsDTO'
+        '400':
+          description: Token recusado ou dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '403':
+          description: Só o administrador da loja altera o Pix
+        '404':
+          description: Pix integrado indisponível ou cobrança não encontrada
+
+  /api/pix/charges:
+    post:
+      tags: [Pix]
+      summary: Gerar a cobrança Pix de uma venda (a venda só é registrada depois do pagamento)
+      operationId: createPixCharge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSaleDTO'
+      responses:
+        '201':
+          description: QR gerado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PixChargeDTO'
+        '400':
+          description: Venda inválida ou Pix integrado desligado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '404':
+          description: Pix integrado indisponível ou cobrança não encontrada
+
+  /api/pix/charges/{id}:
+    get:
+      tags: [Pix]
+      summary: Situação da cobrança Pix (consulta o Mercado Pago se ainda estiver pendente)
+      operationId: getPixCharge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: Situação atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PixChargeDTO'
+        '404':
+          description: Pix integrado indisponível ou cobrança não encontrada
+
+  /api/pix/charges/{id}/cancel:
+    post:
+      tags: [Pix]
+      summary: Cancelar a cobrança Pix ainda não paga
+      operationId: cancelPixCharge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: Situação depois do cancelamento (pode ter sido paga antes)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PixChargeDTO'
+        '404':
+          description: Pix integrado indisponível ou cobrança não encontrada
+
   /api/delivery/settings:
     get:
       tags: [Delivery]
@@ -1609,6 +1724,76 @@ components:
         timestamp:
           type: string
           format: date-time
+
+    PixSettingsDTO:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: MERCADO_PAGO
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+        accountName:
+          type: string
+        accessTokenHint:
+          type: string
+        webhookSecretConfigured:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdatePixSettingsDTO:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        accessToken:
+          type: string
+          maxLength: 500
+          description: Access Token de produção da conta Mercado Pago; vazio mantém o atual
+        webhookSecret:
+          type: string
+          maxLength: 500
+          description: Assinatura secreta das notificações; vazio mantém a atual
+
+    PixChargeStatusDTO:
+      type: string
+      enum: [PENDING, PROCESSING, PAID, EXPIRED, CANCELLED]
+
+    PixChargeDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/PixChargeStatusDTO'
+        amount:
+          type: number
+          format: double
+        qrCode:
+          type: string
+          description: Código Pix copia e cola
+        qrCodeBase64:
+          type: string
+          description: Imagem PNG do QR em base64
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+        saleId:
+          type: string
+        sale:
+          $ref: '#/components/schemas/SaleDTO'
+        failureReason:
+          type: string
 
     CashSessionStatusDTO:
       type: string

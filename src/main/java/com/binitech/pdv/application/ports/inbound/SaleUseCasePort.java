@@ -10,6 +10,8 @@ public interface SaleUseCasePort {
 
   Sale createSale(Sale sale, String userId, String tenantId);
 
+  Sale previewSale(Sale sale, String tenantId);
+
   Sale findById(String id, String tenantId);
 
   List<Sale> listSalesByDay(LocalDate date, String tenantId);

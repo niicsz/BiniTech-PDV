@@ -113,6 +113,15 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     return saved;
   }
 
+  @Override
+  public Sale previewSale(Sale sale, String tenantId) {
+    Map<String, Product> productsById = loadProductsForSale(sale.getItems());
+    validateAndEnrichItems(sale, productsById, tenantId);
+    sale.recalculate();
+    sale.validate();
+    return sale;
+  }
+
   private void publishToFiscal(Sale saved, Map<String, Product> productsById) {
     if (fiscalPublisher == null) {
       return;

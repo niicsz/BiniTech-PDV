@@ -88,6 +88,15 @@ signup:
   per-ip: ${SIGNUP_PER_IP:3}
   window: ${SIGNUP_WINDOW:24h}
 
+pix:
+  enabled: ${PIX_ENABLED:false}
+  credentials-key: ${PIX_CREDENTIALS_KEY:}
+  notification-base-url: ${PIX_NOTIFICATION_BASE_URL:}
+  expiration-minutes: ${PIX_EXPIRATION_MINUTES:15}
+  mercadopago:
+    base-url: ${MERCADOPAGO_BASE_URL:https://api.mercadopago.com}
+    payer-email: ${MERCADOPAGO_PAYER_EMAIL:consumidor@binitechpdv.com.br}
+
 delivery:
   enabled: ${DELIVERY_ENABLED:false}
   orders-per-window: ${DELIVERY_ORDERS_PER_WINDOW:5}
