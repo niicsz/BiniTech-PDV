@@ -355,6 +355,31 @@ O projeto utiliza variáveis de ambiente para configuração sensível. Você po
 
 No painel do Asaas, cadastre o webhook apontando para `POST /webhooks/asaas` com os eventos `CHECKOUT_PAID`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `SUBSCRIPTION_DELETED` e `SUBSCRIPTION_INACTIVATED`.
 
+### Pix integrado (Mercado Pago)
+
+O Pix com QR dinâmico é opcional e fica desligado por padrão. Cada loja informa as próprias credenciais do Mercado Pago na tela **Configurações › Pix**; o PDV guarda o access token e o segredo do webhook criptografados (AES-256-GCM) e nunca os devolve inteiros ao frontend.
+
+| Variável | Descrição | Padrão |
+|---|---|---|
+| `PIX_ENABLED` | Liga o Pix integrado para toda a plataforma. Com `false`, as rotas `/api/pix/**` respondem 404 e o caixa só mostra o Pix manual | `false` |
+| `PIX_CREDENTIALS_KEY` | Chave AES de 32 bytes em Base64 usada para criptografar as credenciais das lojas. Sem ela, nenhuma loja consegue salvar credenciais | — |
+| `PIX_NOTIFICATION_BASE_URL` | URL pública do backend, com `https://` e sem barra no fim (ex.: `https://api.binitechpdv.com.br`). Vazia, as cobranças nascem sem webhook e a baixa depende da consulta periódica do caixa | — |
+| `PIX_EXPIRATION_MINUTES` | Validade do QR em minutos | `15` |
+| `MERCADOPAGO_BASE_URL` | URL da API do Mercado Pago | `https://api.mercadopago.com` |
+| `MERCADOPAGO_PAYER_EMAIL` | E-mail genérico do pagador enviado na cobrança (o Mercado Pago exige um) | `consumidor@binitechpdv.com.br` |
+
+Para gerar a `PIX_CREDENTIALS_KEY`:
+
+```bash
+openssl rand -base64 32
+```
+
+Guarde a chave fora do repositório (variável do serviço no Railway). Se ela for perdida ou trocada, as credenciais já salvas deixam de abrir e cada loja precisa informá-las de novo na tela de configurações.
+
+**Webhook.** O PDV monta a URL de notificação de cada cobrança como `PIX_NOTIFICATION_BASE_URL` + `/webhooks/mercadopago/pix?charge={id}` e a envia ao Mercado Pago na criação. A rota é pública, mas a notificação só é aceita se a assinatura `x-signature` bater com o segredo do webhook da loja (HMAC-SHA256, segundo o manual do Mercado Pago); notificações repetidas da mesma cobrança são ignoradas. No painel do Mercado Pago (**Suas integrações › Webhooks**), o lojista cadastra `https://<PIX_NOTIFICATION_BASE_URL>/webhooks/mercadopago/pix` com o evento **Pagamentos** e copia o segredo gerado para a tela de configurações do PDV.
+
+**Para desligar em produção:** basta `PIX_ENABLED=false` e novo deploy. As cobranças pendentes expiram sozinhas no Mercado Pago, nenhuma venda é registrada sem confirmação e as credenciais salvas continuam no banco para quando o Pix voltar.
+
 ---
 
 ## 🔑 Autenticação e Autorização
@@ -462,6 +487,19 @@ A API é documentada via **OpenAPI 3.0** (gerado a partir de `swagger.yaml`) e a
 | `GET` | `/api/billing/checkout` | Iniciar checkout do Asaas | Autenticado |
 | `GET` | `/api/billing/portal` | Abrir a fatura em aberto no Asaas | Autenticado |
 | `POST` | `/webhooks/asaas` | Webhook do Asaas (eventos de pagamento) | Público (token) |
+
+### Pix integrado
+
+Disponível só com `PIX_ENABLED=true`; desligado, todas as rotas respondem 404.
+
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `GET` | `/api/pix/settings` | Configuração do Pix da loja (credenciais mascaradas) | ADMIN / TENANT_ADMIN |
+| `PUT` | `/api/pix/settings` | Ligar, desligar e informar as credenciais do Mercado Pago | ADMIN / TENANT_ADMIN |
+| `POST` | `/api/pix/charges` | Gerar a cobrança Pix de uma venda (a venda só é registrada após o pagamento) | Autenticado |
+| `GET` | `/api/pix/charges/{id}` | Situação da cobrança (consulta o Mercado Pago se ainda pendente) | Autenticado |
+| `POST` | `/api/pix/charges/{id}/cancel` | Cancelar a cobrança ainda não paga | Autenticado |
+| `POST` | `/webhooks/mercadopago/pix?charge={id}` | Notificação de pagamento do Mercado Pago | Público (assinatura `x-signature`) |
 
 ### Usuários do tenant
 
