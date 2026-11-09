@@ -1,0 +1,94 @@
+name: Confirmar subida para homologação
+
+on:
+  pull_request:
+    types: [opened, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: homologacao-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  perguntar:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Perguntar no PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Subir para homologação? Responda **sim** ou **não** neste PR."
+
+  interpretar:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    outputs:
+      resposta: ${{ steps.resposta.outputs.resposta }}
+      head_sha: ${{ steps.resposta.outputs.head_sha }}
+    steps:
+      - name: Ler resposta
+        id: resposta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMENTARIO: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          texto=$(printf '%s' "$COMENTARIO" | tr '[:upper:]' '[:lower:]' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')
+          case "$texto" in
+            sim|s|yes) resposta=sim ;;
+            não|nao|n|no) resposta=nao ;;
+            *) resposta=ignorar ;;
+          esac
+          head_sha=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          echo "resposta=$resposta" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Registrar não
+        if: steps.resposta.outputs.resposta == 'nao'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Certo, não sobe para homologação agora."
+
+  homologacao:
+    needs: interpretar
+    if: needs.interpretar.outputs.resposta == 'sim'
+    runs-on: ubuntu-latest
+    environment: homologacao
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_HOMOLOG_SERVICE }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_HOMOLOG_ENVIRONMENT }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Checkout do PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.interpretar.outputs.head_sha }}
+
+      - name: Verificar configuração
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE" ] || [ -z "$RAILWAY_ENVIRONMENT" ]; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Não subi: falta o secret RAILWAY_TOKEN ou a variável RAILWAY_HOMOLOG_SERVICE / RAILWAY_HOMOLOG_ENVIRONMENT."
+            exit 1
+          fi
+
+      - name: Subir para homologação no Railway
+        run: npx -y @railway/cli@5.63.1 up --ci --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT"
+
+      - name: Avisar no PR
+        if: success()
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Subi o commit \`${{ needs.interpretar.outputs.head_sha }}\` para homologação."
