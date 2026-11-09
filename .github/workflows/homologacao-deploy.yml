@@ -1,0 +1,137 @@
+name: Subir para homologação
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Número do PR
+        required: true
+      sha:
+        description: Commit a subir (head do PR)
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+  statuses: read
+
+concurrency:
+  group: homologacao-deploy-${{ inputs.pr }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SHA: ${{ inputs.sha }}
+      PR_NUMBER: ${{ inputs.pr }}
+    steps:
+      - name: Conferir que o commit é o head atual do PR
+        run: |
+          head=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)
+          if [ "$head" != "$SHA" ]; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Não subi: o PR recebeu commits novos depois do sim. Responda sim de novo."
+            exit 1
+          fi
+
+      - name: Esperar e checar os checks obrigatórios
+        run: |
+          checks_exigidos=("Backend Build & Test" "Docker Build" "Trivy Dependency Scan" "SonarCloud Code Analysis" "CodeQL" "Analyze (actions)" "Analyze (java-kotlin)")
+          statuses_exigidos=("security/snyk (niicsz)")
+          resumo=""
+          for tentativa in $(seq 1 40); do
+            falhas=""
+            pendentes=""
+            resumo=""
+            for nome in "${checks_exigidos[@]}"; do
+              linhas=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?per_page=100" --paginate \
+                --jq ".check_runs[] | select(.name == \"$nome\") | [.status, (.conclusion // \"\")] | @tsv")
+              if [ -z "$linhas" ]; then
+                pendentes="$pendentes $nome"
+                resumo="$resumo\n- $nome: sem resultado"
+                continue
+              fi
+              if printf '%s\n' "$linhas" | grep -qE $'\t(failure|cancelled|timed_out|action_required|startup_failure)$'; then
+                falhas="$falhas $nome"
+                resumo="$resumo\n- $nome: falhou"
+              elif printf '%s\n' "$linhas" | grep -qv $'^completed\t'; then
+                pendentes="$pendentes $nome"
+                resumo="$resumo\n- $nome: rodando"
+              else
+                resumo="$resumo\n- $nome: ok"
+              fi
+            done
+            for ctx in "${statuses_exigidos[@]}"; do
+              estado=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/status" --jq ".statuses[] | select(.context == \"$ctx\") | .state" | head -1)
+              case "$estado" in
+                success) resumo="$resumo\n- $ctx: ok" ;;
+                failure|error) falhas="$falhas $ctx"; resumo="$resumo\n- $ctx: falhou" ;;
+                *) pendentes="$pendentes $ctx"; resumo="$resumo\n- $ctx: sem resultado ou rodando" ;;
+              esac
+            done
+            if [ -n "$falhas" ]; then
+              gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Não subi para homologação porque falharam:$falhas. Resultado dos checks no commit \`$SHA\`:$(printf '%b' "$resumo")"
+              exit 1
+            fi
+            if [ -z "$pendentes" ]; then
+              echo "Todos os checks obrigatórios passaram."
+              exit 0
+            fi
+            sleep 30
+          done
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Não subi para homologação: checks ainda pendentes após 20 minutos:$pendentes."
+          exit 1
+
+  homologacao:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: homologacao
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_HOMOLOG_SERVICE }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_HOMOLOG_ENVIRONMENT }}
+      HOMOLOG_URL: ${{ vars.RAILWAY_HOMOLOG_URL }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ inputs.pr }}
+      SHA: ${{ inputs.sha }}
+    steps:
+      - name: Checkout do commit aprovado
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Verificar configuração
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE" ] || [ -z "$RAILWAY_ENVIRONMENT" ] || [ -z "$HOMOLOG_URL" ]; then
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Não subi: falta o secret RAILWAY_TOKEN ou alguma variável RAILWAY_HOMOLOG_SERVICE, RAILWAY_HOMOLOG_ENVIRONMENT, RAILWAY_HOMOLOG_URL."
+            exit 1
+          fi
+
+      - name: Subir para homologação no Railway
+        run: npx -y @railway/cli@5.63.1 up --ci --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT"
+
+      - name: Healthcheck da homologação
+        run: |
+          ok=0
+          for tentativa in $(seq 1 40); do
+            status=$(curl -s -m 10 -o /tmp/health.json -w '%{http_code}' "$HOMOLOG_URL/actuator/health" || true)
+            if [ "$status" = "200" ] && grep -q '"status":"UP"' /tmp/health.json; then
+              ok=$((ok + 1))
+              if [ "$ok" -ge 3 ]; then
+                echo "Healthcheck UP em 3 verificações seguidas."
+                exit 0
+              fi
+            else
+              ok=0
+            fi
+            sleep 15
+          done
+          echo "Healthcheck não ficou UP a tempo: última resposta $status"
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Subi para homologação, mas o healthcheck não ficou UP em 10 minutos. Veja os logs do deploy no Railway."
+          exit 1
+
+      - name: Avisar no PR
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "Subi o commit \`$SHA\` para homologação e o healthcheck está UP."
