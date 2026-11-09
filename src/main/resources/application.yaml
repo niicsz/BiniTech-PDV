@@ -4,10 +4,13 @@ spring:
   threads:
     virtual:
       enabled: true
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: binitech_pdv
   data:
     mongodb:
-      uri: ${MONGODB_URI}
-      database: binitech_pdv
+      representation:
+        big-decimal: string
     redis:
       url: ${REDIS_URL}
   rabbitmq:

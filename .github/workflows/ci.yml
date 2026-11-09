@@ -18,11 +18,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
 
       - name: Build & run tests
@@ -37,8 +37,8 @@ jobs:
           name: backend-test-reports
           path: target/surefire-reports/
 
-  dependency-check:
-    name: OWASP Dependency Check
+  dependency-scan:
+    name: Trivy Dependency Scan
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,55 +46,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
-          server-id: ossindex
-          server-username: OSSINDEX_USERNAME
-          server-password: OSSINDEX_TOKEN
 
-      - name: Restore dependency-check data
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-data-${{ github.run_id }}
-          restore-keys: dependency-check-data-
+      - name: Package application
+        run: chmod +x mvnw && ./mvnw package -DskipTests -B
 
-      - name: Run OWASP Dependency Check
-        id: owasp
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-          OSSINDEX_USERNAME: ${{ secrets.OSSINDEX_USERNAME }}
-          OSSINDEX_TOKEN: ${{ secrets.OSSINDEX_TOKEN }}
+      - name: Scan dependencies with Trivy
         run: |
-          chmod +x mvnw
-          set +e
-          ./mvnw -B \
-            -DnvdApiKey="$NVD_API_KEY" \
-            -DossIndexServerId=ossindex \
-            org.owasp:dependency-check-maven:check | tee owasp.log
-          status=${PIPESTATUS[0]}
-          if ! grep -q "Unable to continue dependency-check analysis" owasp.log; then
-            echo "db_ready=true" >> "$GITHUB_OUTPUT"
-          fi
-          exit "$status"
-
-      - name: Save dependency-check data
-        if: always() && steps.owasp.outputs.db_ready == 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-data-${{ github.run_id }}
-
-      - name: Upload dependency-check report
-        if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
-        with:
-          name: dependency-check-report
-          path: target/dependency-check-report.*
+          docker run --rm \
+            -v "$PWD:/work:ro" \
+            -w /work \
+            aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
+            rootfs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 target/
 
   docker:
     name: Docker Build

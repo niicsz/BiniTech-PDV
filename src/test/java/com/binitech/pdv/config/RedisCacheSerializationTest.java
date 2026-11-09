@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 
 class RedisCacheSerializationTest {
 
-  private final GenericJackson2JsonRedisSerializer serializer = RedisCacheConfig.cacheSerializer();
+  private final GenericJacksonJsonRedisSerializer serializer = RedisCacheConfig.cacheSerializer();
 
   private Product product() {
     Product product = new Product();

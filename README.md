@@ -59,7 +59,7 @@ O **BiniTech PDV** é uma plataforma SaaS de frente de caixa onde cada cliente (
 - **Autenticação** — Auth independente com banco próprio; o PDV valida sessões por HTTP e aplica suas permissões locais.
 - **Personalização Visual** — Modo Escuro (Dark Mode) e customização de cores da interface (cor primária e cabeçalho).
 - **Logging estruturado** — Logs com sanitização de dados sensíveis (backend com SLF4J + `LogSanitizer`, frontend com console estruturado).
-- **Virtual Threads** — Habilitadas via Spring Boot 3 + Java 21 para maior throughput em operações de I/O.
+- **Virtual Threads** — Habilitadas via Spring Boot 4 + Java 25 para maior throughput em operações de I/O.
 
 ---
 
@@ -128,9 +128,9 @@ Quando o uso ultrapassa os limites do plano, a fatura soma um valor de excedente
 
 | Tecnologia | Versão |
 |---|---|
-| Java | 21 |
-| Spring Boot | 3.5.12 |
-| Spring Security | 6.5.x |
+| Java | 25 |
+| Spring Boot | 4.1.2 |
+| Spring Security | 7.1.x |
 | Spring Data MongoDB | — |
 | Spring Data Redis | — |
 | Spring AMQP (RabbitMQ) | 3.2.x |
@@ -141,12 +141,12 @@ Quando o uso ultrapassa os limites do plano, a fatura soma um valor de excedente
 | JWT (jjwt) | 0.12.6 |
 | BouncyCastle (Argon2) | 1.84 |
 | OWASP Java Encoder | 1.3.1 |
-| OpenAPI Generator | 7.12.0 |
+| OpenAPI Generator | 7.27.0 |
 | MapStruct | 1.6.3 |
-| Lombok | 1.18.36 |
+| Lombok | gerenciado pelo Spring Boot |
 | SpringDoc OpenAPI (Swagger UI) | 2.8.17 |
 | JaCoCo | 0.8.12 |
-| OWASP Dependency Check | 12.1.1 |
+| Trivy | 0.76.2 |
 | Spotify fmt (code formatter) | 2.25 |
 
 ### Frontend
@@ -261,7 +261,7 @@ com.binitech.pdv
 
 ## ✅ Pré-requisitos
 
-- **Java 21+**
+- **Java 25+**
 - **Docker** e **Docker Compose** (para MongoDB e RabbitMQ)
 - **Redis** acessível (instância local ou container separado)
 - **Maven** (ou use o wrapper `mvnw` incluído)
@@ -598,13 +598,14 @@ O relatório HTML é gerado em `target/site/jacoco/index.html`.
 
 Os testes da autenticação e das regras de arquitetura são executados no repositório [BiniTech-Auth](https://github.com/niicsz/BiniTech-Auth), com seu próprio `./mvnw verify`.
 
-### Verificar vulnerabilidades (OWASP Dependency Check)
+### Verificar vulnerabilidades (Trivy)
 
 ```bash
-./mvnw dependency-check:check
+./mvnw package -DskipTests
+docker run --rm -v "$PWD:/work:ro" -w /work aquasec/trivy:0.76.2 rootfs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 target/
 ```
 
-A build falha automaticamente se alguma dependência possuir CVE com score ≥ 8.
+O CI falha se alguma dependência do JAR tiver CVE HIGH ou CRITICAL.
 
 ### Estrutura de testes
 
@@ -633,7 +634,7 @@ src/test/java/com/binitech/pdv/
 
 O projeto inclui um **Dockerfile multi-stage** (2 estágios) que compila o backend numa imagem otimizada:
 
-1. **backend-build** — Compila o Spring Boot com Eclipse Temurin JDK 21
+1. **backend-build** — Compila o Spring Boot com Eclipse Temurin JDK 25
 2. **runtime** — Imagem final mínima com Eclipse Temurin JRE 21, executando com usuário não-root para segurança
 
 A imagem inclui **HEALTHCHECK** integrado via `/actuator/health`.
@@ -679,7 +680,6 @@ pdv/
 ├── docker-compose.auth.yml     # Serviço de autenticação + Redis
 ├── docker-compose.yml          # Sobe MongoDB + RabbitMQ (Redis não incluso)
 ├── Dockerfile                  # Build multi-stage (backend, API-only)
-├── owasp-suppressions.xml      # Supressões do OWASP Dependency Check
 ├── pom.xml                     # Configuração Maven
 ├── mvnw / mvnw.cmd             # Maven Wrapper
 ├── src/

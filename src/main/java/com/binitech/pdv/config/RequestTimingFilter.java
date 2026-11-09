@@ -56,7 +56,11 @@ public class RequestTimingFilter extends OncePerRequestFilter {
     try {
       monitor.register(request.getMethod(), path, response.getStatus(), durationMs);
     } catch (RuntimeException e) {
-      log.warn("Falha ao registrar requisição lenta {} {}: {}", request.getMethod(), path, e.getMessage());
+      log.warn(
+          "Falha ao registrar requisição lenta {} {}: {}",
+          request.getMethod(),
+          path,
+          e.getMessage());
     }
   }
 }

@@ -6,7 +6,6 @@ import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.utils.LogSanitizer;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class TenantValidationFilter extends OncePerRequestFilter {
