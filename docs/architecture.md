@@ -42,7 +42,7 @@ C4Container
 
     System_Boundary(pdv, "BiniTech PDV") {
         Container(spa, "SPA Angular", "Angular, TypeScript", "Telas de PDV, produtos, vendas, devedores, billing, admin e auth. Servida como estático pelo backend")
-        Container(api, "API Backend", "Spring Boot 3, Java 21", "API REST com arquitetura hexagonal. JWT + refresh token, multi-tenant, jobs de billing")
+        Container(api, "API Backend", "Spring Boot 4, Java 25", "API REST com arquitetura hexagonal. JWT + refresh token, multi-tenant, jobs de billing")
         ContainerDb(mongo, "MongoDB", "MongoDB 7", "Tenants, usuários, produtos, vendas, assinaturas, faturas, tokens")
         ContainerDb(redis, "Redis", "Redis", "Cache de leitura e blacklist de access tokens (logout)")
         Container(rabbit, "RabbitMQ", "RabbitMQ 3", "Fila de eventos de e-mail (envio assíncrono)")

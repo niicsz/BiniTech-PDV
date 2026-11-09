@@ -12,7 +12,6 @@ import com.binitech.pdv.domain.Subscription;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.utils.enums.SubscriptionStatus;
 import com.binitech.pdv.utils.enums.TenantStatus;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -26,14 +25,14 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import tools.jackson.databind.ObjectMapper;
 
 class TrialGateTest {
 
   private final TenantRepositoryPort tenants = mock(TenantRepositoryPort.class);
   private final SubscriptionRepositoryPort subscriptions = mock(SubscriptionRepositoryPort.class);
   private final TenantValidationFilter filter =
-      new TenantValidationFilter(
-          tenants, subscriptions, new ObjectMapper().findAndRegisterModules());
+      new TenantValidationFilter(tenants, subscriptions, new ObjectMapper());
   private final LocalDate today = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
   private final Tenant tenant = new Tenant();
 

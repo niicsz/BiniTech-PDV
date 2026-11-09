@@ -1,9 +1,8 @@
 spring:
   application:
     name: BiniTech PDV Test
-  data:
-    mongodb:
-      database: test_pdv
+  mongodb:
+    database: test_pdv
 
 de:
   flapdoodle:

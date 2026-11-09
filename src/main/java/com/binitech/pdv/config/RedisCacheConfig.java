@@ -1,7 +1,5 @@
 package com.binitech.pdv.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +12,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import tools.jackson.databind.DefaultTyping;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 
 @Configuration
 @EnableCaching
@@ -24,18 +25,27 @@ public class RedisCacheConfig implements CachingConfigurer {
 
   private static final Logger log = LoggerFactory.getLogger(RedisCacheConfig.class);
 
-  private static final String CACHE_VERSION = "v3";
+  private static final String CACHE_VERSION = "v4";
 
-  static GenericJackson2JsonRedisSerializer cacheSerializer() {
-    ObjectMapper cacheObjectMapper = new ObjectMapper();
-    cacheObjectMapper.activateDefaultTypingAsProperty(
-        LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL, "@class");
-    return new GenericJackson2JsonRedisSerializer(cacheObjectMapper);
+  static GenericJacksonJsonRedisSerializer cacheSerializer() {
+    JsonMapper cacheMapper =
+        JsonMapper.builder()
+            .activateDefaultTypingAsProperty(
+                BasicPolymorphicTypeValidator.builder()
+                    .allowIfSubType("com.binitech.pdv.")
+                    .allowIfSubType("java.util.")
+                    .allowIfSubType("java.math.")
+                    .allowIfSubType("java.time.")
+                    .build(),
+                DefaultTyping.NON_FINAL,
+                "@class")
+            .build();
+    return new GenericJacksonJsonRedisSerializer(cacheMapper);
   }
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-    GenericJackson2JsonRedisSerializer serializer = cacheSerializer();
+    GenericJacksonJsonRedisSerializer serializer = cacheSerializer();
 
     RedisCacheConfiguration defaultConfig =
         RedisCacheConfiguration.defaultCacheConfig()
