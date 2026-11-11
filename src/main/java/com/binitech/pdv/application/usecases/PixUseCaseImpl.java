@@ -2,6 +2,7 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.PixUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
+import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixChargeRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixGatewayPort;
 import com.binitech.pdv.application.ports.outbound.PixGatewayPort.ChargeState;
@@ -15,6 +16,7 @@ import com.binitech.pdv.domain.SaleItem;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.DeliveryOrderStatus;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.PixChargeStatus;
 import com.binitech.pdv.utils.enums.Role;
@@ -24,6 +26,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,18 +51,21 @@ public class PixUseCaseImpl implements PixUseCasePort {
   private final PixChargeRepositoryPort chargeRepository;
   private final PixGatewayPort gateway;
   private final SaleUseCasePort saleUseCase;
+  private final DeliveryOrderRepositoryPort deliveryOrders;
 
   public PixUseCaseImpl(
       Options options,
       PixSettingsRepositoryPort settingsRepository,
       PixChargeRepositoryPort chargeRepository,
       PixGatewayPort gateway,
-      SaleUseCasePort saleUseCase) {
+      SaleUseCasePort saleUseCase,
+      DeliveryOrderRepositoryPort deliveryOrders) {
     this.options = options;
     this.settingsRepository = settingsRepository;
     this.chargeRepository = chargeRepository;
     this.gateway = gateway;
     this.saleUseCase = saleUseCase;
+    this.deliveryOrders = deliveryOrders;
   }
 
   @Override
@@ -134,13 +140,17 @@ public class PixUseCaseImpl implements PixUseCasePort {
     charge.setExpiresAt(createdAt.plus(options.expiration()));
     charge.setSaleRequest(request);
 
+    return register(charge, settings, "Compra no caixa");
+  }
+
+  private PixCharge register(PixCharge charge, PixSettings settings, String description) {
     PixGatewayPort.CreatedCharge created =
         gateway.createCharge(
             settings.accessToken(),
             new PixGatewayPort.ChargeRequest(
                 charge.getId(),
-                BigDecimal.valueOf(amount),
-                "Compra no caixa",
+                BigDecimal.valueOf(charge.getAmount()),
+                description,
                 charge.getId(),
                 charge.getExpiresAt().atZone(ZoneId.systemDefault()).toOffsetDateTime(),
                 notificationUrl(charge.getId())));
@@ -152,10 +162,51 @@ public class PixUseCaseImpl implements PixUseCasePort {
       log.info(
           "Cobrança Pix criada: id={} tenantId={} valor={}",
           LogSanitizer.maskId(saved.getId()),
-          LogSanitizer.maskId(operator.tenantId()),
-          amount);
+          LogSanitizer.maskId(saved.getTenantId()),
+          saved.getAmount());
     }
     return saved;
+  }
+
+  @Override
+  public boolean isActive(String tenantId) {
+    return options.enabled() && settingsOf(tenantId).active();
+  }
+
+  @Override
+  public PixCharge createOrderCharge(OrderCharge request) {
+    requireEnabled();
+    PixSettings settings = settingsOf(request.tenantId());
+    if (!settings.active()) {
+      throw new BusinessException("O Pix integrado não está ligado nesta loja.");
+    }
+    if (Money.compare(request.amount(), 0) <= 0) {
+      throw new BusinessException("Informe o valor a receber por Pix.");
+    }
+    LocalDateTime createdAt = now();
+    PixCharge charge = new PixCharge();
+    charge.setId(UUID.randomUUID().toString());
+    charge.setTenantId(request.tenantId());
+    charge.setDeliveryOrderId(request.orderId());
+    charge.setAmount(Money.round(request.amount()));
+    charge.setStatus(PixChargeStatus.PENDING);
+    charge.setCreatedAt(createdAt);
+    charge.setExpiresAt(createdAt.plus(options.expiration()));
+    return register(charge, settings, request.description());
+  }
+
+  @Override
+  public Optional<PixCharge> checkOrderCharge(String tenantId, String chargeId) {
+    if (!options.enabled() || chargeId == null) {
+      return Optional.empty();
+    }
+    return chargeRepository
+        .findByIdAndTenantId(chargeId, tenantId)
+        .map(
+            charge ->
+                charge.isPending() && dueForCheck(charge)
+                    ? refresh(charge, settingsOf(tenantId))
+                    : charge);
   }
 
   @Override
@@ -251,6 +302,9 @@ public class PixUseCaseImpl implements PixUseCasePort {
     }
     charge.setStatus(PixChargeStatus.PAID);
     charge.setPaidAt(now());
+    if (charge.getDeliveryOrderId() != null) {
+      return completeOrder(charge);
+    }
     Sale sale = copyRequest(charge.getSaleRequest());
     sale.setSkipStockValidation(true);
     try {
@@ -275,9 +329,40 @@ public class PixUseCaseImpl implements PixUseCasePort {
     return chargeRepository.save(charge);
   }
 
+  private PixCharge completeOrder(PixCharge charge) {
+    boolean confirmed =
+        deliveryOrders.confirmPayment(
+            charge.getDeliveryOrderId(), charge.getTenantId(), options.clock().instant());
+    if (confirmed) {
+      if (log.isInfoEnabled()) {
+        log.info(
+            "Pix confirmado e pedido de delivery liberado: cobrança={} pedido={}",
+            LogSanitizer.maskId(charge.getId()),
+            LogSanitizer.maskId(charge.getDeliveryOrderId()));
+      }
+    } else {
+      charge.setFailureReason(
+          "O Pix foi recebido, mas o pedido não estava mais aguardando pagamento.");
+      if (log.isErrorEnabled()) {
+        log.error(
+            "Pix recebido para pedido que não aguardava pagamento: cobrança={} pedido={}",
+            LogSanitizer.maskId(charge.getId()),
+            LogSanitizer.maskId(charge.getDeliveryOrderId()));
+      }
+    }
+    return chargeRepository.save(charge);
+  }
+
   private PixCharge finish(PixCharge charge, PixChargeStatus status) {
     if (chargeRepository.transition(charge.getId(), PixChargeStatus.PENDING, status)) {
       charge.setStatus(status);
+      if (charge.getDeliveryOrderId() != null) {
+        deliveryOrders.changeStatus(
+            charge.getDeliveryOrderId(),
+            charge.getTenantId(),
+            DeliveryOrderStatus.AWAITING_PAYMENT,
+            DeliveryOrderStatus.CANCELLED);
+      }
       return charge;
     }
     return chargeRepository.findById(charge.getId()).orElse(charge);

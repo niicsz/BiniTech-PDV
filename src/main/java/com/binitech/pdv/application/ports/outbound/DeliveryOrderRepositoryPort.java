@@ -2,6 +2,7 @@ package com.binitech.pdv.application.ports.outbound;
 
 import com.binitech.pdv.domain.DeliveryOrder;
 import com.binitech.pdv.utils.enums.DeliveryOrderStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,4 +18,8 @@ public interface DeliveryOrderRepositoryPort {
       String id, String tenantId, DeliveryOrderStatus expected, DeliveryOrderStatus target);
 
   void attachSale(String id, String tenantId, String saleId);
+
+  void attachPixCharge(String id, String tenantId, String chargeId);
+
+  boolean confirmPayment(String id, String tenantId, Instant paidAt);
 }

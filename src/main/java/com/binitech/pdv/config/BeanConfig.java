@@ -117,7 +117,8 @@ public class BeanConfig {
       PixSettingsRepositoryPort pixSettingsRepositoryPort,
       PixChargeRepositoryPort pixChargeRepositoryPort,
       PixGatewayPort pixGatewayPort,
-      SaleUseCasePort saleUseCasePort) {
+      SaleUseCasePort saleUseCasePort,
+      DeliveryOrderRepositoryPort deliveryOrderRepositoryPort) {
     log.info("Configurando PixUseCasePort (Pix integrado {})", pixEnabled ? "ativo" : OFF);
     return new PixUseCaseImpl(
         new PixUseCaseImpl.Options(
@@ -129,7 +130,8 @@ public class BeanConfig {
         pixSettingsRepositoryPort,
         pixChargeRepositoryPort,
         pixGatewayPort,
-        saleUseCasePort);
+        saleUseCasePort,
+        deliveryOrderRepositoryPort);
   }
 
   @Bean
@@ -154,6 +156,7 @@ public class BeanConfig {
       TenantRepositoryPort tenantRepositoryPort,
       ProductRepositoryPort productRepositoryPort,
       SaleUseCasePort saleUseCasePort,
+      PixUseCasePort pixUseCasePort,
       @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
     log.info("Configurando DeliveryUseCasePort (delivery {})", deliveryEnabled ? "ativo" : OFF);
     return new DeliveryUseCaseImpl(
@@ -162,7 +165,8 @@ public class BeanConfig {
         deliveryOrderRepositoryPort,
         tenantRepositoryPort,
         productRepositoryPort,
-        saleUseCasePort);
+        saleUseCasePort,
+        pixUseCasePort);
   }
 
   @Bean

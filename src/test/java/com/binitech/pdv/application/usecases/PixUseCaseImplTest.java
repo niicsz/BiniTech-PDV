@@ -12,8 +12,10 @@ import static org.mockito.Mockito.when;
 
 import com.binitech.pdv.application.ports.inbound.PixUseCasePort.Notification;
 import com.binitech.pdv.application.ports.inbound.PixUseCasePort.Operator;
+import com.binitech.pdv.application.ports.inbound.PixUseCasePort.OrderCharge;
 import com.binitech.pdv.application.ports.inbound.PixUseCasePort.SettingsUpdate;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
+import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixChargeRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixGatewayPort;
 import com.binitech.pdv.application.ports.outbound.PixGatewayPort.ChargeState;
@@ -25,6 +27,7 @@ import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
+import com.binitech.pdv.utils.enums.DeliveryOrderStatus;
 import com.binitech.pdv.utils.enums.PaymentMethod;
 import com.binitech.pdv.utils.enums.PixChargeStatus;
 import com.binitech.pdv.utils.enums.Role;
@@ -60,6 +63,7 @@ class PixUseCaseImplTest {
   @Mock private PixChargeRepositoryPort charges;
   @Mock private PixGatewayPort gateway;
   @Mock private SaleUseCasePort sales;
+  @Mock private DeliveryOrderRepositoryPort deliveryOrders;
 
   private PixUseCaseImpl useCase;
 
@@ -79,7 +83,8 @@ class PixUseCaseImplTest {
         settings,
         charges,
         gateway,
-        sales);
+        sales,
+        deliveryOrders);
   }
 
   private static Sale request(double pix, double cash) {
@@ -364,5 +369,94 @@ class PixUseCaseImplTest {
     useCase.handleNotification(new Notification("c1", "998877", null, null));
 
     verify(sales, times(1)).createSale(any(), eq("u1"), eq("t1"));
+  }
+
+  private static PixCharge orderCharge() {
+    PixCharge charge = pending();
+    charge.setUserId(null);
+    charge.setSaleRequest(null);
+    charge.setDeliveryOrderId("order-1");
+    return charge;
+  }
+
+  @Test
+  @DisplayName("Cobrança de pedido de delivery usa o total do pedido e não envolve venda")
+  void createsOrderCharge() {
+    when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
+    when(gateway.createCharge(anyString(), any()))
+        .thenReturn(new PixGatewayPort.CreatedCharge("998877", "000201", "base64"));
+    when(charges.insert(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    PixCharge charge =
+        useCase.createOrderCharge(new OrderCharge("t1", "order-1", 33.0, "Pedido #7 - Loja"));
+
+    assertThat(charge.getDeliveryOrderId()).isEqualTo("order-1");
+    assertThat(charge.getAmount()).isEqualTo(33.0);
+    assertThat(charge.getSaleRequest()).isNull();
+    assertThat(charge.getQrCode()).isEqualTo("000201");
+    verify(sales, never()).previewSale(any(), anyString());
+  }
+
+  @Test
+  @DisplayName("Pix aprovado de pedido de delivery libera o pedido e não cria venda")
+  void approvedOrderPaymentReleasesOrder() {
+    when(charges.findByIdAndTenantId("c1", "t1")).thenReturn(Optional.of(orderCharge()));
+    when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
+    when(gateway.fetchState(anyString(), anyString())).thenReturn(ChargeState.APPROVED);
+    when(charges.transition(anyString(), any(), any())).thenReturn(true);
+    when(deliveryOrders.confirmPayment(eq("order-1"), eq("t1"), any())).thenReturn(true);
+    when(charges.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    Optional<PixCharge> result = useCase.checkOrderCharge("t1", "c1");
+
+    assertThat(result).isPresent();
+    assertThat(result.get().getStatus()).isEqualTo(PixChargeStatus.PAID);
+    assertThat(result.get().getFailureReason()).isNull();
+    verify(sales, never()).createSale(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("Pix pago de pedido que não aguardava mais pagamento guarda o motivo")
+  void paidOrderNoLongerAwaitingKeepsReason() {
+    when(charges.findByIdAndTenantId("c1", "t1")).thenReturn(Optional.of(orderCharge()));
+    when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
+    when(gateway.fetchState(anyString(), anyString())).thenReturn(ChargeState.APPROVED);
+    when(charges.transition(anyString(), any(), any())).thenReturn(true);
+    when(deliveryOrders.confirmPayment(eq("order-1"), eq("t1"), any())).thenReturn(false);
+    when(charges.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+    Optional<PixCharge> result = useCase.checkOrderCharge("t1", "c1");
+
+    assertThat(result.get().getFailureReason()).contains("não estava mais aguardando");
+  }
+
+  @Test
+  @DisplayName("Pix vencido de pedido de delivery cancela o pedido")
+  void expiredOrderChargeCancelsOrder() {
+    PixCharge charge = orderCharge();
+    charge.setExpiresAt(LocalDateTime.of(2020, 1, 1, 0, 0));
+    when(charges.findByIdAndTenantId("c1", "t1")).thenReturn(Optional.of(charge));
+    when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
+    when(gateway.fetchState(anyString(), anyString())).thenReturn(ChargeState.PENDING);
+    when(charges.transition("c1", PixChargeStatus.PENDING, PixChargeStatus.EXPIRED))
+        .thenReturn(true);
+
+    Optional<PixCharge> result = useCase.checkOrderCharge("t1", "c1");
+
+    assertThat(result.get().getStatus()).isEqualTo(PixChargeStatus.EXPIRED);
+    verify(deliveryOrders)
+        .changeStatus(
+            "order-1", "t1", DeliveryOrderStatus.AWAITING_PAYMENT, DeliveryOrderStatus.CANCELLED);
+  }
+
+  @Test
+  @DisplayName("Loja sem Pix integrado ativo não gera cobrança de pedido")
+  void isActiveFollowsStoreSettings() {
+    when(settings.findByTenantId("t1")).thenReturn(Optional.of(ACTIVE));
+    when(settings.findByTenantId("t2")).thenReturn(Optional.empty());
+
+    assertThat(useCase.isActive("t1")).isTrue();
+    assertThat(useCase.isActive("t2")).isFalse();
+    assertThat(build(false, null).isActive("t1")).isFalse();
   }
 }

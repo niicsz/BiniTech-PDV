@@ -1946,7 +1946,7 @@ components:
 
     DeliveryOrderStatusDTO:
       type: string
-      enum: [RECEIVED, ACCEPTED, DISPATCHED, COMPLETED, CANCELLED]
+      enum: [AWAITING_PAYMENT, RECEIVED, ACCEPTED, DISPATCHED, COMPLETED, CANCELLED]
 
     DeliveryFulfillmentDTO:
       type: string
@@ -2043,6 +2043,7 @@ components:
         changeFor: { type: number, format: double }
         notes: { type: string }
         saleId: { type: string }
+        paidAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -2055,10 +2056,10 @@ components:
 
     CompleteDeliveryOrderDTO:
       type: object
-      required: [paymentMethod]
       properties:
         paymentMethod:
           type: string
+          description: Dispensado quando o pedido já foi pago pelo Pix integrado
           enum: [CASH, CREDIT_CARD, DEBIT_CARD, PIX]
 
     PublicDeliveryProductDTO:
@@ -2088,6 +2089,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
+        pixIntegrated:
+          type: boolean
+          description: A loja gera QR code do Pix e o pedido só entra na fila depois de pago
         products:
           type: array
           items:
@@ -2141,5 +2145,15 @@ components:
         paymentMethod:
           $ref: '#/components/schemas/DeliveryPaymentMethodDTO'
         pixKey: { type: string }
+        paid: { type: boolean }
+        pix:
+          $ref: '#/components/schemas/PublicDeliveryPixDTO'
         whatsappUrl: { type: string }
         createdAt: { type: string, format: date-time }
+
+    PublicDeliveryPixDTO:
+      type: object
+      properties:
+        qrCode: { type: string }
+        qrCodeBase64: { type: string }
+        expiresAt: { type: string, format: date-time }

@@ -3,6 +3,7 @@ package com.binitech.pdv.application.ports.inbound;
 import com.binitech.pdv.domain.DeliveryAddress;
 import com.binitech.pdv.domain.DeliveryOrder;
 import com.binitech.pdv.domain.DeliveryStore;
+import com.binitech.pdv.domain.PixCharge;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Tenant;
 import com.binitech.pdv.utils.enums.DeliveryFulfillment;
@@ -32,9 +33,10 @@ public interface DeliveryUseCasePort {
 
   record StoreView(Tenant tenant, DeliveryStore store) {}
 
-  record PublicStore(Tenant tenant, DeliveryStore store, List<Product> products) {}
+  record PublicStore(
+      Tenant tenant, DeliveryStore store, List<Product> products, boolean pixIntegrated) {}
 
-  record PlacedOrder(DeliveryOrder order, DeliveryStore store, String whatsappUrl) {}
+  record PlacedOrder(DeliveryOrder order, DeliveryStore store, String whatsappUrl, PixCharge pix) {}
 
   record OrderLine(String productId, int quantity, String notes) {}
 
