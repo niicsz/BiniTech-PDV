@@ -284,6 +284,34 @@ class DeliveryUseCaseImplTest {
   }
 
   @Test
+  @DisplayName("Pedido cancelado porque o Pix venceu não oferece o WhatsApp da loja")
+  void expiredPixOrderHasNoWhatsapp() {
+    DeliveryOrder expired = storedOrder(DeliveryOrderStatus.CANCELLED);
+    expired.setPixChargeId("charge-1");
+    when(orders.findByIdAndTenantId("o1", TENANT)).thenReturn(Optional.of(expired));
+
+    PlacedOrder placed = useCase.trackOrder(SLUG, "o1");
+
+    assertEquals(DeliveryOrderStatus.CANCELLED, placed.order().getStatus());
+    assertNull(placed.whatsappUrl());
+    assertNull(placed.pix());
+  }
+
+  @Test
+  @DisplayName("Pedido pago pelo Pix e cancelado pela loja continua com o WhatsApp")
+  void paidPixOrderCancelledByStoreKeepsWhatsapp() {
+    DeliveryOrder cancelled = storedOrder(DeliveryOrderStatus.CANCELLED);
+    cancelled.setPixChargeId("charge-1");
+    cancelled.setPaidAt(Instant.parse("2026-11-03T15:01:00Z"));
+    cancelled.setAddress(new DeliveryAddress("Rua das Flores", "120", null, "Centro", null));
+    when(orders.findByIdAndTenantId("o1", TENANT)).thenReturn(Optional.of(cancelled));
+
+    PlacedOrder placed = useCase.trackOrder(SLUG, "o1");
+
+    assertTrue(placed.whatsappUrl().startsWith("https://wa.me/"));
+  }
+
+  @Test
   @DisplayName("Enquanto o Pix está pendente o acompanhamento devolve o QR e nenhum WhatsApp")
   void trackingKeepsQrWhilePending() {
     DeliveryOrder awaiting = storedOrder(DeliveryOrderStatus.AWAITING_PAYMENT);

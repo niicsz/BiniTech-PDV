@@ -300,13 +300,19 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
 
   private PlacedOrder placed(
       DeliveryOrder order, DeliveryStore store, Tenant tenant, PixCharge charge) {
-    if (order.isAwaitingPayment()) {
+    if (order.isAwaitingPayment() || expiredWithoutPayment(order)) {
       return new PlacedOrder(order, store, null, charge);
     }
     String trackUrl = frontendUrl + "/pedir/" + tenant.getSlug() + "/pedido/" + order.getId();
     String text = DeliveryWhatsappMessage.text(order, store, tenant.getName(), trackUrl);
     return new PlacedOrder(
         order, store, DeliveryWhatsappMessage.url(store.getWhatsapp(), text), null);
+  }
+
+  private static boolean expiredWithoutPayment(DeliveryOrder order) {
+    return order.getStatus() == DeliveryOrderStatus.CANCELLED
+        && order.getPixChargeId() != null
+        && !order.isPaid();
   }
 
   private Sale saleFrom(DeliveryOrder order, PaymentMethod method) {
