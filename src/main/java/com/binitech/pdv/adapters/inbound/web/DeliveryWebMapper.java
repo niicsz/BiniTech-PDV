@@ -9,6 +9,7 @@ import com.binitech.pdv.adapters.inbound.web.generated.model.DeliveryPaymentMeth
 import com.binitech.pdv.adapters.inbound.web.generated.model.DeliverySettingsDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.PlaceDeliveryOrderDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.PlacedDeliveryOrderDTO;
+import com.binitech.pdv.adapters.inbound.web.generated.model.PublicDeliveryPixDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.PublicDeliveryProductDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.PublicDeliveryStoreDTO;
 import com.binitech.pdv.adapters.inbound.web.generated.model.UpdateDeliverySettingsDTO;
@@ -21,12 +22,14 @@ import com.binitech.pdv.domain.DeliveryAddress;
 import com.binitech.pdv.domain.DeliveryOrder;
 import com.binitech.pdv.domain.DeliveryOrderItem;
 import com.binitech.pdv.domain.DeliveryStore;
+import com.binitech.pdv.domain.PixCharge;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.utils.enums.DeliveryFulfillment;
 import com.binitech.pdv.utils.enums.DeliveryOrderStatus;
 import com.binitech.pdv.utils.enums.DeliveryPaymentMethod;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -96,6 +99,7 @@ public class DeliveryWebMapper {
         .changeFor(order.getChangeFor())
         .notes(order.getNotes())
         .saleId(order.getSaleId())
+        .paidAt(time(order.getPaidAt()))
         .createdAt(time(order.getCreatedAt()))
         .updatedAt(time(order.getUpdatedAt()));
   }
@@ -118,6 +122,7 @@ public class DeliveryWebMapper {
         .pickupAvailable(store.isPickupAvailable())
         .pickupAddress(store.getPickupAddress())
         .acceptedPayments(payments(store.getAcceptedPayments()))
+        .pixIntegrated(view.pixIntegrated())
         .products(view.products().stream().map(DeliveryWebMapper::toPublicProduct).toList());
   }
 
@@ -134,11 +139,26 @@ public class DeliveryWebMapper {
         .total(order.getTotal())
         .paymentMethod(DeliveryPaymentMethodDTO.fromValue(order.getPaymentMethod().name()))
         .pixKey(
-            order.getPaymentMethod() == DeliveryPaymentMethod.PIX
+            order.getPaymentMethod() == DeliveryPaymentMethod.PIX && !order.isPaid()
                 ? placed.store().getPixKey()
                 : null)
+        .paid(order.isPaid())
+        .pix(toDto(placed.pix()))
         .whatsappUrl(placed.whatsappUrl())
         .createdAt(time(order.getCreatedAt()));
+  }
+
+  private static PublicDeliveryPixDTO toDto(PixCharge charge) {
+    if (charge == null) {
+      return null;
+    }
+    return new PublicDeliveryPixDTO()
+        .qrCode(charge.getQrCode())
+        .qrCodeBase64(charge.getQrCodeBase64())
+        .expiresAt(
+            charge.getExpiresAt() == null
+                ? null
+                : charge.getExpiresAt().atZone(ZoneId.systemDefault()).toOffsetDateTime());
   }
 
   public OrderRequest toRequest(PlaceDeliveryOrderDTO dto) {

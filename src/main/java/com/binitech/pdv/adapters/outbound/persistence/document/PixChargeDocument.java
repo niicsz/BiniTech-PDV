@@ -30,6 +30,7 @@ public class PixChargeDocument {
   private LocalDateTime lastCheckedAt;
   private LocalDateTime paidAt;
   private String saleId;
+  private String deliveryOrderId;
   private String failureReason;
   private SaleRequest saleRequest;
 

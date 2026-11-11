@@ -14,6 +14,7 @@ public class DeliveryOrder {
 
   private static final Map<DeliveryOrderStatus, Set<DeliveryOrderStatus>> NEXT =
       Map.of(
+          DeliveryOrderStatus.AWAITING_PAYMENT, EnumSet.of(DeliveryOrderStatus.CANCELLED),
           DeliveryOrderStatus.RECEIVED,
               EnumSet.of(DeliveryOrderStatus.ACCEPTED, DeliveryOrderStatus.CANCELLED),
           DeliveryOrderStatus.ACCEPTED,
@@ -41,6 +42,8 @@ public class DeliveryOrder {
   private Double changeFor;
   private String notes;
   private String saleId;
+  private String pixChargeId;
+  private Instant paidAt;
   private Instant createdAt;
   private Instant updatedAt;
 
@@ -193,6 +196,30 @@ public class DeliveryOrder {
 
   public void setSaleId(String saleId) {
     this.saleId = saleId;
+  }
+
+  public String getPixChargeId() {
+    return pixChargeId;
+  }
+
+  public void setPixChargeId(String pixChargeId) {
+    this.pixChargeId = pixChargeId;
+  }
+
+  public Instant getPaidAt() {
+    return paidAt;
+  }
+
+  public void setPaidAt(Instant paidAt) {
+    this.paidAt = paidAt;
+  }
+
+  public boolean isPaid() {
+    return paidAt != null;
+  }
+
+  public boolean isAwaitingPayment() {
+    return status == DeliveryOrderStatus.AWAITING_PAYMENT;
   }
 
   public Instant getCreatedAt() {

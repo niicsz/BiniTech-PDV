@@ -48,6 +48,8 @@ public class DeliveryOrderRepositoryAdapter implements DeliveryOrderRepositoryPo
     Criteria criteria = Criteria.where(TENANT_ID).is(tenantId);
     if (status != null) {
       criteria = criteria.and(STATUS).is(status.name());
+    } else {
+      criteria = criteria.and(STATUS).ne(DeliveryOrderStatus.AWAITING_PAYMENT.name());
     }
     Query query =
         Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "createdAt")).limit(limit);
@@ -71,6 +73,27 @@ public class DeliveryOrderRepositoryAdapter implements DeliveryOrderRepositoryPo
         byIdAndTenant(id, tenantId),
         new Update().set("saleId", saleId).set(UPDATED_AT, Instant.now()),
         DeliveryOrderDocument.class);
+  }
+
+  @Override
+  public void attachPixCharge(String id, String tenantId, String chargeId) {
+    mongo.updateFirst(
+        byIdAndTenant(id, tenantId),
+        new Update().set("pixChargeId", chargeId).set(UPDATED_AT, Instant.now()),
+        DeliveryOrderDocument.class);
+  }
+
+  @Override
+  public boolean confirmPayment(String id, String tenantId, Instant paidAt) {
+    Query query =
+        byIdAndTenant(id, tenantId)
+            .addCriteria(Criteria.where(STATUS).is(DeliveryOrderStatus.AWAITING_PAYMENT.name()));
+    Update update =
+        new Update()
+            .set(STATUS, DeliveryOrderStatus.RECEIVED.name())
+            .set("paidAt", paidAt)
+            .set(UPDATED_AT, paidAt);
+    return mongo.updateFirst(query, update, DeliveryOrderDocument.class).getModifiedCount() == 1;
   }
 
   private static Query byIdAndTenant(String id, String tenantId) {
@@ -114,6 +137,8 @@ public class DeliveryOrderRepositoryAdapter implements DeliveryOrderRepositoryPo
     document.setChangeFor(order.getChangeFor());
     document.setNotes(order.getNotes());
     document.setSaleId(order.getSaleId());
+    document.setPixChargeId(order.getPixChargeId());
+    document.setPaidAt(order.getPaidAt());
     document.setCreatedAt(order.getCreatedAt());
     document.setUpdatedAt(order.getUpdatedAt());
     return document;
@@ -158,6 +183,8 @@ public class DeliveryOrderRepositoryAdapter implements DeliveryOrderRepositoryPo
     order.setChangeFor(document.getChangeFor());
     order.setNotes(document.getNotes());
     order.setSaleId(document.getSaleId());
+    order.setPixChargeId(document.getPixChargeId());
+    order.setPaidAt(document.getPaidAt());
     order.setCreatedAt(document.getCreatedAt());
     order.setUpdatedAt(document.getUpdatedAt());
     return order;

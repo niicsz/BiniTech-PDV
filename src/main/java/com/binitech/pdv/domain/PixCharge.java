@@ -18,6 +18,7 @@ public class PixCharge {
   private LocalDateTime lastCheckedAt;
   private LocalDateTime paidAt;
   private String saleId;
+  private String deliveryOrderId;
   private String failureReason;
   private Sale saleRequest;
 
@@ -127,6 +128,14 @@ public class PixCharge {
 
   public void setSaleId(String saleId) {
     this.saleId = saleId;
+  }
+
+  public String getDeliveryOrderId() {
+    return deliveryOrderId;
+  }
+
+  public void setDeliveryOrderId(String deliveryOrderId) {
+    this.deliveryOrderId = deliveryOrderId;
   }
 
   public String getFailureReason() {

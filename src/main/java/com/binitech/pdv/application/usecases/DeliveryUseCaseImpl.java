@@ -1,6 +1,7 @@
 package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort;
+import com.binitech.pdv.application.ports.inbound.PixUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryStoreRepositoryPort;
@@ -13,6 +14,7 @@ import com.binitech.pdv.domain.DeliveryStore;
 import com.binitech.pdv.domain.DeliveryWhatsappMessage;
 import com.binitech.pdv.domain.Money;
 import com.binitech.pdv.domain.Payment;
+import com.binitech.pdv.domain.PixCharge;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
@@ -56,6 +58,7 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
   private final TenantRepositoryPort tenants;
   private final ProductRepositoryPort products;
   private final SaleUseCasePort sales;
+  private final PixUseCasePort pix;
   private final String frontendUrl;
   private final Clock clock;
 
@@ -67,13 +70,15 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
       DeliveryOrderRepositoryPort orders,
       TenantRepositoryPort tenants,
       ProductRepositoryPort products,
-      SaleUseCasePort sales) {
+      SaleUseCasePort sales,
+      PixUseCasePort pix) {
     this.featureEnabled = options.featureEnabled();
     this.stores = stores;
     this.orders = orders;
     this.tenants = tenants;
     this.products = products;
     this.sales = sales;
+    this.pix = pix;
     this.frontendUrl = withoutTrailingSlash(options.frontendUrl());
     this.clock = options.clock();
   }
@@ -155,10 +160,11 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
   public DeliveryOrder complete(
       String orderId, PaymentMethod method, String userId, String tenantId) {
     ensureFeature();
-    if (method == null || method == PaymentMethod.CREDIARIO) {
+    DeliveryOrder order = order(orderId, tenantId);
+    PaymentMethod paidWith = order.isPaid() ? PaymentMethod.PIX : method;
+    if (paidWith == null || paidWith == PaymentMethod.CREDIARIO) {
       throw new BusinessException("Escolha como o cliente pagou: dinheiro, cartão ou Pix.");
     }
-    DeliveryOrder order = order(orderId, tenantId);
     order.ensureCanComplete();
     DeliveryOrderStatus previous = order.getStatus();
     if (!orders.changeStatus(orderId, tenantId, previous, DeliveryOrderStatus.COMPLETED)) {
@@ -166,7 +172,7 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
     }
     Sale created;
     try {
-      created = sales.createSale(saleFrom(order, method), userId, tenantId);
+      created = sales.createSale(saleFrom(order, paidWith), userId, tenantId);
     } catch (RuntimeException e) {
       orders.changeStatus(orderId, tenantId, DeliveryOrderStatus.COMPLETED, previous);
       throw e;
@@ -192,7 +198,9 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
                 Comparator.comparing((Product p) -> categoryOf(p).toLowerCase())
                     .thenComparing(p -> p.getDescription().toLowerCase()))
             .toList();
-    return new PublicStore(tenant, store, catalog);
+    boolean pixIntegrated =
+        store.accepts(DeliveryPaymentMethod.PIX) && pix.isActive(tenant.getId());
+    return new PublicStore(tenant, store, catalog, pixIntegrated);
   }
 
   @Override
@@ -223,10 +231,13 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
     Instant now = clock.instant();
     order.setId(UUID.randomUUID().toString());
     order.setNumber(stores.nextOrderNumber(tenant.getId()));
-    order.setStatus(DeliveryOrderStatus.RECEIVED);
+    boolean payNow =
+        order.getPaymentMethod() == DeliveryPaymentMethod.PIX && pix.isActive(tenant.getId());
+    order.setStatus(payNow ? DeliveryOrderStatus.AWAITING_PAYMENT : DeliveryOrderStatus.RECEIVED);
     order.setCreatedAt(now);
     order.setUpdatedAt(now);
     DeliveryOrder saved = orders.save(order);
+    PixCharge charge = payNow ? openCharge(saved, tenant) : null;
     if (log.isInfoEnabled()) {
       log.info(
           "Pedido de delivery recebido: tenantId={} numero={} itens={}",
@@ -234,7 +245,7 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
           saved.getNumber(),
           saved.getItems().size());
     }
-    return placed(saved, store, tenant);
+    return placed(saved, store, tenant, charge);
   }
 
   @Override
@@ -246,13 +257,56 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
         orders
             .findByIdAndTenantId(orderId, tenant.getId())
             .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado."));
-    return placed(order, store, tenant);
+    if (!order.isAwaitingPayment() || order.getPixChargeId() == null) {
+      return placed(order, store, tenant, null);
+    }
+    Optional<PixCharge> charge = pix.checkOrderCharge(tenant.getId(), order.getPixChargeId());
+    DeliveryOrder current = order(orderId, tenant.getId());
+    return placed(
+        current,
+        store,
+        tenant,
+        current.isAwaitingPayment() ? charge.filter(PixCharge::isPending).orElse(null) : null);
   }
 
-  private PlacedOrder placed(DeliveryOrder order, DeliveryStore store, Tenant tenant) {
+  private PixCharge openCharge(DeliveryOrder order, Tenant tenant) {
+    try {
+      PixCharge charge =
+          pix.createOrderCharge(
+              new PixUseCasePort.OrderCharge(
+                  tenant.getId(),
+                  order.getId(),
+                  order.getTotal(),
+                  "Pedido #" + order.getNumber() + " - " + tenant.getName()));
+      orders.attachPixCharge(order.getId(), tenant.getId(), charge.getId());
+      order.setPixChargeId(charge.getId());
+      return charge;
+    } catch (RuntimeException e) {
+      orders.changeStatus(
+          order.getId(),
+          tenant.getId(),
+          DeliveryOrderStatus.AWAITING_PAYMENT,
+          DeliveryOrderStatus.CANCELLED);
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Não foi possível gerar o Pix do pedido: pedido={} erro={}",
+            LogSanitizer.maskId(order.getId()),
+            e.getMessage());
+      }
+      throw new BusinessException(
+          "Não foi possível gerar o Pix agora. Tente de novo ou escolha outra forma de pagamento.");
+    }
+  }
+
+  private PlacedOrder placed(
+      DeliveryOrder order, DeliveryStore store, Tenant tenant, PixCharge charge) {
+    if (order.isAwaitingPayment()) {
+      return new PlacedOrder(order, store, null, charge);
+    }
     String trackUrl = frontendUrl + "/pedir/" + tenant.getSlug() + "/pedido/" + order.getId();
     String text = DeliveryWhatsappMessage.text(order, store, tenant.getName(), trackUrl);
-    return new PlacedOrder(order, store, DeliveryWhatsappMessage.url(store.getWhatsapp(), text));
+    return new PlacedOrder(
+        order, store, DeliveryWhatsappMessage.url(store.getWhatsapp(), text), null);
   }
 
   private Sale saleFrom(DeliveryOrder order, PaymentMethod method) {

@@ -84,6 +84,7 @@ public class PixChargeRepositoryAdapter implements PixChargeRepositoryPort {
         .lastCheckedAt(charge.getLastCheckedAt())
         .paidAt(charge.getPaidAt())
         .saleId(charge.getSaleId())
+        .deliveryOrderId(charge.getDeliveryOrderId())
         .failureReason(charge.getFailureReason())
         .saleRequest(toDocument(charge.getSaleRequest()))
         .build();
@@ -131,6 +132,7 @@ public class PixChargeRepositoryAdapter implements PixChargeRepositoryPort {
     charge.setLastCheckedAt(document.getLastCheckedAt());
     charge.setPaidAt(document.getPaidAt());
     charge.setSaleId(document.getSaleId());
+    charge.setDeliveryOrderId(document.getDeliveryOrderId());
     charge.setFailureReason(document.getFailureReason());
     charge.setSaleRequest(toDomain(document.getSaleRequest()));
     return charge;

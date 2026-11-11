@@ -61,7 +61,10 @@ public class DeliveryController implements DeliveryApi {
   @Override
   public ResponseEntity<DeliveryOrderDTO> completeDeliveryOrder(
       String id, CompleteDeliveryOrderDTO dto) {
-    PaymentMethod method = PaymentMethod.valueOf(dto.getPaymentMethod().getValue());
+    PaymentMethod method =
+        dto == null || dto.getPaymentMethod() == null
+            ? null
+            : PaymentMethod.valueOf(dto.getPaymentMethod().getValue());
     return ResponseEntity.ok(
         mapper.toDto(
             delivery.complete(id, method, userProvider.getUserId(), userProvider.getTenantId())));

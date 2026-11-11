@@ -43,10 +43,15 @@ public final class DeliveryWhatsappMessage {
     }
     text.append("\n*Total: ").append(money(order.getTotal())).append('*');
     text.append("\n\n*Pagamento:* ").append(payment(order.getPaymentMethod()));
+    if (order.isPaid()) {
+      text.append(" (já pago)");
+    }
     if (order.getChangeFor() != null) {
       text.append(" (troco para ").append(money(order.getChangeFor())).append(')');
     }
-    if (order.getPaymentMethod() == DeliveryPaymentMethod.PIX && hasText(store.getPixKey())) {
+    if (order.getPaymentMethod() == DeliveryPaymentMethod.PIX
+        && !order.isPaid()
+        && hasText(store.getPixKey())) {
       text.append("\nChave Pix: ").append(store.getPixKey());
     }
     if (order.getFulfillment() == DeliveryFulfillment.DELIVERY) {

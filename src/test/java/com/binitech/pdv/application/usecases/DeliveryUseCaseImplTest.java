@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort.OrderLine;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort.OrderRequest;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort.PlacedOrder;
+import com.binitech.pdv.application.ports.inbound.PixUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.outbound.DeliveryOrderRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.DeliveryStoreRepositoryPort;
@@ -23,6 +24,7 @@ import com.binitech.pdv.domain.DeliveryAddress;
 import com.binitech.pdv.domain.DeliveryOrder;
 import com.binitech.pdv.domain.DeliveryOrderItem;
 import com.binitech.pdv.domain.DeliveryStore;
+import com.binitech.pdv.domain.PixCharge;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.Tenant;
@@ -32,6 +34,7 @@ import com.binitech.pdv.utils.enums.DeliveryFulfillment;
 import com.binitech.pdv.utils.enums.DeliveryOrderStatus;
 import com.binitech.pdv.utils.enums.DeliveryPaymentMethod;
 import com.binitech.pdv.utils.enums.PaymentMethod;
+import com.binitech.pdv.utils.enums.PixChargeStatus;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.TenantStatus;
 import java.net.URLDecoder;
@@ -65,6 +68,7 @@ class DeliveryUseCaseImplTest {
   @Mock private TenantRepositoryPort tenants;
   @Mock private ProductRepositoryPort products;
   @Mock private SaleUseCasePort sales;
+  @Mock private PixUseCasePort pix;
 
   private DeliveryUseCaseImpl useCase;
   private DeliveryStore store;
@@ -104,7 +108,8 @@ class DeliveryUseCaseImplTest {
         orders,
         tenants,
         products,
-        sales);
+        sales,
+        pix);
   }
 
   private static Product product(String id, String description, double price, int stock) {
@@ -184,6 +189,136 @@ class DeliveryUseCaseImplTest {
     assertTrue(
         text.contains(
             "https://www.binitechpdv.com.br/pedir/mercadinho-bom-preco/pedido/" + order.getId()));
+  }
+
+  @Test
+  @DisplayName("Com o Pix integrado o pedido aguarda o pagamento e só devolve o QR code")
+  void pixOrderAwaitsPayment() {
+    when(pix.isActive(TENANT)).thenReturn(true);
+    PixCharge charge = new PixCharge();
+    charge.setId("charge-1");
+    charge.setStatus(PixChargeStatus.PENDING);
+    charge.setQrCode("000201");
+    when(pix.createOrderCharge(any())).thenReturn(charge);
+
+    PlacedOrder placed =
+        useCase.placeOrder(
+            SLUG,
+            request(
+                DeliveryFulfillment.DELIVERY,
+                DeliveryPaymentMethod.PIX,
+                null,
+                new OrderLine("coca", 2, null)));
+
+    assertEquals(DeliveryOrderStatus.AWAITING_PAYMENT, placed.order().getStatus());
+    assertNull(placed.whatsappUrl());
+    assertEquals("000201", placed.pix().getQrCode());
+    ArgumentCaptor<PixUseCasePort.OrderCharge> captor =
+        ArgumentCaptor.forClass(PixUseCasePort.OrderCharge.class);
+    verify(pix).createOrderCharge(captor.capture());
+    assertEquals(30.0, captor.getValue().amount());
+    assertEquals(placed.order().getId(), captor.getValue().orderId());
+    assertEquals("Pedido #7 - Mercadinho Bom Preço", captor.getValue().description());
+    verify(orders).attachPixCharge(placed.order().getId(), TENANT, "charge-1");
+  }
+
+  @Test
+  @DisplayName("Sem Pix integrado o pedido com Pix entra direto na fila, como antes")
+  void pixOrderWithoutIntegrationGoesToQueue() {
+    PlacedOrder placed =
+        useCase.placeOrder(
+            SLUG,
+            request(
+                DeliveryFulfillment.DELIVERY,
+                DeliveryPaymentMethod.PIX,
+                null,
+                new OrderLine("coca", 2, null)));
+
+    assertEquals(DeliveryOrderStatus.RECEIVED, placed.order().getStatus());
+    assertNull(placed.pix());
+    assertTrue(placed.whatsappUrl().startsWith("https://wa.me/"));
+    verify(pix, never()).createOrderCharge(any());
+  }
+
+  @Test
+  @DisplayName("Se o Pix não puder ser gerado o pedido é cancelado e o cliente é avisado")
+  void cancelsOrderWhenPixFails() {
+    when(pix.isActive(TENANT)).thenReturn(true);
+    when(pix.createOrderCharge(any())).thenThrow(new IllegalStateException("fora do ar"));
+    OrderRequest failing =
+        request(
+            DeliveryFulfillment.DELIVERY,
+            DeliveryPaymentMethod.PIX,
+            null,
+            new OrderLine("coca", 2, null));
+
+    assertThrows(BusinessException.class, () -> useCase.placeOrder(SLUG, failing));
+
+    verify(orders)
+        .changeStatus(
+            anyString(),
+            eq(TENANT),
+            eq(DeliveryOrderStatus.AWAITING_PAYMENT),
+            eq(DeliveryOrderStatus.CANCELLED));
+  }
+
+  @Test
+  @DisplayName("Acompanhar o pedido consulta o Pix e libera o WhatsApp depois de pago")
+  void trackingReleasesAfterPayment() {
+    DeliveryOrder awaiting = storedOrder(DeliveryOrderStatus.AWAITING_PAYMENT);
+    awaiting.setPixChargeId("charge-1");
+    DeliveryOrder received = storedOrder(DeliveryOrderStatus.RECEIVED);
+    received.setPaidAt(Instant.parse("2026-11-03T15:01:00Z"));
+    received.setAddress(new DeliveryAddress("Rua das Flores", "120", null, "Centro", null));
+    when(orders.findByIdAndTenantId("o1", TENANT))
+        .thenReturn(Optional.of(awaiting), Optional.of(received));
+    when(pix.checkOrderCharge(TENANT, "charge-1")).thenReturn(Optional.empty());
+
+    PlacedOrder placed = useCase.trackOrder(SLUG, "o1");
+
+    assertEquals(DeliveryOrderStatus.RECEIVED, placed.order().getStatus());
+    assertNull(placed.pix());
+    String text = URLDecoder.decode(placed.whatsappUrl().split("text=")[1], StandardCharsets.UTF_8);
+    assertTrue(text.contains("Pix (já pago)"));
+    assertTrue(!text.contains("Chave Pix"));
+  }
+
+  @Test
+  @DisplayName("Enquanto o Pix está pendente o acompanhamento devolve o QR e nenhum WhatsApp")
+  void trackingKeepsQrWhilePending() {
+    DeliveryOrder awaiting = storedOrder(DeliveryOrderStatus.AWAITING_PAYMENT);
+    awaiting.setPixChargeId("charge-1");
+    when(orders.findByIdAndTenantId("o1", TENANT)).thenReturn(Optional.of(awaiting));
+    PixCharge charge = new PixCharge();
+    charge.setId("charge-1");
+    charge.setStatus(PixChargeStatus.PENDING);
+    charge.setQrCode("000201");
+    when(pix.checkOrderCharge(TENANT, "charge-1")).thenReturn(Optional.of(charge));
+
+    PlacedOrder placed = useCase.trackOrder(SLUG, "o1");
+
+    assertEquals("000201", placed.pix().getQrCode());
+    assertNull(placed.whatsappUrl());
+  }
+
+  @Test
+  @DisplayName("Pedido pago pelo Pix é concluído como Pix sem informar a forma de pagamento")
+  void completesPaidOrderAsPix() {
+    DeliveryOrder order = storedOrder(DeliveryOrderStatus.ACCEPTED);
+    order.setPaidAt(Instant.parse("2026-11-03T15:01:00Z"));
+    when(orders.findByIdAndTenantId("o1", TENANT)).thenReturn(Optional.of(order));
+    when(orders.changeStatus(
+            "o1", TENANT, DeliveryOrderStatus.ACCEPTED, DeliveryOrderStatus.COMPLETED))
+        .thenReturn(true);
+    Sale sale = new Sale();
+    sale.setId("sale-9");
+    when(sales.createSale(any(), eq("user-1"), eq(TENANT))).thenReturn(sale);
+
+    useCase.complete("o1", null, "user-1", TENANT);
+
+    ArgumentCaptor<Sale> captor = ArgumentCaptor.forClass(Sale.class);
+    verify(sales).createSale(captor.capture(), eq("user-1"), eq(TENANT));
+    assertEquals(PaymentMethod.PIX, captor.getValue().getPayments().get(0).getMethod());
   }
 
   @Test

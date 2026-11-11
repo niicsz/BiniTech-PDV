@@ -29,6 +29,8 @@ public class DeliveryOrderDocument {
   private Double changeFor;
   private String notes;
   private String saleId;
+  private String pixChargeId;
+  private Instant paidAt;
   private Instant createdAt;
   private Instant updatedAt;
 
