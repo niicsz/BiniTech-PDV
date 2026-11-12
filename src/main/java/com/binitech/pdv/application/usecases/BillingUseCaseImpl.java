@@ -605,7 +605,7 @@ public class BillingUseCaseImpl implements BillingUseCasePort {
 
     log.info(
         "Assinatura ativada manualmente: tenantId={} paymentMethod={}",
-        LogSanitizer.maskId(tenantId),
+        LogSanitizer.maskId(tenant.getId()),
         paymentMethod);
     return saved;
   }
