@@ -1,0 +1,23 @@
+name: Aprovação para merge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: aprovacao-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  aprovacao:
+    name: Aprovação do mantenedor
+    runs-on: ubuntu-latest
+    environment: aprovacao-merge
+    steps:
+      - name: Registrar aprovação
+        env:
+          SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "PR $PR_NUMBER, commit $SHA, aprovado para merge."
