@@ -50,6 +50,7 @@ public class ImageController implements ImagesApi {
       DeliveryImageKindDTO kind, MultipartFile file) {
     return ResponseEntity.ok(
         gate.run(
+            userProvider.getTenantId(),
             () ->
                 deliveryMapper.toDto(
                     images.uploadStoreImage(
@@ -73,6 +74,7 @@ public class ImageController implements ImagesApi {
   public ResponseEntity<ProductDTO> uploadProductImage(String id, MultipartFile file) {
     return ResponseEntity.ok(
         gate.run(
+            userProvider.getTenantId(),
             () ->
                 webMapper.toDto(
                     images.uploadProductImage(

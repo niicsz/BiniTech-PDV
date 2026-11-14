@@ -108,6 +108,7 @@ images:
   storage: ${IMAGES_STORAGE:none}
   max-size: ${IMAGES_MAX_SIZE:7MB}
   max-concurrent-uploads: ${IMAGES_MAX_CONCURRENT_UPLOADS:4}
+  max-concurrent-uploads-per-store: ${IMAGES_MAX_CONCURRENT_UPLOADS_PER_STORE:2}
   upload-wait: ${IMAGES_UPLOAD_WAIT:2s}
   public-base-url: ${IMAGES_PUBLIC_BASE_URL:}
   filesystem:

@@ -218,7 +218,7 @@ def github(method, url, token, body=None):
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
     })
-    with urllib.request.urlopen(req) as r:
+    with urllib.request.urlopen(req, timeout=30) as r:
         raw = r.read()
         return json.loads(raw) if raw else None
 

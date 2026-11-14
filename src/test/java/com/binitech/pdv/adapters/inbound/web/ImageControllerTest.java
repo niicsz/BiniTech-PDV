@@ -56,7 +56,7 @@ class ImageControllerTest {
             new DeliveryWebMapper(resolver),
             webMapper,
             user,
-            new UploadGate(4, java.time.Duration.ofMillis(10)));
+            new UploadGate(4, 2, java.time.Duration.ofMillis(10)));
     when(user.getTenantId()).thenReturn("t1");
     when(user.getUserId()).thenReturn("u1");
     when(user.getUserRole()).thenReturn(Role.TENANT_ADMIN);
