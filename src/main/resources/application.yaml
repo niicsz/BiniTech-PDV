@@ -7,7 +7,7 @@ spring:
   servlet:
     multipart:
       max-file-size: ${IMAGES_MAX_SIZE:8MB}
-      max-request-size: 10MB
+      max-request-size: 8MB
   mongodb:
     uri: ${MONGODB_URI}
     database: binitech_pdv
