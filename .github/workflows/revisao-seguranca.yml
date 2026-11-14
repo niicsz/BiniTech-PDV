@@ -1,0 +1,90 @@
+name: Revisão de segurança
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      falhar_em:
+        description: Severidade mínima, com confiança alta, que faz o job falhar
+        type: choice
+        options: [none, critical, high, medium, low]
+        default: none
+
+permissions:
+  contents: read
+
+concurrency:
+  group: revisao-seguranca-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NOTHOLY_VERSION: 0.6.0
+  NOTHOLY_SHA256: f2fbac95268f0f8bc78ab0d3206bfef9394debbeb6913f1af10b0e351a965870
+
+jobs:
+  revisao:
+    name: Revisão de segurança (NotHoly)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Instalar a CLI da NotHoly
+        run: |
+          curl -fsSL "https://notholy.com/releases/cli/notholy_${NOTHOLY_VERSION}_linux_amd64" -o "$RUNNER_TEMP/notholy"
+          echo "${NOTHOLY_SHA256}  $RUNNER_TEMP/notholy" | sha256sum -c -
+          chmod 755 "$RUNNER_TEMP/notholy"
+
+      - name: Usar o script da branch de destino
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ] && git cat-file -e "$BASE_SHA:.github/security-review/review.py" 2>/dev/null; then
+            git show "$BASE_SHA:.github/security-review/review.py" > "$RUNNER_TEMP/review.py"
+          else
+            cp .github/security-review/review.py "$RUNNER_TEMP/review.py"
+          fi
+
+      - name: Revisar as mudanças do PR
+        if: github.event_name == 'pull_request'
+        env:
+          NOTHOLY_API_KEY: ${{ secrets.NOTHOLY_API_KEY }}
+          NOTHOLY_BIN: ${{ runner.temp }}/notholy
+          NOTHOLY_NO_UPDATE: "1"
+          NOTHOLY_NO_ANIM: "1"
+          NOTHOLY_NO_KEYCHAIN: "1"
+          NOTHOLY_NO_BROWSER: "1"
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python3 "$RUNNER_TEMP/review.py" --mode diff --base "$BASE_SHA" --head "$HEAD_SHA" --pr "$PR_NUMBER" --fail-on high
+
+      - name: Revisar o projeto inteiro
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          NOTHOLY_API_KEY: ${{ secrets.NOTHOLY_API_KEY }}
+          NOTHOLY_BIN: ${{ runner.temp }}/notholy
+          NOTHOLY_NO_UPDATE: "1"
+          NOTHOLY_NO_ANIM: "1"
+          NOTHOLY_NO_KEYCHAIN: "1"
+          NOTHOLY_NO_BROWSER: "1"
+          FALHAR_EM: ${{ inputs.falhar_em }}
+        run: python3 "$RUNNER_TEMP/review.py" --mode full --fail-on "$FALHAR_EM"
+
+      - name: Guardar o relatório
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: revisao-seguranca
+          path: revisao-seguranca.md
+          if-no-files-found: ignore

@@ -25,9 +25,9 @@ public record StoredImage(byte[] content, String contentType) {
 
   @Override
   public boolean equals(Object o) {
-    return o instanceof StoredImage other
-        && Arrays.equals(content, other.content)
-        && contentType.equals(other.contentType);
+    return o instanceof StoredImage(byte[] otherContent, String otherType)
+        && Arrays.equals(content, otherContent)
+        && contentType.equals(otherType);
   }
 
   @Override

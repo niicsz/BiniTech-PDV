@@ -73,7 +73,7 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
       if (!slots.tryAcquire(waitMillis, TimeUnit.MILLISECONDS)) {
         throw new BusinessException(BUSY);
       }
-    } catch (InterruptedException interrupted) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
       throw new BusinessException(BUSY);
     }
@@ -330,7 +330,10 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
       if (ifd < 8 || ifd > end - start - 2L) {
         return 1;
       }
-      int dir = start + (int) ifd;
+      return fromDirectory(b, start + (int) ifd, end, little);
+    }
+
+    private static int fromDirectory(byte[] b, int dir, int end, boolean little) {
       int entries = read16(b, dir, little);
       for (int e = 0; e < entries; e++) {
         int entry = dir + 2 + e * 12;
