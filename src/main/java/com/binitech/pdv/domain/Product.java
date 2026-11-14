@@ -21,6 +21,7 @@ public class Product implements Serializable {
   private String cfop;
   private String csosn;
   private boolean deliveryVisible;
+  private String imageKey;
 
   public Product() {
     this.active = true;
@@ -148,6 +149,14 @@ public class Product implements Serializable {
 
   public void setCategory(String category) {
     this.category = category;
+  }
+
+  public String getImageKey() {
+    return imageKey;
+  }
+
+  public void setImageKey(String imageKey) {
+    this.imageKey = imageKey;
   }
 
   @Override
