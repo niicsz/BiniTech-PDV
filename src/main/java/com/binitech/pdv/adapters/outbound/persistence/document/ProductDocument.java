@@ -40,4 +40,5 @@ public class ProductDocument {
   private String cfop;
   private String csosn;
   private boolean deliveryVisible;
+  private String imageKey;
 }

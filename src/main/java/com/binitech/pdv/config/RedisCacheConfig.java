@@ -25,7 +25,7 @@ public class RedisCacheConfig implements CachingConfigurer {
 
   private static final Logger log = LoggerFactory.getLogger(RedisCacheConfig.class);
 
-  private static final String CACHE_VERSION = "v4";
+  private static final String CACHE_VERSION = "v5";
 
   static GenericJacksonJsonRedisSerializer cacheSerializer() {
     JsonMapper cacheMapper =

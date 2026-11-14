@@ -47,6 +47,8 @@ public class DeliveryStoreRepositoryAdapter implements DeliveryStoreRepositoryPo
                 "acceptedPayments",
                 store.getAcceptedPayments().stream().map(Enum::name).sorted().toList())
             .set("pixKey", store.getPixKey())
+            .set("logoKey", store.getLogoKey())
+            .set("coverKey", store.getCoverKey())
             .set("updatedAt", store.getUpdatedAt());
     DeliveryStoreDocument saved =
         mongo.findAndModify(
@@ -87,6 +89,8 @@ public class DeliveryStoreRepositoryAdapter implements DeliveryStoreRepositoryPo
     store.setPickupAddress(document.getPickupAddress());
     store.setAcceptedPayments(payments(document.getAcceptedPayments()));
     store.setPixKey(document.getPixKey());
+    store.setLogoKey(document.getLogoKey());
+    store.setCoverKey(document.getCoverKey());
     store.setUpdatedAt(document.getUpdatedAt());
     return store;
   }

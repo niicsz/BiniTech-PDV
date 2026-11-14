@@ -25,6 +25,8 @@ public class DeliveryStoreDocument {
   private String pickupAddress;
   private List<String> acceptedPayments;
   private String pixKey;
+  private String logoKey;
+  private String coverKey;
   private long lastOrderNumber;
   private Instant updatedAt;
 }

@@ -1,5 +1,6 @@
 package com.binitech.pdv.adapters.inbound.web.mapper;
 
+import com.binitech.pdv.adapters.inbound.web.ImageUrlResolver;
 import com.binitech.pdv.adapters.inbound.web.generated.model.*;
 import com.binitech.pdv.domain.*;
 import com.binitech.pdv.utils.enums.PaymentMethod;
@@ -13,15 +14,17 @@ import java.util.Map;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ImageUrlResolver.class)
 public interface WebMapper {
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "active", ignore = true)
   @Mapping(target = "userId", ignore = true)
   @Mapping(target = "tenantId", ignore = true)
+  @Mapping(target = "imageKey", ignore = true)
   Product toDomain(CreateProductDTO dto);
 
+  @Mapping(target = "imageUrl", source = "imageKey", qualifiedByName = "imageUrl")
   ProductDTO toDto(Product product);
 
   List<ProductDTO> toProductDtoList(List<Product> products);

@@ -20,6 +20,8 @@ public class DeliveryStore {
   private String pickupAddress;
   private Set<DeliveryPaymentMethod> acceptedPayments;
   private String pixKey;
+  private String logoKey;
+  private String coverKey;
   private Instant updatedAt;
 
   public static DeliveryStore defaults(String tenantId) {
@@ -142,6 +144,22 @@ public class DeliveryStore {
 
   public void setPixKey(String pixKey) {
     this.pixKey = pixKey;
+  }
+
+  public String getLogoKey() {
+    return logoKey;
+  }
+
+  public void setLogoKey(String logoKey) {
+    this.logoKey = logoKey;
+  }
+
+  public String getCoverKey() {
+    return coverKey;
+  }
+
+  public void setCoverKey(String coverKey) {
+    this.coverKey = coverKey;
   }
 
   public Instant getUpdatedAt() {
