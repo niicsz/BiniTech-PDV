@@ -111,7 +111,7 @@ public class ImageController implements ImagesApi {
     }
     try {
       return file.getBytes();
-    } catch (IOException exception) {
+    } catch (IOException _) {
       throw new BusinessException("Não foi possível receber o arquivo. Tente de novo.");
     }
   }

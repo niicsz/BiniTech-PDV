@@ -14,6 +14,7 @@ import com.binitech.pdv.application.usecases.ImageUseCaseImpl;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -88,7 +90,15 @@ public class ImageConfig {
   static S3Client s3Client(S3Settings s3) {
     S3ClientBuilder builder =
         S3Client.builder()
-            .httpClient(UrlConnectionHttpClient.create())
+            .httpClient(
+                UrlConnectionHttpClient.builder()
+                    .connectionTimeout(Duration.ofSeconds(5))
+                    .socketTimeout(Duration.ofSeconds(20))
+                    .build())
+            .overrideConfiguration(
+                ClientOverrideConfiguration.builder()
+                    .apiCallTimeout(Duration.ofSeconds(30))
+                    .build())
             .region(Region.of(isBlank(s3.region()) ? "auto" : s3.region().strip()))
             .credentialsProvider(
                 StaticCredentialsProvider.create(
@@ -111,7 +121,7 @@ public class ImageConfig {
   @Bean
   public ImageUseCasePort imageUseCasePort(
       @Value("${delivery.enabled:false}") boolean deliveryEnabled,
-      @Value("${images.max-size:8MB}") DataSize maxSize,
+      @Value("${images.max-size:7MB}") DataSize maxSize,
       ImageStoragePort imageStoragePort,
       ImageProcessorPort imageProcessorPort,
       DeliveryStoreRepositoryPort deliveryStoreRepositoryPort,

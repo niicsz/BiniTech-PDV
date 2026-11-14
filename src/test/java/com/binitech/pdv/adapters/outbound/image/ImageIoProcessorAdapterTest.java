@@ -15,6 +15,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,9 +96,8 @@ class ImageIoProcessorAdapterTest {
   void rejectsOtherFormats() throws IOException {
     byte[] gif = encode(image(100, 100, BufferedImage.TYPE_INT_RGB), "gif");
     assertThrows(BusinessException.class, () -> processor.process(gif, ImageKind.PRODUCT));
-    assertThrows(
-        BusinessException.class,
-        () -> processor.process("texto qualquer".getBytes(), ImageKind.PRODUCT));
+    byte[] text = "texto qualquer".getBytes();
+    assertThrows(BusinessException.class, () -> processor.process(text, ImageKind.PRODUCT));
     assertThrows(BusinessException.class, () -> processor.process(null, ImageKind.PRODUCT));
   }
 
@@ -191,5 +193,84 @@ class ImageIoProcessorAdapterTest {
     out[out.length - 2] = (byte) 0xFF;
     out[out.length - 1] = (byte) 0xD9;
     return out;
+  }
+
+  @Test
+  @DisplayName("Saída não carrega EXIF: GPS e modelo do celular não vão para a URL pública")
+  void outputHasNoExif() throws IOException {
+    byte[] photo = encode(image(800, 800, BufferedImage.TYPE_INT_RGB), "jpg");
+    byte[] withExif = new byte[photo.length + 38];
+    byte[] app1 = exifJpeg(6, true);
+    System.arraycopy(app1, 0, withExif, 0, 38);
+    System.arraycopy(photo, 2, withExif, 38, photo.length - 2);
+
+    byte[] out = processor.process(withExif, ImageKind.PRODUCT).content();
+
+    String raw = new String(out, java.nio.charset.StandardCharsets.ISO_8859_1);
+    assertTrue(!raw.contains("Exif"));
+    assertEquals(1, ImageIoProcessorAdapter.Exif.orientation(out));
+  }
+
+  @Test
+  @DisplayName("Imagem grande é lida em resolução reduzida para não estourar a memória")
+  void subsampling() {
+    assertEquals(1, ImageIoProcessorAdapter.subsampling(2000, 1500, 600));
+    assertEquals(5, ImageIoProcessorAdapter.subsampling(6000, 6000, 600));
+    assertEquals(2, ImageIoProcessorAdapter.subsampling(6000, 5000, 1200));
+  }
+
+  @Test
+  @DisplayName("Foto grande ainda sai no tamanho certo depois da leitura reduzida")
+  void largeImage() throws IOException {
+    StoredImage out =
+        processor.process(
+            encode(image(5000, 4000, BufferedImage.TYPE_INT_RGB), "jpg"), ImageKind.PRODUCT);
+    assertEquals(600, decode(out).getWidth());
+  }
+
+  @Test
+  @DisplayName("Com o limite de processamentos simultâneos ocupado, o envio é recusado")
+  void busy() throws Exception {
+    ImageIoProcessorAdapter single = new ImageIoProcessorAdapter(1, 50);
+    byte[] big = encode(image(4000, 4000, BufferedImage.TYPE_INT_RGB), "png");
+    byte[] small = encode(image(100, 100, BufferedImage.TYPE_INT_RGB), "png");
+    CountDownLatch started = new CountDownLatch(1);
+    AtomicReference<Throwable> error = new AtomicReference<>();
+    Thread worker =
+        Thread.ofPlatform()
+            .start(
+                () -> {
+                  started.countDown();
+                  try {
+                    for (int k = 0; k < 20; k++) {
+                      single.process(big, ImageKind.COVER);
+                    }
+                  } catch (RuntimeException e) {
+                    error.set(e);
+                  }
+                });
+    assertTrue(started.await(5, TimeUnit.SECONDS));
+    boolean refused = false;
+    for (int k = 0; k < 200 && !refused && worker.isAlive(); k++) {
+      try {
+        single.process(small, ImageKind.LOGO);
+      } catch (BusinessException e) {
+        refused = e.getMessage().contains("Tente de novo");
+      }
+    }
+    worker.join();
+    assertTrue(refused);
+    assertEquals(null, error.get());
+  }
+
+  @Test
+  @DisplayName("EXIF com deslocamento absurdo não derruba o envio")
+  void exifHugeOffset() {
+    byte[] jpeg = exifJpeg(6, true);
+    jpeg[16] = (byte) 0xFF;
+    jpeg[17] = (byte) 0xFF;
+    jpeg[18] = (byte) 0xFF;
+    jpeg[19] = (byte) 0x7F;
+    assertEquals(1, ImageIoProcessorAdapter.Exif.orientation(jpeg));
   }
 }

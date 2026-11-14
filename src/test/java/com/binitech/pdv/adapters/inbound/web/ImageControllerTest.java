@@ -38,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 class ImageControllerTest {
 
   private static final String CDN = "https://cdn.binitech.example/images";
+  private static final String ORIGIN = "/api/public/images";
   private static final byte[] FILE = {1, 2, 3};
 
   private final ImageUseCasePort images = mock(ImageUseCasePort.class);
@@ -46,7 +47,7 @@ class ImageControllerTest {
 
   @BeforeEach
   void setUp() {
-    ImageUrlResolver resolver = new ImageUrlResolver(CDN + "/");
+    ImageUrlResolver resolver = new ImageUrlResolver(CDN + "/", ORIGIN);
     WebMapper webMapper = new WebMapperImpl();
     ReflectionTestUtils.setField(webMapper, "imageUrlResolver", resolver);
     controller = new ImageController(images, new DeliveryWebMapper(resolver), webMapper, user);
@@ -152,10 +153,17 @@ class ImageControllerTest {
   @Test
   @DisplayName("Sem CDN configurada a URL aponta para a origem do PDV")
   void resolverDefaultsToOrigin() {
-    ImageUrlResolver origin = new ImageUrlResolver("");
+    ImageUrlResolver origin = new ImageUrlResolver("", ORIGIN);
     assertEquals("/api/public/images/t1/a.jpg", origin.urlOf("images/t1/a.jpg"));
     assertEquals(
-        "/api/public/images/t1/a.jpg", new ImageUrlResolver(null).urlOf("images/t1/a.jpg"));
+        "/api/public/images/t1/a.jpg", new ImageUrlResolver(null, ORIGIN).urlOf("images/t1/a.jpg"));
     assertNull(origin.urlOf(null));
+  }
+
+  @Test
+  @DisplayName("Endereço de CDN sem https:// derruba a subida em vez de gerar URL quebrada")
+  void resolverRejectsInvalidBase() {
+    assertThrows(
+        IllegalStateException.class, () -> new ImageUrlResolver("cdn.exemplo.com", ORIGIN));
   }
 }

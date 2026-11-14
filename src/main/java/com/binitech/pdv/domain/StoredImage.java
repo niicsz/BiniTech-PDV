@@ -3,22 +3,16 @@ package com.binitech.pdv.domain;
 import java.util.Arrays;
 import java.util.Objects;
 
-public final class StoredImage {
+public record StoredImage(byte[] content, String contentType) {
 
-  private final byte[] content;
-  private final String contentType;
-
-  public StoredImage(byte[] content, String contentType) {
-    this.content = Objects.requireNonNull(content).clone();
-    this.contentType = Objects.requireNonNull(contentType);
+  public StoredImage {
+    content = Objects.requireNonNull(content).clone();
+    Objects.requireNonNull(contentType);
   }
 
+  @Override
   public byte[] content() {
     return content.clone();
-  }
-
-  public String contentType() {
-    return contentType;
   }
 
   public int size() {
@@ -31,9 +25,9 @@ public final class StoredImage {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof StoredImage other)) return false;
-    return Arrays.equals(content, other.content) && contentType.equals(other.contentType);
+    return o instanceof StoredImage other
+        && Arrays.equals(content, other.content)
+        && contentType.equals(other.contentType);
   }
 
   @Override

@@ -5,7 +5,9 @@ import com.binitech.pdv.domain.StoredImage;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.utils.enums.ImageKind;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -13,8 +15,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
@@ -29,8 +34,25 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
   private static final float JPEG_QUALITY = 0.85f;
   private static final String UNSUPPORTED = "Envie uma imagem JPG, PNG ou WebP.";
   private static final String UNREADABLE = "Não foi possível ler a imagem. Tente outro arquivo.";
+  private static final String BUSY = "Muitas imagens sendo processadas agora. Tente de novo.";
 
-  private record Spec(int width, int height, boolean fill, boolean png) {}
+  private final Semaphore slots;
+  private final long waitMillis;
+
+  private record Spec(int width, int height, boolean fill, boolean png) {
+    int largestSide() {
+      return Math.max(width, height);
+    }
+  }
+
+  public ImageIoProcessorAdapter() {
+    this(2, 10_000);
+  }
+
+  ImageIoProcessorAdapter(int concurrent, long waitMillis) {
+    this.slots = new Semaphore(concurrent, true);
+    this.waitMillis = waitMillis;
+  }
 
   @Override
   public StoredImage process(byte[] content, ImageKind kind) {
@@ -38,9 +60,30 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
     if (format == null) {
       throw new BusinessException(UNSUPPORTED);
     }
+    acquire();
+    try {
+      return render(content, format, spec(kind));
+    } finally {
+      slots.release();
+    }
+  }
+
+  private void acquire() {
+    try {
+      if (!slots.tryAcquire(waitMillis, TimeUnit.MILLISECONDS)) {
+        throw new BusinessException(BUSY);
+      }
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new BusinessException(BUSY);
+    }
+  }
+
+  private static StoredImage render(byte[] content, Format format, Spec spec) {
     BufferedImage image =
-        orient(read(content), format == Format.JPEG ? Exif.orientation(content) : 1);
-    Spec spec = spec(kind);
+        orient(
+            read(content, spec.largestSide()),
+            format == Format.JPEG ? Exif.orientation(content) : 1);
     BufferedImage resized =
         spec.fill()
             ? fill(image, spec.width(), spec.height(), spec.png())
@@ -58,7 +101,11 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
     };
   }
 
-  private static BufferedImage read(byte[] content) {
+  static int subsampling(int width, int height, int target) {
+    return Math.max(1, Math.min(width, height) / (2 * target));
+  }
+
+  private static BufferedImage read(byte[] content, int target) {
     try (ImageInputStream input =
         ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
       Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
@@ -77,7 +124,10 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
           throw new BusinessException(
               "A imagem é pequena demais: precisa de pelo menos " + MIN_SIDE + " px de lado.");
         }
-        BufferedImage image = reader.read(0);
+        ImageReadParam param = reader.getDefaultReadParam();
+        int step = subsampling(width, height, target);
+        param.setSourceSubsampling(step, step, 0, 0);
+        BufferedImage image = reader.read(0, param);
         if (image == null) {
           throw new BusinessException(UNREADABLE);
         }
@@ -126,7 +176,7 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
             1.0, Math.min((double) maxW / image.getWidth(), (double) maxH / image.getHeight()));
     int w = Math.max(1, (int) Math.round(image.getWidth() * scale));
     int h = Math.max(1, (int) Math.round(image.getHeight() * scale));
-    return draw(downscale(image, w, h), 0, 0, w, h, w, h, alpha);
+    return draw(downscale(image, w, h), new Rectangle(0, 0, w, h), new Dimension(w, h), alpha);
   }
 
   private static BufferedImage fill(BufferedImage image, int w, int h, boolean alpha) {
@@ -136,7 +186,7 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
     BufferedImage scaled = downscale(image, scaledW, scaledH);
     int x = (scaledW - w) / 2;
     int y = (scaledH - h) / 2;
-    return draw(scaled, -x, -y, scaledW, scaledH, w, h, alpha);
+    return draw(scaled, new Rectangle(-x, -y, scaledW, scaledH), new Dimension(w, h), alpha);
   }
 
   private static BufferedImage downscale(BufferedImage image, int targetW, int targetH) {
@@ -146,13 +196,15 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
     while (w / 2 >= targetW && h / 2 >= targetH) {
       w /= 2;
       h /= 2;
-      current = draw(current, 0, 0, w, h, w, h, true);
+      current = draw(current, new Rectangle(0, 0, w, h), new Dimension(w, h), true);
     }
     return current;
   }
 
   private static BufferedImage draw(
-      BufferedImage source, int x, int y, int w, int h, int canvasW, int canvasH, boolean alpha) {
+      BufferedImage source, Rectangle target, Dimension canvas, boolean alpha) {
+    int canvasW = canvas.width;
+    int canvasH = canvas.height;
     BufferedImage out =
         new BufferedImage(
             canvasW, canvasH, alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
@@ -166,7 +218,7 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
           RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
       g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-      g.drawImage(source, x, y, w, h, null);
+      g.drawImage(source, target.x, target.y, target.width, target.height, null);
     } finally {
       g.dispose();
     }
@@ -236,23 +288,23 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
     static int orientation(byte[] b) {
       int i = 2;
       while (i + 4 <= b.length) {
-        if ((b[i] & 0xFF) != 0xFF) {
+        int length = segmentLength(b, i);
+        if (length < 0) {
           return 1;
         }
-        int marker = b[i + 1] & 0xFF;
-        if (marker == 0xDA || marker == 0xD9) {
-          return 1;
-        }
-        int length = ((b[i + 2] & 0xFF) << 8) | (b[i + 3] & 0xFF);
-        if (length < 2) {
-          return 1;
-        }
-        if (marker == 0xE1 && isExif(b, i + 4)) {
+        if ((b[i + 1] & 0xFF) == 0xE1 && isExif(b, i + 4)) {
           return fromTiff(b, i + 10, Math.min(b.length, i + 2 + length));
         }
         i += 2 + length;
       }
       return 1;
+    }
+
+    private static int segmentLength(byte[] b, int at) {
+      int marker = b[at + 1] & 0xFF;
+      boolean invalid = (b[at] & 0xFF) != 0xFF || marker == 0xDA || marker == 0xD9;
+      int length = ((b[at + 2] & 0xFF) << 8) | (b[at + 3] & 0xFF);
+      return invalid || length < 2 ? -1 : length;
     }
 
     private static boolean isExif(byte[] b, int at) {
@@ -275,10 +327,10 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
         return 1;
       }
       long ifd = read32(b, start + 4, little);
-      int dir = start + (int) ifd;
-      if (ifd < 8 || dir + 2 > end) {
+      if (ifd < 8 || ifd > end - start - 2L) {
         return 1;
       }
+      int dir = start + (int) ifd;
       int entries = read16(b, dir, little);
       for (int e = 0; e < entries; e++) {
         int entry = dir + 2 + e * 12;

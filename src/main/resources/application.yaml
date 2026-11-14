@@ -6,7 +6,7 @@ spring:
       enabled: true
   servlet:
     multipart:
-      max-file-size: ${IMAGES_MAX_SIZE:8MB}
+      max-file-size: 8MB
       max-request-size: 8MB
   mongodb:
     uri: ${MONGODB_URI}
@@ -106,7 +106,7 @@ pix:
 
 images:
   storage: ${IMAGES_STORAGE:none}
-  max-size: ${IMAGES_MAX_SIZE:8MB}
+  max-size: ${IMAGES_MAX_SIZE:7MB}
   public-base-url: ${IMAGES_PUBLIC_BASE_URL:}
   filesystem:
     directory: ${IMAGES_FILESYSTEM_DIRECTORY:}

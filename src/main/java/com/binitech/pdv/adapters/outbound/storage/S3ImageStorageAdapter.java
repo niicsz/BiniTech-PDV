@@ -52,7 +52,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
           new StoredImage(
               bytes.asByteArray(),
               type == null || !type.startsWith("image/") ? ImageKey.contentTypeOf(key) : type));
-    } catch (NoSuchKeyException exception) {
+    } catch (NoSuchKeyException _) {
       return Optional.empty();
     }
   }

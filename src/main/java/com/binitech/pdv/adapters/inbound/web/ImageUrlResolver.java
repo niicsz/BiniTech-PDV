@@ -8,14 +8,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class ImageUrlResolver {
 
-  static final String ORIGIN_PATH = "/api/public/images";
-
   private final String baseUrl;
 
-  public ImageUrlResolver(@Value("${images.public-base-url:}") String baseUrl) {
-    String base = baseUrl == null || baseUrl.isBlank() ? ORIGIN_PATH : baseUrl.strip();
+  public ImageUrlResolver(
+      @Value("${images.public-base-url:}") String baseUrl,
+      @Value("${images.origin-path:/api/public/images}") String originPath) {
+    String base = baseUrl == null || baseUrl.isBlank() ? originPath : baseUrl.strip();
     while (base.endsWith("/")) {
       base = base.substring(0, base.length() - 1);
+    }
+    if (!base.startsWith("/") && !base.startsWith("https://") && !base.startsWith("http://")) {
+      throw new IllegalStateException(
+          "IMAGES_PUBLIC_BASE_URL precisa começar com https:// ou http://");
     }
     this.baseUrl = base;
   }

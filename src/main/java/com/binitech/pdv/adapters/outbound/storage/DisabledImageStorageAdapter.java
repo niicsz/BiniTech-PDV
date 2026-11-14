@@ -2,6 +2,7 @@ package com.binitech.pdv.adapters.outbound.storage;
 
 import com.binitech.pdv.application.ports.outbound.ImageStoragePort;
 import com.binitech.pdv.domain.StoredImage;
+import java.util.Objects;
 import java.util.Optional;
 
 public class DisabledImageStorageAdapter implements ImageStoragePort {
@@ -23,6 +24,6 @@ public class DisabledImageStorageAdapter implements ImageStoragePort {
 
   @Override
   public void delete(String key) {
-    return;
+    Objects.requireNonNull(key);
   }
 }
