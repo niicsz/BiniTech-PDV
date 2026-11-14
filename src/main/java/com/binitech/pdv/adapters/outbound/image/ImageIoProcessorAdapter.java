@@ -3,6 +3,7 @@ package com.binitech.pdv.adapters.outbound.image;
 import com.binitech.pdv.application.ports.outbound.ImageProcessorPort;
 import com.binitech.pdv.domain.StoredImage;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.domain.exception.TooManyRequestsException;
 import com.binitech.pdv.utils.enums.ImageKind;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -71,11 +72,11 @@ public class ImageIoProcessorAdapter implements ImageProcessorPort {
   private void acquire() {
     try {
       if (!slots.tryAcquire(waitMillis, TimeUnit.MILLISECONDS)) {
-        throw new BusinessException(BUSY);
+        throw new TooManyRequestsException(BUSY);
       }
     } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
-      throw new BusinessException(BUSY);
+      throw new TooManyRequestsException(BUSY);
     }
   }
 

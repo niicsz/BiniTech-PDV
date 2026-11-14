@@ -30,28 +30,33 @@ public class ImageController implements ImagesApi {
   private final DeliveryWebMapper deliveryMapper;
   private final WebMapper webMapper;
   private final AuthenticatedUserProvider userProvider;
+  private final UploadGate gate;
 
   public ImageController(
       ImageUseCasePort images,
       DeliveryWebMapper deliveryMapper,
       WebMapper webMapper,
-      AuthenticatedUserProvider userProvider) {
+      AuthenticatedUserProvider userProvider,
+      UploadGate gate) {
     this.images = images;
     this.deliveryMapper = deliveryMapper;
     this.webMapper = webMapper;
     this.userProvider = userProvider;
+    this.gate = gate;
   }
 
   @Override
   public ResponseEntity<DeliverySettingsDTO> uploadDeliveryImage(
       DeliveryImageKindDTO kind, MultipartFile file) {
     return ResponseEntity.ok(
-        deliveryMapper.toDto(
-            images.uploadStoreImage(
-                userProvider.getTenantId(),
-                userProvider.getUserRole(),
-                ImageKind.valueOf(kind.getValue()),
-                bytes(file))));
+        gate.run(
+            () ->
+                deliveryMapper.toDto(
+                    images.uploadStoreImage(
+                        userProvider.getTenantId(),
+                        userProvider.getUserRole(),
+                        ImageKind.valueOf(kind.getValue()),
+                        bytes(file)))));
   }
 
   @Override
@@ -67,13 +72,15 @@ public class ImageController implements ImagesApi {
   @Override
   public ResponseEntity<ProductDTO> uploadProductImage(String id, MultipartFile file) {
     return ResponseEntity.ok(
-        webMapper.toDto(
-            images.uploadProductImage(
-                id,
-                userProvider.getUserId(),
-                userProvider.getTenantId(),
-                userProvider.getUserRole(),
-                bytes(file))));
+        gate.run(
+            () ->
+                webMapper.toDto(
+                    images.uploadProductImage(
+                        id,
+                        userProvider.getUserId(),
+                        userProvider.getTenantId(),
+                        userProvider.getUserRole(),
+                        bytes(file)))));
   }
 
   @Override

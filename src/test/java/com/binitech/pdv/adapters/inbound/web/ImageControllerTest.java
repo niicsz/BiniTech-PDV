@@ -50,7 +50,13 @@ class ImageControllerTest {
     ImageUrlResolver resolver = new ImageUrlResolver(CDN + "/", ORIGIN);
     WebMapper webMapper = new WebMapperImpl();
     ReflectionTestUtils.setField(webMapper, "imageUrlResolver", resolver);
-    controller = new ImageController(images, new DeliveryWebMapper(resolver), webMapper, user);
+    controller =
+        new ImageController(
+            images,
+            new DeliveryWebMapper(resolver),
+            webMapper,
+            user,
+            new UploadGate(4, java.time.Duration.ofMillis(10)));
     when(user.getTenantId()).thenReturn("t1");
     when(user.getUserId()).thenReturn("u1");
     when(user.getUserRole()).thenReturn(Role.TENANT_ADMIN);

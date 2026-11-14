@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.binitech.pdv.domain.StoredImage;
 import com.binitech.pdv.domain.exception.BusinessException;
+import com.binitech.pdv.domain.exception.TooManyRequestsException;
 import com.binitech.pdv.utils.enums.ImageKind;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -254,7 +255,7 @@ class ImageIoProcessorAdapterTest {
     for (int k = 0; k < 200 && !refused && worker.isAlive(); k++) {
       try {
         single.process(small, ImageKind.LOGO);
-      } catch (BusinessException e) {
+      } catch (TooManyRequestsException e) {
         refused = e.getMessage().contains("Tente de novo");
       }
     }
