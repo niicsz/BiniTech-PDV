@@ -41,6 +41,12 @@ public class DeliveryWebMapper {
 
   private static final int MAX_QUANTITY = 99;
 
+  private final ImageUrlResolver images;
+
+  public DeliveryWebMapper(ImageUrlResolver images) {
+    this.images = images;
+  }
+
   public DeliverySettingsDTO toDto(StoreView view) {
     DeliveryStore store = view.store();
     return new DeliverySettingsDTO()
@@ -57,7 +63,9 @@ public class DeliveryWebMapper {
         .pickupAvailable(store.isPickupAvailable())
         .pickupAddress(store.getPickupAddress())
         .acceptedPayments(payments(store.getAcceptedPayments()))
-        .pixKey(store.getPixKey());
+        .pixKey(store.getPixKey())
+        .logoUrl(images.urlOf(store.getLogoKey()))
+        .coverUrl(images.urlOf(store.getCoverKey()));
   }
 
   public DeliveryStore toDomain(UpdateDeliverySettingsDTO dto) {
@@ -113,6 +121,8 @@ public class DeliveryWebMapper {
     return new PublicDeliveryStoreDTO()
         .slug(view.tenant().getSlug())
         .name(view.tenant().getName())
+        .logoUrl(images.urlOf(store.getLogoKey()))
+        .coverUrl(images.urlOf(store.getCoverKey()))
         .open(store.isOpen())
         .message(store.getMessage())
         .deliveryFee(store.getDeliveryFee())
@@ -123,7 +133,7 @@ public class DeliveryWebMapper {
         .pickupAddress(store.getPickupAddress())
         .acceptedPayments(payments(store.getAcceptedPayments()))
         .pixIntegrated(view.pixIntegrated())
-        .products(view.products().stream().map(DeliveryWebMapper::toPublicProduct).toList());
+        .products(view.products().stream().map(this::toPublicProduct).toList());
   }
 
   public PlacedDeliveryOrderDTO toDto(PlacedOrder placed) {
@@ -202,7 +212,7 @@ public class DeliveryWebMapper {
     return dto == null ? null : DeliveryOrderStatus.valueOf(dto.getValue());
   }
 
-  private static PublicDeliveryProductDTO toPublicProduct(Product product) {
+  private PublicDeliveryProductDTO toPublicProduct(Product product) {
     int stock = Math.max(0, product.getStockQuantity());
     return new PublicDeliveryProductDTO()
         .id(product.getId())
@@ -213,7 +223,8 @@ public class DeliveryWebMapper {
                 : product.getCategory().strip())
         .price(product.getPrice())
         .available(stock > 0)
-        .maxQuantity(Math.min(stock, MAX_QUANTITY));
+        .maxQuantity(Math.min(stock, MAX_QUANTITY))
+        .imageUrl(images.urlOf(product.getImageKey()));
   }
 
   private static DeliveryAddressDTO toDto(DeliveryAddress address) {

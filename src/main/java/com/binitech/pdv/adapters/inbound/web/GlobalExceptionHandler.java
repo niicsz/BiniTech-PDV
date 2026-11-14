@@ -19,6 +19,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -79,6 +80,16 @@ public class GlobalExceptionHandler {
     error.setMessage(ex.getMessage());
     error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<ErrorDTO> handleUploadSize(MaxUploadSizeExceededException ex) {
+    log.warn("Arquivo enviado passou do limite: {}", ex.getMessage());
+    ErrorDTO error = new ErrorDTO();
+    error.setCode("PAYLOAD_TOO_LARGE");
+    error.setMessage("O arquivo passa do tamanho máximo permitido. Envie um arquivo menor.");
+    error.setTimestamp(OffsetDateTime.now(ZoneOffset.UTC));
+    return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(error);
   }
 
   @ExceptionHandler(SessionRejectedException.class)

@@ -8,9 +8,8 @@ import java.util.regex.Pattern;
 public final class ImageKey {
 
   private static final String PREFIX = "images/";
-  private static final String PUBLIC_PATH = "/api/public/images/";
   private static final Pattern TENANT = Pattern.compile("[A-Za-z0-9_-]{1,64}");
-  private static final Pattern FILE = Pattern.compile("[0-9a-f]{32}\.(jpg|png)");
+  private static final Pattern FILE = Pattern.compile("[0-9a-f]{32}\\.(jpg|png)");
 
   private ImageKey() {}
 
@@ -36,11 +35,11 @@ public final class ImageKey {
     return Optional.of(PREFIX + tenantId + "/" + file);
   }
 
-  public static String publicPath(String key) {
+  public static String relativePath(String key) {
     if (key == null || !key.startsWith(PREFIX)) {
       return null;
     }
-    return PUBLIC_PATH + key.substring(PREFIX.length());
+    return key.substring(PREFIX.length());
   }
 
   public static String contentTypeOf(String key) {
