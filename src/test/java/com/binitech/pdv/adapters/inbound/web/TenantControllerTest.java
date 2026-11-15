@@ -113,7 +113,8 @@ class TenantControllerTest {
     mockMvc
         .perform(
             post("/api/public/tenants")
-                .header("X-Forwarded-For", "200.10.20.30, 10.0.0.1")
+                .header("X-Real-IP", "200.10.20.30")
+                .header("X-Forwarded-For", "6.6.6.6, 10.0.0.1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(signupBody("\"acceptedTerms\":true,")))
         .andExpect(status().isCreated());

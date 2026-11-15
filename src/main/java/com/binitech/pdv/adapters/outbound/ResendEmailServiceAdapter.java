@@ -1,6 +1,7 @@
 package com.binitech.pdv.adapters.outbound;
 
 import com.binitech.pdv.domain.EmailEvent;
+import com.binitech.pdv.utils.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,7 +62,10 @@ public class ResendEmailServiceAdapter {
         .body(new ResendEmailRequest(fromAddress, event.to(), content.subject(), content.html()))
         .retrieve()
         .toBodilessEntity();
-    log.info("E-mail {} enviado pelo Resend para: {}", event.type(), event.to());
+    log.info(
+        "E-mail {} enviado pelo Resend para: {}",
+        event.type(),
+        LogSanitizer.maskUsername(event.to()));
   }
 
   private EmailContent emailContentFor(EmailEvent event) {
@@ -85,7 +89,7 @@ public class ResendEmailServiceAdapter {
             <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Redefinir senha</a></td></tr></table>
             <p style="font-size:13px;color:#94a3b8;line-height:1.6;">Se você não solicitou esta alteração, ignore este e-mail — sua senha continua a mesma.</p>
             """
-            .formatted(event.username(), event.actionLink());
+            .formatted(escape(event.username()), escape(event.actionLink()));
     return emailLayout(
         "<tr><td style=\"background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#ffffff;font-size:22px;\">Redefinição de senha</h1></td></tr>",
         content);
@@ -100,7 +104,11 @@ public class ResendEmailServiceAdapter {
             <table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;margin:24px 0;"><tr><td style="padding:16px 20px;color:#475569;font-size:14px;"><strong>Usuário:</strong> %s<br /><strong>Senha temporária:</strong> %s</td></tr></table>
             <table cellpadding="0" cellspacing="0" border="0" align="center"><tr><td style="border-radius:10px;background:#7c3aed;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Acessar o sistema</a></td></tr></table>
             """
-            .formatted(event.tenantName(), event.username(), event.tempPassword(), loginUrl);
+            .formatted(
+                escape(event.tenantName()),
+                escape(event.username()),
+                escape(event.tempPassword()),
+                escape(loginUrl));
     return emailLayout(
         "<tr><td style=\"background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#ffffff;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#e0e7ff;font-size:14px;\">Sua conta foi aprovada</p></td></tr>",
         content);
@@ -116,7 +124,7 @@ public class ResendEmailServiceAdapter {
             <table cellpadding="0" cellspacing="0" border="0" align="center"><tr><td style="border-radius:10px;background:#d4391a;"><a href="%s" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">Abrir o caixa</a></td></tr></table>
             <p style="font-size:13px;color:#94a3b8;line-height:1.6;">Esqueceu a senha? Use a opção Esqueci minha senha na tela de login.</p>
             """
-            .formatted(event.tenantName(), event.username(), loginUrl);
+            .formatted(escape(event.tenantName()), escape(event.username()), escape(loginUrl));
     return emailLayout(
         "<tr><td style=\"background:#241a12;padding:32px 40px;text-align:center;\"><h1 style=\"margin:0;color:#f3ede1;font-size:24px;\">BiniTech PDV</h1><p style=\"margin:8px 0 0;color:#f3ede1;font-size:14px;\">Sua conta está pronta</p></td></tr>",
         content);
@@ -151,7 +159,8 @@ public class ResendEmailServiceAdapter {
         .replace("&", "&amp;")
         .replace("<", "&lt;")
         .replace(">", "&gt;")
-        .replace("\"", "&quot;");
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;");
   }
 
   private String emailLayout(String header, String content) {

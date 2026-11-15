@@ -159,16 +159,6 @@ public class ProductRepositoryAdapter implements ProductRepositoryPort {
   }
 
   @Override
-  @Cacheable(value = "products_all", key = "#page + ':' + #size")
-  public List<Product> findAll(int page, int size) {
-    return repository
-        .findAll(PageRequest.of(page, size, Sort.by(FIELD_DESCRIPTION).ascending()))
-        .stream()
-        .map(mapper::toDomain)
-        .collect(Collectors.toCollection(ArrayList::new));
-  }
-
-  @Override
   @Caching(
       evict = {
         @CacheEvict(value = "product_by_id", key = "#id"),

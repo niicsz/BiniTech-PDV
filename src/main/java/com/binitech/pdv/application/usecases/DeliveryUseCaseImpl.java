@@ -50,6 +50,7 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
       EnumSet.of(Role.SUPER_ADMIN, Role.ADMIN, Role.TENANT_ADMIN);
   private static final int ORDER_LIST_LIMIT = 200;
   private static final int MAX_QUANTITY = 99;
+  private static final int MAX_LINES = 50;
   private static final String UNAVAILABLE = "Delivery indisponível.";
 
   private final boolean featureEnabled;
@@ -337,6 +338,9 @@ public class DeliveryUseCaseImpl implements DeliveryUseCasePort {
   private List<DeliveryOrderItem> items(List<OrderLine> lines, String tenantId) {
     if (lines == null || lines.isEmpty()) {
       throw new BusinessException("Adicione ao menos um produto ao pedido.");
+    }
+    if (lines.size() > MAX_LINES) {
+      throw new BusinessException("O pedido pode ter no máximo " + MAX_LINES + " itens.");
     }
     Map<String, Integer> totals = new LinkedHashMap<>();
     for (OrderLine line : lines) {

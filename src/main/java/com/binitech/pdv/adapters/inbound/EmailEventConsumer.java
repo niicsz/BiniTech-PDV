@@ -5,6 +5,7 @@ import com.binitech.pdv.config.RabbitMQConfig;
 import com.binitech.pdv.domain.EmailEvent;
 import com.binitech.pdv.domain.EmailEvent.EmailType;
 import com.binitech.pdv.domain.exception.EmailProcessingException;
+import com.binitech.pdv.utils.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -29,23 +30,24 @@ public class EmailEventConsumer {
     if (resendAdapter == null) {
       if (event.type() == EmailType.PASSWORD_RESET) {
         log.warn(
-            "[EMAIL-NOOP] RESEND_API_KEY não configurada. Link de redefinição de senha"
-                + " para '{}' (enviar para {}): {}",
-            event.username(),
-            event.to(),
-            event.actionLink());
+            "[EMAIL-NOOP] RESEND_API_KEY não configurada. Link de redefinição de senha para {}"
+                + " não foi enviado.",
+            LogSanitizer.maskUsername(event.to()));
       } else {
         log.warn(
             "[EMAIL-NOOP] Evento recebido mas RESEND_API_KEY não configurada. tenant={} to={}",
             event.tenantName(),
-            event.to());
+            LogSanitizer.maskUsername(event.to()));
       }
       return;
     }
     try {
       resendAdapter.send(event);
     } catch (Exception e) {
-      log.error("Falha ao processar e-mail para {}: {}", event.to(), e.getMessage());
+      log.error(
+          "Falha ao processar e-mail para {}: {}",
+          LogSanitizer.maskUsername(event.to()),
+          e.getMessage());
       throw new EmailProcessingException("Falha ao processar envio de e-mail.", e);
     }
   }

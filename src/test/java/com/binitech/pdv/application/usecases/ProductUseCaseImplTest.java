@@ -2,7 +2,6 @@ package com.binitech.pdv.application.usecases;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
@@ -321,7 +320,6 @@ class ProductUseCaseImplTest {
 
       assertEquals(2, result.size());
       verify(productRepository).findAllByTenantId("tenant1", 0, 100);
-      verify(productRepository, never()).findAll(anyInt(), anyInt());
     }
   }
 }
