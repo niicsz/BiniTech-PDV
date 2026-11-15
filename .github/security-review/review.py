@@ -68,9 +68,16 @@ def reviewable(path):
 
 
 def read(path):
+    if os.path.islink(path) or not os.path.isfile(path):
+        return None
+    root = os.path.realpath(os.getcwd())
+    if os.path.commonpath([root, os.path.realpath(path)]) != root:
+        return None
     try:
+        if os.path.getsize(path) > MAX_FILE_CHARS * 4:
+            return None
         with open(path, encoding="utf-8") as f:
-            text = f.read()
+            text = f.read(MAX_FILE_CHARS + 1)
     except (UnicodeDecodeError, OSError):
         return None
     if "\x00" in text or len(text) > MAX_FILE_CHARS:
@@ -78,8 +85,13 @@ def read(path):
     return text
 
 
+def fenced(text):
+    return (text.replace("</file>", "</ file>").replace("<file ", "< file ")
+            .replace("</diff>", "</ diff>").replace("<diff>", "< diff>"))
+
+
 def render_files(files):
-    return "\n\n".join(f'<file path="{p}">\n{t}\n</file>' for p, t in files)
+    return "\n\n".join(f'<file path="{fenced(p)}">\n{fenced(t)}\n</file>' for p, t in files)
 
 
 def parse_answer(answer):
@@ -112,9 +124,10 @@ def parse_answer(answer):
 
 def ask(repo, task, payload):
     question = f"{INSTRUCTIONS}\n\nRepositório: {repo}\n{task}"
+    env = {k: v for k, v in os.environ.items() if k not in ("GITHUB_TOKEN", "GH_TOKEN")}
     for attempt in (1, 2):
         try:
-            run = subprocess.run([NOTHOLY, question, "--json"], input=payload, capture_output=True,
+            run = subprocess.run([NOTHOLY, question, "--json"], input=payload, capture_output=True, env=env,
                                  text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             print(f"::warning::NotHoly passou de {TIMEOUT_SECONDS} s (tentativa {attempt})")
@@ -176,10 +189,15 @@ def diff_review(repo, base, head):
     if len(diff) > MAX_DIFF_CHARS:
         diff = diff[:MAX_DIFF_CHARS]
         note = " O diff foi cortado por tamanho; diga no resumo que parte dele não foi revisada."
-    files = [(p, t) for p in changed if (t := read(p)) is not None]
+    files, total = [], len(diff)
+    for p in changed:
+        t = read(p)
+        if t is not None and total + len(t) <= MAX_DIFF_CHARS:
+            files.append((p, t))
+            total += len(t)
     task = ("Revise só as mudanças deste pull request. Reporte problemas que as linhas alteradas "
             "introduzem ou expõem; use os arquivos completos apenas como contexto." + note)
-    payload = f"<diff>\n{diff}\n</diff>\n\n" + render_files(files)
+    payload = f"<diff>\n{fenced(diff)}\n</diff>\n\n" + render_files(files)
     result, failed = ask(repo, task, payload)
     return result, f"{len(changed)} arquivo(s) alterado(s)", failed
 
@@ -191,7 +209,8 @@ def merge(results):
 
 
 def safe(text):
-    return str(text).replace("@", "@​").replace(MARKER, "")
+    return (str(text).replace(MARKER, "").replace("<", "&lt;").replace(">", "&gt;")
+            .replace("@", "@​"))
 
 
 def report(result, scope, incomplete):
@@ -240,7 +259,7 @@ def comment(markdown, repo, number, token):
     while existing is None:
         items = github("GET", f"{url}?per_page=100&page={page}", token) or []
         existing = next((c for c in items if MARKER in (c.get("body") or "")
-                         and c.get("user", {}).get("type") == "Bot"), None)
+                         and c.get("user", {}).get("login") == "github-actions[bot]"), None)
         if len(items) < 100:
             break
         page += 1
@@ -284,6 +303,9 @@ def main():
         except urllib.error.HTTPError as error:
             print(f"::warning::Não consegui comentar no PR: {error.code}")
 
+    if incomplete:
+        print("::error::A revisão não terminou: a NotHoly falhou ou respondeu fora do formato.")
+        return 1
     if args.fail_on != "none":
         limit = SEVERITIES.index(args.fail_on)
         blocking = [f for f in findings if SEVERITIES.index(f["severity"]) <= limit and f["confidence"] == "high"]
