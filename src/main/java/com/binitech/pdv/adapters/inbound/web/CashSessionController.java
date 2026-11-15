@@ -18,6 +18,8 @@ import com.binitech.pdv.domain.CashMovement;
 import com.binitech.pdv.domain.CashSession;
 import com.binitech.pdv.domain.CashSessionSummary;
 import com.binitech.pdv.utils.enums.CashMovementType;
+import com.binitech.pdv.utils.enums.CashSessionStatus;
+import com.binitech.pdv.utils.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -43,9 +45,7 @@ public class CashSessionController implements CashSessionsApi {
   public ResponseEntity<List<CashSessionDTO>> listCashSessions(
       LocalDate startDate, LocalDate endDate) {
     return ResponseEntity.ok(
-        cashSessions.list(operator(), startDate, endDate).stream()
-            .map(CashSessionController::toDto)
-            .toList());
+        cashSessions.list(operator(), startDate, endDate).stream().map(this::toDto).toList());
   }
 
   @Override
@@ -91,7 +91,28 @@ public class CashSessionController implements CashSessionsApi {
         userProvider.getUserRole());
   }
 
-  private static CashSessionDTO toDto(CashSessionView view) {
+  private CashSessionDTO toDto(CashSessionView view) {
+    CashSessionDTO dto = fullDto(view);
+    if (blindCount() && view.session().getStatus() == CashSessionStatus.OPEN) {
+      dto.openingAmount(null).movements(List.of()).difference(null);
+      if (dto.getSummary() != null) {
+        dto.getSummary()
+            .cashSales(null)
+            .cashRefunds(null)
+            .supplies(null)
+            .withdrawals(null)
+            .expectedCash(null);
+      }
+    }
+    return dto;
+  }
+
+  private boolean blindCount() {
+    Role role = userProvider.getUserRole();
+    return role != Role.ADMIN && role != Role.TENANT_ADMIN;
+  }
+
+  private static CashSessionDTO fullDto(CashSessionView view) {
     CashSession session = view.session();
     return new CashSessionDTO()
         .id(session.getId())
