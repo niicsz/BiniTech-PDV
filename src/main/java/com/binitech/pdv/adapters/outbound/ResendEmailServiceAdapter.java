@@ -62,10 +62,8 @@ public class ResendEmailServiceAdapter {
         .body(new ResendEmailRequest(fromAddress, event.to(), content.subject(), content.html()))
         .retrieve()
         .toBodilessEntity();
-    log.info(
-        "E-mail {} enviado pelo Resend para: {}",
-        event.type(),
-        LogSanitizer.maskUsername(event.to()));
+    String recipient = LogSanitizer.maskUsername(event.to());
+    log.info("E-mail {} enviado pelo Resend para: {}", event.type(), recipient);
   }
 
   private EmailContent emailContentFor(EmailEvent event) {

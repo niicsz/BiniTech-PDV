@@ -28,16 +28,17 @@ public class EmailEventConsumer {
   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
   public void consume(EmailEvent event) {
     if (resendAdapter == null) {
+      String recipient = LogSanitizer.maskUsername(event.to());
       if (event.type() == EmailType.PASSWORD_RESET) {
         log.warn(
             "[EMAIL-NOOP] RESEND_API_KEY não configurada. Link de redefinição de senha para {}"
                 + " não foi enviado.",
-            LogSanitizer.maskUsername(event.to()));
+            recipient);
       } else {
         log.warn(
             "[EMAIL-NOOP] Evento recebido mas RESEND_API_KEY não configurada. tenant={} to={}",
             event.tenantName(),
-            LogSanitizer.maskUsername(event.to()));
+            recipient);
       }
       return;
     }
