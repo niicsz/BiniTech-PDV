@@ -2,9 +2,11 @@ package com.binitech.pdv.application.usecases;
 
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
 import com.binitech.pdv.application.ports.outbound.CashSessionRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.PreSaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleRepositoryPort;
 import com.binitech.pdv.domain.CashSession;
+import com.binitech.pdv.domain.PreSale;
 import com.binitech.pdv.domain.Product;
 import com.binitech.pdv.domain.Sale;
 import com.binitech.pdv.domain.SaleItem;
@@ -13,6 +15,7 @@ import com.binitech.pdv.domain.SaleReturnRequest;
 import com.binitech.pdv.domain.exception.BusinessException;
 import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.utils.LogSanitizer;
+import com.binitech.pdv.utils.enums.PreSaleStatus;
 import com.binitech.pdv.utils.enums.RefundMethod;
 import com.binitech.pdv.utils.enums.Role;
 import com.binitech.pdv.utils.enums.SaleStatus;
@@ -43,6 +46,7 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
   private final ZoneId businessZone;
   private final SaleFiscalPublisher fiscalPublisher;
   private final CashSessionRepositoryPort cashSessions;
+  private final PreSaleRepositoryPort preSales;
 
   public SaleUseCaseImpl(
       SaleRepositoryPort saleRepository,
@@ -65,11 +69,22 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
       ZoneId businessZone,
       SaleFiscalPublisher fiscalPublisher,
       CashSessionRepositoryPort cashSessions) {
+    this(saleRepository, productRepository, businessZone, fiscalPublisher, cashSessions, null);
+  }
+
+  public SaleUseCaseImpl(
+      SaleRepositoryPort saleRepository,
+      ProductRepositoryPort productRepository,
+      ZoneId businessZone,
+      SaleFiscalPublisher fiscalPublisher,
+      CashSessionRepositoryPort cashSessions,
+      PreSaleRepositoryPort preSales) {
     this.saleRepository = saleRepository;
     this.productRepository = productRepository;
     this.businessZone = businessZone;
     this.fiscalPublisher = fiscalPublisher;
     this.cashSessions = cashSessions;
+    this.preSales = preSales;
   }
 
   @Override
@@ -95,13 +110,24 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     sale.setFiscalPending(fiscalPublisher != null);
     sale.setCashSessionId(openCashSessionId(tenantId, userId));
 
-    Map<String, Integer> reserved = reserveStock(sale, productsById, tenantId);
+    String preSaleId = claimPreSale(sale, tenantId);
+    Map<String, Integer> reserved;
+    try {
+      reserved = reserveStock(sale, productsById, tenantId);
+    } catch (RuntimeException e) {
+      releasePreSale(preSaleId, tenantId);
+      throw e;
+    }
     Sale saved;
     try {
       saved = saleRepository.save(sale);
     } catch (RuntimeException e) {
       releaseStock(reserved, tenantId);
+      releasePreSale(preSaleId, tenantId);
       throw e;
+    }
+    if (preSaleId != null) {
+      preSales.attachSale(preSaleId, tenantId, saved.getId());
     }
     publishToFiscal(saved, productsById);
     if (log.isDebugEnabled()) {
@@ -119,7 +145,60 @@ public class SaleUseCaseImpl implements SaleUseCasePort {
     validateAndEnrichItems(sale, productsById, tenantId);
     sale.recalculate();
     sale.validate();
+    if (hasPreSale(sale)) {
+      openPreSale(sale.getPreSaleId(), tenantId);
+    }
     return sale;
+  }
+
+  private static boolean hasPreSale(Sale sale) {
+    return sale.getPreSaleId() != null && !sale.getPreSaleId().isBlank();
+  }
+
+  private PreSale openPreSale(String preSaleId, String tenantId) {
+    if (preSales == null) {
+      throw new BusinessException("Comandas indisponíveis.");
+    }
+    PreSale preSale =
+        preSales
+            .findByIdAndTenantId(preSaleId, tenantId)
+            .orElseThrow(() -> new BusinessException("Comanda não encontrada."));
+    preSale.ensureOpen();
+    return preSale;
+  }
+
+  private String claimPreSale(Sale sale, String tenantId) {
+    if (!hasPreSale(sale)) {
+      sale.setPreSaleId(null);
+      return null;
+    }
+    String preSaleId = sale.getPreSaleId();
+    try {
+      PreSale preSale = openPreSale(preSaleId, tenantId);
+      if (!preSales.close(preSaleId, tenantId, PreSaleStatus.PAID, Instant.now())) {
+        throw new BusinessException(
+            "A comanda #" + preSale.getNumber() + " acabou de mudar. Busque de novo.");
+      }
+      return preSaleId;
+    } catch (BusinessException e) {
+      if (!sale.isPaymentConfirmed()) {
+        throw e;
+      }
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Pagamento já recebido, venda registrada sem baixar a comanda: comanda={} motivo={}",
+            LogSanitizer.maskId(preSaleId),
+            e.getMessage());
+      }
+      sale.setPreSaleId(null);
+      return null;
+    }
+  }
+
+  private void releasePreSale(String preSaleId, String tenantId) {
+    if (preSaleId != null) {
+      preSales.reopen(preSaleId, tenantId);
+    }
   }
 
   private void publishToFiscal(Sale saved, Map<String, Product> productsById) {

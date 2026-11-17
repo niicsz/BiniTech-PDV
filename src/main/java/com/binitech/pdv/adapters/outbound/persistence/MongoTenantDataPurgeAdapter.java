@@ -7,6 +7,8 @@ import com.binitech.pdv.adapters.outbound.persistence.document.DeliveryOrderDocu
 import com.binitech.pdv.adapters.outbound.persistence.document.DeliveryStoreDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.PixChargeDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.PixSettingsDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.PreSaleCounterDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.PreSaleDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductImportReceiptDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
@@ -33,7 +35,9 @@ public class MongoTenantDataPurgeAdapter implements TenantDataPurgePort {
           CashSessionDocument.class,
           AccessLogDocument.class,
           PixChargeDocument.class,
-          PixSettingsDocument.class);
+          PixSettingsDocument.class,
+          PreSaleDocument.class,
+          PreSaleCounterDocument.class);
 
   private final MongoTemplate mongo;
 

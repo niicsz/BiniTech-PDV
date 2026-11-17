@@ -317,6 +317,7 @@ public class PixUseCaseImpl implements PixUseCasePort {
     }
     Sale sale = copyRequest(charge.getSaleRequest());
     sale.setSkipStockValidation(true);
+    sale.setPaymentConfirmed(true);
     try {
       Sale created = saleUseCase.createSale(sale, charge.getUserId(), charge.getTenantId());
       charge.setSaleId(created.getId());
@@ -459,6 +460,7 @@ public class PixUseCaseImpl implements PixUseCasePort {
     copy.setDiscount(source.getDiscount());
     copy.setSurcharge(source.getSurcharge());
     copy.setSkipStockValidation(source.isSkipStockValidation());
+    copy.setPreSaleId(source.getPreSaleId());
     return copy;
   }
 

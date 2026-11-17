@@ -54,4 +54,5 @@ public class SaleDocument {
   private double discount;
   private double surcharge;
   private String cashSessionId;
+  private String preSaleId;
 }

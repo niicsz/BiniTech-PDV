@@ -42,6 +42,8 @@ public class Sale {
   private double discount;
   private double surcharge;
   private String cashSessionId;
+  private String preSaleId;
+  private boolean paymentConfirmed;
 
   public Sale() {
     this.items = new ArrayList<>();
@@ -474,6 +476,22 @@ public class Sale {
 
   public void setCashSessionId(String cashSessionId) {
     this.cashSessionId = cashSessionId;
+  }
+
+  public String getPreSaleId() {
+    return preSaleId;
+  }
+
+  public void setPreSaleId(String preSaleId) {
+    this.preSaleId = preSaleId;
+  }
+
+  public boolean isPaymentConfirmed() {
+    return paymentConfirmed;
+  }
+
+  public void setPaymentConfirmed(boolean paymentConfirmed) {
+    this.paymentConfirmed = paymentConfirmed;
   }
 
   public int getReturnsVersion() {

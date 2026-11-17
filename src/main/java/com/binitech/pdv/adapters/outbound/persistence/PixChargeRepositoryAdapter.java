@@ -114,6 +114,7 @@ public class PixChargeRepositoryAdapter implements PixChargeRepositoryPort {
         .discount(sale.getDiscount())
         .surcharge(sale.getSurcharge())
         .skipStockValidation(sale.isSkipStockValidation())
+        .preSaleId(sale.getPreSaleId())
         .build();
   }
 
@@ -169,6 +170,7 @@ public class PixChargeRepositoryAdapter implements PixChargeRepositoryPort {
     sale.setDiscount(request.getDiscount());
     sale.setSurcharge(request.getSurcharge());
     sale.setSkipStockValidation(request.isSkipStockValidation());
+    sale.setPreSaleId(request.getPreSaleId());
     return sale;
   }
 }
