@@ -45,4 +45,17 @@ public record EmailEvent(
     return new EmailEvent(
         EmailType.PASSWORD_RESET, to, tenantName, null, username, null, actionLink);
   }
+
+  @Override
+  public String toString() {
+    return "EmailEvent[type="
+        + type
+        + ", tenantSlug="
+        + tenantSlug
+        + ", tempPassword="
+        + (tempPassword == null ? null : "***")
+        + ", actionLink="
+        + (actionLink == null ? null : "***")
+        + "]";
+  }
 }

@@ -30,15 +30,10 @@ class ProductRepositoryAdapterCacheTest {
     when(mapper.toDomain(any(ProductDocument.class))).thenReturn(product);
     when(repository.findAllByTenantId(eq("t1"), any(Pageable.class))).thenReturn(List.of(document));
     when(repository.findAllByUserId(eq("u1"), any(Pageable.class))).thenReturn(List.of(document));
-    when(repository.findAll(any(Pageable.class)))
-        .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(document)));
     ProductRepositoryAdapter adapter = new ProductRepositoryAdapter(repository, mapper, null);
 
     for (List<Product> cached :
-        List.of(
-            adapter.findAllByTenantId("t1", 0, 200),
-            adapter.findAllByUserId("u1", 0, 200),
-            adapter.findAll(0, 200))) {
+        List.of(adapter.findAllByTenantId("t1", 0, 200), adapter.findAllByUserId("u1", 0, 200))) {
       Object restored = RedisCacheTestSupport.roundTrip(cached);
       assertEquals(1, ((List<?>) restored).size());
       assertEquals("p1", ((Product) ((List<?>) restored).get(0)).getId());

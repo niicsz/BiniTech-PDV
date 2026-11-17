@@ -1,6 +1,12 @@
 package com.binitech.pdv.adapters.outbound.persistence;
 
+import com.binitech.pdv.adapters.outbound.persistence.document.AccessLogDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.CashSessionDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.CheckoutSessionDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.DeliveryOrderDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.DeliveryStoreDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.PixChargeDocument;
+import com.binitech.pdv.adapters.outbound.persistence.document.PixSettingsDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.ProductImportReceiptDocument;
 import com.binitech.pdv.adapters.outbound.persistence.document.SaleDocument;
@@ -21,7 +27,13 @@ public class MongoTenantDataPurgeAdapter implements TenantDataPurgePort {
           SaleDocument.class,
           ProductDocument.class,
           ProductImportReceiptDocument.class,
-          UserDocument.class);
+          UserDocument.class,
+          DeliveryOrderDocument.class,
+          DeliveryStoreDocument.class,
+          CashSessionDocument.class,
+          AccessLogDocument.class,
+          PixChargeDocument.class,
+          PixSettingsDocument.class);
 
   private final MongoTemplate mongo;
 

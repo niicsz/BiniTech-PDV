@@ -38,6 +38,7 @@ public class PixUseCaseImpl implements PixUseCasePort {
   private static final String UNAVAILABLE = "Pix integrado indisponível.";
   private static final String NOT_FOUND = "Cobrança Pix não encontrada.";
   private static final int MAX_TOKEN_LENGTH = 500;
+  private static final Duration UNSIGNED_NOTIFICATION_INTERVAL = Duration.ofSeconds(15);
 
   public record Options(
       boolean enabled,
@@ -257,11 +258,20 @@ public class PixUseCaseImpl implements PixUseCasePort {
       }
       return;
     }
+    boolean unsigned = secret == null || secret.isBlank();
+    if (unsigned && (notification.dataId() == null || recentlyChecked(charge))) {
+      return;
+    }
     if (notification.dataId() != null
         && !notification.dataId().equals(charge.getProviderPaymentId())) {
       return;
     }
     refresh(charge, settings);
+  }
+
+  private boolean recentlyChecked(PixCharge charge) {
+    LocalDateTime last = charge.getLastCheckedAt();
+    return last != null && last.plus(UNSIGNED_NOTIFICATION_INTERVAL).isAfter(now());
   }
 
   private PixCharge refresh(PixCharge charge, PixSettings settings) {

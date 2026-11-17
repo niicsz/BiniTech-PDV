@@ -8,8 +8,11 @@ import com.binitech.pdv.domain.exception.ResourceNotFoundException;
 import com.binitech.pdv.domain.exception.SessionRejectedException;
 import com.binitech.pdv.domain.exception.TooManyRequestsException;
 import com.binitech.pdv.domain.exception.TwoFactorException;
+import com.binitech.pdv.utils.LogSanitizer;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +29,18 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  private static final Set<String> SENSITIVE_FIELDS =
+      Set.of(
+          "password",
+          "currentpassword",
+          "newpassword",
+          "confirmpassword",
+          "token",
+          "refreshtoken",
+          "code",
+          "secret",
+          "accesstoken",
+          "webhooksecret");
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorDTO> handleValidation(MethodArgumentNotValidException ex) {
@@ -39,7 +54,13 @@ public class GlobalExceptionHandler {
                   if (rejected == null || rejected.toString().isBlank()) {
                     return fieldLabel + " é obrigatório(a).";
                   }
-                  return fieldLabel + ": valor inválido (" + rejected + ").";
+                  if (SENSITIVE_FIELDS.contains(field.toLowerCase(Locale.ROOT))) {
+                    return fieldLabel + ": valor inválido.";
+                  }
+                  return fieldLabel
+                      + ": valor inválido ("
+                      + LogSanitizer.neutralize(rejected.toString())
+                      + ").";
                 })
             .collect(Collectors.joining(" "));
     if (message.isBlank()) {

@@ -118,13 +118,6 @@ public class SaleRepositoryAdapter implements SaleRepositoryPort {
   }
 
   @Override
-  public List<Sale> findAll(int page, int size) {
-    return repository.findAll(PageRequest.of(page, size, NEWEST_FIRST)).stream()
-        .map(mapper::toDomain)
-        .toList();
-  }
-
-  @Override
   public List<Sale> findAllByUserId(String userId, int page, int size) {
     return repository.findAllByUserId(userId, PageRequest.of(page, size, NEWEST_FIRST)).stream()
         .map(mapper::toDomain)

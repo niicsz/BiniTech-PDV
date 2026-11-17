@@ -49,11 +49,11 @@ public class TenantController {
     if (request.website() != null && !request.website().isBlank()) {
       throw new BusinessException("Não foi possível concluir o cadastro.");
     }
+    if (!signupLimiter.tryAcquire(ip)) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+          .body(new SignupError("Muitos cadastros a partir desta rede. Tente de novo amanhã."));
+    }
     if (request.password() != null) {
-      if (!signupLimiter.tryAcquire(ip)) {
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-            .body(new SignupError("Muitos cadastros a partir desta rede. Tente de novo amanhã."));
-      }
       TenantUseCasePort.SignupResult result =
           tenantUseCase.signUp(
               new TenantUseCasePort.SelfSignup(
