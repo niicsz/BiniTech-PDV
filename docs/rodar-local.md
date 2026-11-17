@@ -31,6 +31,12 @@ Todas as portas ficam presas em `127.0.0.1`.
 
 O login do administrador é o `ADMIN_USERNAME` com a `ADMIN_PASSWORD` do `.env.local`. O serviço `seed` cria esse usuário no PDV e a identidade dele no Auth; ele roda uma vez a cada subida e não altera um administrador que já existe.
 
+Trocar `ADMIN_PASSWORD` no `.env.local` depois da primeira subida não muda a senha: a anterior continua valendo. Para trocar, use a troca de senha do próprio sistema ou apague os volumes com `down -v` e suba de novo.
+
+## Versão do Auth
+
+O compose constrói o BiniTech-Auth a partir de um commit fixo, indicado em `docker-compose.local.yml` depois do `#` no `context` do serviço `auth`. Para usar uma versão mais nova, troque esse valor pelo commit desejado da `main` do Auth.
+
 ## Frontend
 
 O frontend fica em outro repositório ([BiniTech-PDV-frontend](https://github.com/niicsz/BiniTech-PDV-frontend)). Com o backend no ar, rode `npm install` e `npm start` lá; ele abre em http://localhost:4200 e encaminha `/api` para a porta 8080.
