@@ -45,6 +45,7 @@ public interface WebMapper {
   @Mapping(target = "returnsVersion", ignore = true)
   @Mapping(target = "itemsTotal", ignore = true)
   @Mapping(target = "cashSessionId", ignore = true)
+  @Mapping(target = "paymentConfirmed", ignore = true)
   Sale toDomain(CreateSaleDTO dto);
 
   @Mapping(target = "productDescription", ignore = true)

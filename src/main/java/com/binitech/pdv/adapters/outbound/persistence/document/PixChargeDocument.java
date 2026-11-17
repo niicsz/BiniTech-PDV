@@ -47,6 +47,7 @@ public class PixChargeDocument {
     private double discount;
     private double surcharge;
     private boolean skipStockValidation;
+    private String preSaleId;
   }
 
   @Data

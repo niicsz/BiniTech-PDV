@@ -29,6 +29,8 @@ tags:
     description: Cardápio e pedidos públicos do delivery
   - name: Images
     description: Logo e capa da loja, fotos de produto e entrega pública das imagens
+  - name: PreSales
+    description: Comandas lançadas no balcão e pagas no caixa
 
 paths:
   /api/auth/login:
@@ -822,6 +824,106 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDTO'
 
+  /api/pre-sales:
+    get:
+      tags: [PreSales]
+      summary: Listar as comandas mais recentes da loja
+      operationId: listPreSales
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PreSaleStatusDTO'
+      responses:
+        '200':
+          description: Comandas da loja, das mais novas para as mais antigas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PreSaleDTO'
+    post:
+      tags: [PreSales]
+      summary: Abrir uma comanda no balcão
+      operationId: createPreSale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreSaleDTO'
+      responses:
+        '201':
+          description: Comanda aberta com o número para o cliente levar ao caixa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreSaleDTO'
+        '400':
+          description: Produto inválido ou quantidade fora do limite
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/pre-sales/number/{number}:
+    get:
+      tags: [PreSales]
+      summary: Buscar uma comanda pelo número
+      operationId: getPreSaleByNumber
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Comanda encontrada, em qualquer situação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreSaleDTO'
+        '404':
+          description: Comanda não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+
+  /api/pre-sales/{id}/cancel:
+    post:
+      tags: [PreSales]
+      summary: Cancelar uma comanda aberta
+      operationId: cancelPreSale
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comanda cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreSaleDTO'
+        '400':
+          description: Comanda já paga ou cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '403':
+          description: Só quem abriu a comanda ou um administrador pode cancelar
+        '404':
+          description: Comanda não encontrada
+
   /api/pix/settings:
     get:
       tags: [Pix]
@@ -1578,6 +1680,8 @@ components:
           format: double
         cashSessionId:
           type: string
+        preSaleId:
+          type: string
 
     SaleStatusEnum:
       type: string
@@ -1710,6 +1814,10 @@ components:
           minimum: 0
           maximum: 1000000
           description: Acréscimo em reais sobre o total dos produtos
+        preSaleId:
+          type: string
+          maxLength: 64
+          description: Comanda paga por esta venda (opcional)
 
     CreateSaleItemDTO:
       type: object
@@ -1936,6 +2044,63 @@ components:
     CashSessionStatusDTO:
       type: string
       enum: [OPEN, CLOSED]
+
+    PreSaleStatusDTO:
+      type: string
+      enum: [OPEN, PAID, CANCELLED]
+
+    CreatePreSaleItemDTO:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: string
+          maxLength: 64
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 999
+
+    CreatePreSaleDTO:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/CreatePreSaleItemDTO'
+        notes:
+          type: string
+          maxLength: 280
+
+    PreSaleItemDTO:
+      type: object
+      properties:
+        productId: { type: string }
+        description: { type: string }
+        unitPrice: { type: number, format: double }
+        quantity: { type: integer }
+        subtotal: { type: number, format: double }
+
+    PreSaleDTO:
+      type: object
+      properties:
+        id: { type: string }
+        number: { type: integer, format: int64 }
+        status:
+          $ref: '#/components/schemas/PreSaleStatusDTO'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreSaleItemDTO'
+        total: { type: number, format: double }
+        notes: { type: string }
+        attendantName: { type: string }
+        saleId: { type: string }
+        createdAt: { type: string, format: date-time }
+        closedAt: { type: string, format: date-time }
 
     CashMovementTypeDTO:
       type: string

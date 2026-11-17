@@ -10,6 +10,7 @@ import com.binitech.pdv.application.ports.inbound.DataRetentionUseCasePort;
 import com.binitech.pdv.application.ports.inbound.DeliveryUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PasswordResetUseCasePort;
 import com.binitech.pdv.application.ports.inbound.PixUseCasePort;
+import com.binitech.pdv.application.ports.inbound.PreSaleUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductImportIntegrationUseCasePort;
 import com.binitech.pdv.application.ports.inbound.ProductUseCasePort;
 import com.binitech.pdv.application.ports.inbound.SaleUseCasePort;
@@ -28,6 +29,7 @@ import com.binitech.pdv.application.ports.outbound.InvoiceRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixChargeRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.PixGatewayPort;
 import com.binitech.pdv.application.ports.outbound.PixSettingsRepositoryPort;
+import com.binitech.pdv.application.ports.outbound.PreSaleRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductImportReceiptRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.ProductRepositoryPort;
 import com.binitech.pdv.application.ports.outbound.SaleEventPublisherPort;
@@ -44,6 +46,7 @@ import com.binitech.pdv.application.usecases.DataRetentionUseCaseImpl;
 import com.binitech.pdv.application.usecases.DeliveryUseCaseImpl;
 import com.binitech.pdv.application.usecases.PasswordResetUseCaseImpl;
 import com.binitech.pdv.application.usecases.PixUseCaseImpl;
+import com.binitech.pdv.application.usecases.PreSaleUseCaseImpl;
 import com.binitech.pdv.application.usecases.ProductImportIntegrationUseCase;
 import com.binitech.pdv.application.usecases.ProductUseCaseImpl;
 import com.binitech.pdv.application.usecases.SaleFiscalPublisher;
@@ -99,14 +102,22 @@ public class BeanConfig {
       ProductRepositoryPort productRepositoryPort,
       @Value("${app.business-time-zone:America/Sao_Paulo}") String businessTimeZone,
       SaleFiscalPublisher saleFiscalPublisher,
-      CashSessionRepositoryPort cashSessionRepositoryPort) {
+      CashSessionRepositoryPort cashSessionRepositoryPort,
+      PreSaleRepositoryPort preSaleRepositoryPort) {
     log.info("Configurando SaleUseCasePort");
     return new SaleUseCaseImpl(
         saleRepositoryPort,
         productRepositoryPort,
         ZoneId.of(businessTimeZone),
         saleFiscalPublisher,
-        cashSessionRepositoryPort);
+        cashSessionRepositoryPort,
+        preSaleRepositoryPort);
+  }
+
+  @Bean
+  public PreSaleUseCasePort preSaleUseCasePort(
+      PreSaleRepositoryPort preSaleRepositoryPort, ProductRepositoryPort productRepositoryPort) {
+    return new PreSaleUseCaseImpl(preSaleRepositoryPort, productRepositoryPort, Clock.systemUTC());
   }
 
   @Bean
