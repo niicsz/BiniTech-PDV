@@ -1,0 +1,125 @@
+name: binitech-pdv-local
+
+services:
+  mongodb:
+    image: mongo:8
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - pdv_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Defina RABBITMQ_USERNAME no arquivo .env.local}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no arquivo .env.local}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  auth-mongodb:
+    image: mongo:8
+    volumes:
+      - auth_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  auth:
+    build:
+      context: https://github.com/niicsz/BiniTech-Auth.git#main
+      dockerfile: Dockerfile
+    depends_on:
+      auth-mongodb:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      PORT: 8081
+      AUTH_MONGODB_URI: mongodb://auth-mongodb:27017
+      AUTH_MONGODB_DATABASE: binitech_auth
+      AUTH_APPLICATION_ID: pdv
+      AUTH_SERVICE_KEY: ${AUTH_SERVICE_KEY:?Defina AUTH_SERVICE_KEY no arquivo .env.local}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo .env.local}
+      SECURITY_PEPPER: ${SECURITY_PEPPER:?Defina SECURITY_PEPPER no arquivo .env.local}
+      AUTH_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
+
+  seed:
+    image: mongo:8
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      auth:
+        condition: service_started
+    restart: "no"
+    volumes:
+      - ./docker/local/seed.js:/seed/seed.js:ro
+    environment:
+      AUTH_URL: http://auth:8081
+      AUTH_SERVICE_KEY: ${AUTH_SERVICE_KEY:?Defina AUTH_SERVICE_KEY no arquivo .env.local}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no arquivo .env.local}
+    command: ["mongosh", "mongodb://mongodb:27017/binitech_pdv", "--quiet", "--file", "/seed/seed.js"]
+
+  pdv:
+    build: .
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PORT: 8080
+      MONGODB_URI: mongodb://mongodb:27017
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?Defina RABBITMQ_USERNAME no arquivo .env.local}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD no arquivo .env.local}
+      AUTH_SERVICE_URL: http://auth:8081
+      AUTH_SERVICE_KEY: ${AUTH_SERVICE_KEY:?Defina AUTH_SERVICE_KEY no arquivo .env.local}
+      PRODUCT_IMPORT_SERVICE_KEY: ${PRODUCT_IMPORT_SERVICE_KEY:?Defina PRODUCT_IMPORT_SERVICE_KEY no arquivo .env.local}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200}
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost:4200}
+      APP_BUSINESS_TIME_ZONE: ${APP_BUSINESS_TIME_ZONE:-America/Sao_Paulo}
+      SIGNUP_AUTO_APPROVE: ${SIGNUP_AUTO_APPROVE:-true}
+      DELIVERY_ENABLED: ${DELIVERY_ENABLED:-true}
+      PIX_ENABLED: ${PIX_ENABLED:-false}
+      IMAGES_STORAGE: ${IMAGES_STORAGE:-none}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
+      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://api-sandbox.asaas.com/v3}
+
+volumes:
+  pdv_mongo_data:
+  auth_mongo_data:

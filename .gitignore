@@ -59,3 +59,4 @@ skills-lock.json
 /product-import-service/
 .env.*
 !.env.example
+!.env.local.example

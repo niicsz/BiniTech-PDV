@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
-RUN chmod +x mvnw
+RUN sed -i 's/\r$//' mvnw .mvn/wrapper/maven-wrapper.properties && chmod +x mvnw
 
 RUN ./mvnw dependency:go-offline -B
 
