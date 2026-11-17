@@ -3,7 +3,6 @@ package com.binitech.pdv.application.usecases;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -102,8 +101,9 @@ class PreSaleUseCaseImplTest {
   @DisplayName("Produto de outra loja não entra na comanda")
   void rejectsProductFromOtherTenant() {
     when(products.findById("p1")).thenReturn(Optional.of(product("p1", "Pão", 1, "t2")));
+    List<ItemRequest> items = List.of(new ItemRequest("p1", 1));
 
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(new ItemRequest("p1", 1)), null))
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, items, null))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("catálogo");
     verify(preSales, never()).nextNumber(any());
@@ -115,8 +115,9 @@ class PreSaleUseCaseImplTest {
     Product inactive = product("p1", "Sonho", 4, "t1");
     inactive.setActive(false);
     when(products.findById("p1")).thenReturn(Optional.of(inactive));
+    List<ItemRequest> items = List.of(new ItemRequest("p1", 1));
 
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(new ItemRequest("p1", 1)), null))
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, items, null))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("inativo");
   }
@@ -124,12 +125,15 @@ class PreSaleUseCaseImplTest {
   @Test
   @DisplayName("Comanda vazia, quantidade zero ou acima do limite é recusada")
   void validatesItems() {
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(), null))
+    List<ItemRequest> empty = List.of();
+    List<ItemRequest> zero = List.of(new ItemRequest("p1", 0));
+    List<ItemRequest> tooMany = List.of(new ItemRequest("p1", 1000));
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, empty, null))
         .isInstanceOf(BusinessException.class);
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(new ItemRequest("p1", 0)), null))
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, zero, null))
         .isInstanceOf(BusinessException.class);
     when(products.findById("p1")).thenReturn(Optional.of(product("p1", "Pão", 1, "t1")));
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(new ItemRequest("p1", 1000)), null))
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, tooMany, null))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("limite");
     List<ItemRequest> many =
@@ -144,8 +148,9 @@ class PreSaleUseCaseImplTest {
   void rejectsLongNotes() {
     when(products.findById("p1")).thenReturn(Optional.of(product("p1", "Pão", 1, "t1")));
     String notes = String.join("", Collections.nCopies(281, "a"));
+    List<ItemRequest> items = List.of(new ItemRequest("p1", 1));
 
-    assertThatThrownBy(() -> useCase.create(BALCONISTA, List.of(new ItemRequest("p1", 1)), notes))
+    assertThatThrownBy(() -> useCase.create(BALCONISTA, items, notes))
         .isInstanceOf(BusinessException.class);
   }
 
@@ -165,7 +170,7 @@ class PreSaleUseCaseImplTest {
   @DisplayName("Quem abriu a comanda pode cancelar")
   void attendantCancels() {
     when(preSales.findByIdAndTenantId("c1", "t1")).thenReturn(Optional.of(open("u1")));
-    when(preSales.close(eq("c1"), eq("t1"), eq(PreSaleStatus.CANCELLED), eq(NOW))).thenReturn(true);
+    when(preSales.close("c1", "t1", PreSaleStatus.CANCELLED, NOW)).thenReturn(true);
 
     useCase.cancel(BALCONISTA, "c1");
 

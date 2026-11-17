@@ -113,7 +113,9 @@ class SalePreSaleLinkTest {
     when(preSales.findByIdAndTenantId("c1", "t1"))
         .thenReturn(Optional.of(preSale(PreSaleStatus.PAID)));
 
-    assertThatThrownBy(() -> useCase.createSale(saleRequest("c1"), "u1", "t1"))
+    Sale request = saleRequest("c1");
+
+    assertThatThrownBy(() -> useCase.createSale(request, "u1", "t1"))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("#42 já foi paga");
     verify(saleRepository, never()).save(any());
@@ -128,7 +130,9 @@ class SalePreSaleLinkTest {
         .thenReturn(Optional.of(preSale(PreSaleStatus.OPEN)));
     when(preSales.close(eq("c1"), eq("t1"), eq(PreSaleStatus.PAID), any())).thenReturn(false);
 
-    assertThatThrownBy(() -> useCase.createSale(saleRequest("c1"), "u1", "t1"))
+    Sale request = saleRequest("c1");
+
+    assertThatThrownBy(() -> useCase.createSale(request, "u1", "t1"))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("acabou de mudar");
     verify(saleRepository, never()).save(any());
@@ -143,7 +147,9 @@ class SalePreSaleLinkTest {
         .thenReturn(Optional.of(preSale(PreSaleStatus.OPEN)));
     when(preSales.close(eq("c1"), eq("t1"), eq(PreSaleStatus.PAID), any())).thenReturn(true);
 
-    assertThatThrownBy(() -> useCase.createSale(saleRequest("c1"), "u1", "t1"))
+    Sale request = saleRequest("c1");
+
+    assertThatThrownBy(() -> useCase.createSale(request, "u1", "t1"))
         .isInstanceOf(BusinessException.class);
     verify(preSales).reopen("c1", "t1");
     verify(saleRepository, never()).save(any());
@@ -159,7 +165,9 @@ class SalePreSaleLinkTest {
     when(preSales.close(eq("c1"), eq("t1"), eq(PreSaleStatus.PAID), any())).thenReturn(true);
     when(saleRepository.save(any())).thenThrow(new IllegalStateException("banco fora"));
 
-    assertThatThrownBy(() -> useCase.createSale(saleRequest("c1"), "u1", "t1"))
+    Sale request = saleRequest("c1");
+
+    assertThatThrownBy(() -> useCase.createSale(request, "u1", "t1"))
         .isInstanceOf(IllegalStateException.class);
     verify(productRepository).increaseStock("p1", "t1", 10);
     verify(preSales).reopen("c1", "t1");
@@ -189,7 +197,9 @@ class SalePreSaleLinkTest {
     when(preSales.findByIdAndTenantId("c1", "t1"))
         .thenReturn(Optional.of(preSale(PreSaleStatus.CANCELLED)));
 
-    assertThatThrownBy(() -> useCase.previewSale(saleRequest("c1"), "t1"))
+    Sale request = saleRequest("c1");
+
+    assertThatThrownBy(() -> useCase.previewSale(request, "t1"))
         .isInstanceOf(BusinessException.class)
         .hasMessageContaining("cancelada");
   }
