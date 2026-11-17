@@ -87,6 +87,26 @@ def read(path):
     return text
 
 
+def read_blob(rev, path):
+    try:
+        entry = git("ls-tree", "-l", rev, "--", path).strip()
+    except subprocess.CalledProcessError:
+        return None
+    meta = entry.split("\t", 1)[0].split()
+    if len(meta) != 4 or meta[0] not in ("100644", "100755") or not meta[3].isdigit():
+        return None
+    if int(meta[3]) > MAX_FILE_CHARS * 4:
+        return None
+    try:
+        raw = subprocess.run([GIT, "cat-file", "blob", meta[2]], check=True, capture_output=True).stdout
+        text = raw.decode("utf-8")
+    except (subprocess.CalledProcessError, UnicodeDecodeError):
+        return None
+    if "\x00" in text or len(text) > MAX_FILE_CHARS:
+        return None
+    return text
+
+
 def log(level, message):
     text = str(message).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
     print(f"::{level}::{text}")
@@ -195,7 +215,7 @@ def diff_review(repo, base, head):
         note = " O diff foi cortado por tamanho; diga no resumo que parte dele não foi revisada."
     files, total = [], len(diff)
     for p in changed:
-        t = read(p)
+        t = read_blob(head, p)
         if t is not None and total + len(t) <= MAX_DIFF_CHARS:
             files.append((p, t))
             total += len(t)
